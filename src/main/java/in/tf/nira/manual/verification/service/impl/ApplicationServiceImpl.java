@@ -30,6 +30,7 @@ import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import in.tf.nira.manual.verification.constant.CommonConstants;
 import in.tf.nira.manual.verification.constant.FailureConstants;
 import in.tf.nira.manual.verification.constant.StageCode;
 import in.tf.nira.manual.verification.dto.ApplicationDetailsResponse;
@@ -58,10 +59,10 @@ public class ApplicationServiceImpl implements ApplicationService {
 	@Value("${manual.verification.user.details.url}")
     private String userDetailsUrl;
 	
-	@Value("#{'${app.officer.roles:MVS_OFFICER,MVS_SUPERVISOR,MVS_DISTRICT_OFFICER,MVS_LEGAL_OFFICER}'.split(',')}")
+	@Value("#{'${manual.verification.officer.roles}'.split(',')}")
     private List<String> officerRoles;
 	
-	@Value("${data.share.encryption:false}")
+	@Value("${manual.verification.data.share.encryption:false}")
 	private boolean encryption;
 	
 	Map<String, List<OfficerDetailDTO>> officerDetailMap = new HashMap<>();
@@ -92,11 +93,11 @@ public class ApplicationServiceImpl implements ApplicationService {
 	
 	@Override
 	public AuthenticationResponse createApplication(CreateAppRequestDTO verifyRequest) throws Exception {
-		OfficerAssignment officerAssignment = officerAssignmentRepo.findByUserRole("MVS_OFFICER");
+		OfficerAssignment officerAssignment = officerAssignmentRepo.findByUserRole(CommonConstants.MVS_OFFICER_ROLE);
 		if(officerAssignment == null) {
 			officerAssignment = new OfficerAssignment();
 		}
-		OfficerDetailDTO selectedOfficer = fetchOfficerAssignment("MVS_OFFICER", officerAssignment);
+		OfficerDetailDTO selectedOfficer = fetchOfficerAssignment(CommonConstants.MVS_OFFICER_ROLE, officerAssignment);
 		
 		if(selectedOfficer != null) {
 			MVSApplication mVSApplication = new MVSApplication();
@@ -136,12 +137,12 @@ public class ApplicationServiceImpl implements ApplicationService {
 			userApp.setStatus(app.getStage());
 			userApp.setCrDTimes(app.getCrDTimes());
 			
-			if(app.getAssignedOfficerRole().equals("MVS_SUPERVISOR")) {
+			if(app.getAssignedOfficerRole().equals(CommonConstants.MVS_SUPERVISOR_ROLE)) {
 				userApp.setOfficerEscReason(app.getComments());
 			}
-			else if(app.getAssignedOfficerRole().equals("MVS_DISTRICT_OFFICER")) {
+			else if(app.getAssignedOfficerRole().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE)) {
 				userApp.setSupervisorEscReason(app.getComments());
-				MVSApplicationHistory appHistory = mVSApplicationHistoryRepo.findByRegIdAndAssignedOfficerRole(app.getRegId(), "MVS_SUPERVISOR");
+				MVSApplicationHistory appHistory = mVSApplicationHistoryRepo.findByRegIdAndAssignedOfficerRole(app.getRegId(), CommonConstants.MVS_SUPERVISOR_ROLE);
 				
 				if(appHistory != null) {
 					userApp.setOfficerEscReason(appHistory.getComments());
@@ -221,23 +222,23 @@ public class ApplicationServiceImpl implements ApplicationService {
 		Optional<MVSApplication> optional = mVSApplicationRepo.findById(applicationId);
 		MVSApplication application = optional.get();
 		
-		if(request.getStatus().equals("APPROVE")) {
+		if(request.getStatus().equals(CommonConstants.APPROVE_STATUS)) {
 			application.setStage(StageCode.APPROVED.getStage());
 			//comment
 			mVSApplicationRepo.save(application);
 		}
-		else if(request.getStatus().equals("REJECT")) {
+		else if(request.getStatus().equals(CommonConstants.REJECT_STATUS)) {
 			application.setStage(StageCode.REJECTED.getStage());
 			//comment and rejection cat
 			mVSApplicationRepo.save(application);
 		}
-		else if(request.getStatus().equals("ESCALATE")) {
-			if(application.getAssignedOfficerRole().equals("MVS_OFFICER")) {
-				OfficerAssignment officerAssignment = officerAssignmentRepo.findByUserRole("MVS_SUPERVISOR");
+		else if(request.getStatus().equals(CommonConstants.ESCALATE_STATUS)) {
+			if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_OFFICER_ROLE)) {
+				OfficerAssignment officerAssignment = officerAssignmentRepo.findByUserRole(CommonConstants.MVS_SUPERVISOR_ROLE);
 				if(officerAssignment == null) {
 					officerAssignment = new OfficerAssignment();
 				}
-				OfficerDetailDTO selectedOfficer = fetchOfficerAssignment("MVS_SUPERVISOR", officerAssignment);
+				OfficerDetailDTO selectedOfficer = fetchOfficerAssignment(CommonConstants.MVS_SUPERVISOR_ROLE, officerAssignment);
 				
 				if(selectedOfficer != null) {
 					MVSApplicationHistory appHistory = getAppHistoryEntity(application);
@@ -259,12 +260,12 @@ public class ApplicationServiceImpl implements ApplicationService {
 					mVSApplicationHistoryRepo.save(appHistory);
 				}
 			}
-			else if(application.getAssignedOfficerRole().equals("MVS_SUPERVISOR")) {
-				OfficerAssignment officerAssignment = officerAssignmentRepo.findByUserRole("MVS_DISTRICT_OFFICER");
+			else if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_SUPERVISOR_ROLE)) {
+				OfficerAssignment officerAssignment = officerAssignmentRepo.findByUserRole(CommonConstants.MVS_DISTRICT_OFFICER_ROLE);
 				if(officerAssignment == null) {
 					officerAssignment = new OfficerAssignment();
 				}
-				OfficerDetailDTO selectedOfficer = fetchOfficerAssignment("MVS_DISTRICT_OFFICER", officerAssignment);
+				OfficerDetailDTO selectedOfficer = fetchOfficerAssignment(CommonConstants.MVS_DISTRICT_OFFICER_ROLE, officerAssignment);
 				
 				if(selectedOfficer != null) {
 					MVSApplicationHistory appHistory = getAppHistoryEntity(application);
@@ -290,9 +291,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 				//cannot escalate
 			}
 		}
-		else if(request.getStatus().equals("SCHEDULE_INTERVIEW")) {
-			if(application.getAssignedOfficerRole().equals("MVS_DISTRICT_OFFICER") || 
-					application.getAssignedOfficerRole().equals("MVS_LEGAL_OFFICER")) {
+		else if(request.getStatus().equals(CommonConstants.SCHEDULE_INTERVIEW_STATUS)) {
+			if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE) || 
+					application.getAssignedOfficerRole().equals(CommonConstants.MVS_LEGAL_OFFICER_ROLE)) {
 				application.setStage(StageCode.INTERVIEW_SCHEDULED.getStage());
 				mVSApplicationRepo.save(application);
 			}
