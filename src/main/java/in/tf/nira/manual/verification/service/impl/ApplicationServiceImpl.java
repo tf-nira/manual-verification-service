@@ -43,8 +43,10 @@ import in.tf.nira.manual.verification.dto.UserResponse;
 import in.tf.nira.manual.verification.dto.UserResponse.Response;
 import in.tf.nira.manual.verification.dto.CreateAppRequestDTO;
 import in.tf.nira.manual.verification.entity.MVSApplication;
+import in.tf.nira.manual.verification.entity.MVSApplicationHistory;
 import in.tf.nira.manual.verification.entity.OfficerAssignment;
 import in.tf.nira.manual.verification.exception.RequestException;
+import in.tf.nira.manual.verification.repository.MVSApplicationHistoryRepo;
 import in.tf.nira.manual.verification.repository.MVSApplicationRepo;
 import in.tf.nira.manual.verification.repository.OfficerAssignmentRepo;
 import in.tf.nira.manual.verification.service.ApplicationService;
@@ -76,6 +78,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 	
 	@Autowired
 	private MVSApplicationRepo mVSApplicationRepo;
+	
+	@Autowired
+	private MVSApplicationHistoryRepo mVSApplicationHistoryRepo;
 	
 	@Autowired
 	ObjectMapper objectMapper;
@@ -122,12 +127,26 @@ public class ApplicationServiceImpl implements ApplicationService {
 		List<MVSApplication> applications = mVSApplicationRepo.findByAssignedOfficerId(userId);
 		List<UserApplicationsResponse> response = new ArrayList<>();
 		
-		applications.forEach(app -> {
+		applications.stream().filter(app -> !app.getStage().equals(StageCode.APPROVED.getStage()) && 
+				!app.getStage().equals(StageCode.REJECTED.getStage())).forEach(app -> {
 			UserApplicationsResponse userApp = new UserApplicationsResponse();
 			userApp.setApplicationId(app.getRegId());
 			userApp.setService(app.getService());
 			userApp.setServiceType(app.getServiceType());
+			userApp.setStatus(app.getStage());
 			userApp.setCrDTimes(app.getCrDTimes());
+			
+			if(app.getAssignedOfficerRole().equals("MVS_SUPERVISOR")) {
+				userApp.setOfficerEscReason(app.getComments());
+			}
+			else if(app.getAssignedOfficerRole().equals("MVS_DISTRICT_OFFICER")) {
+				userApp.setSupervisorEscReason(app.getComments());
+				MVSApplicationHistory appHistory = mVSApplicationHistoryRepo.findByRegIdAndAssignedOfficerRole(app.getRegId(), "MVS_SUPERVISOR");
+				
+				if(appHistory != null) {
+					userApp.setOfficerEscReason(appHistory.getComments());
+				}
+			}
 			
 			response.add(userApp);
 		});
@@ -221,10 +240,12 @@ public class ApplicationServiceImpl implements ApplicationService {
 				OfficerDetailDTO selectedOfficer = fetchOfficerAssignment("MVS_SUPERVISOR", officerAssignment);
 				
 				if(selectedOfficer != null) {
+					MVSApplicationHistory appHistory = getAppHistoryEntity(application);
 					application.setAssignedOfficerId(selectedOfficer.getUserId());
 					application.setAssignedOfficerName(selectedOfficer.getUserName());
 					application.setAssignedOfficerRole(selectedOfficer.getUserRole());
 					application.setStage(StageCode.ASSIGNED_TO_SUPERVISOR.getStage());
+					application.setComments(request.getComment());
 					application.setUpdatedBy("");
 					application.setUpdatedTimes(LocalDateTime.now());
 					
@@ -235,6 +256,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 						officerAssignment.setCrDTimes(LocalDateTime.now());
 					}
 					officerAssignmentRepo.save(officerAssignment);
+					mVSApplicationHistoryRepo.save(appHistory);
 				}
 			}
 			else if(application.getAssignedOfficerRole().equals("MVS_SUPERVISOR")) {
@@ -245,10 +267,12 @@ public class ApplicationServiceImpl implements ApplicationService {
 				OfficerDetailDTO selectedOfficer = fetchOfficerAssignment("MVS_DISTRICT_OFFICER", officerAssignment);
 				
 				if(selectedOfficer != null) {
+					MVSApplicationHistory appHistory = getAppHistoryEntity(application);
 					application.setAssignedOfficerId(selectedOfficer.getUserId());
 					application.setAssignedOfficerName(selectedOfficer.getUserName());
 					application.setAssignedOfficerRole(selectedOfficer.getUserRole());
 					application.setStage(StageCode.ASSIGNED_TO_DISTRICT_OFFICER.getStage());
+					application.setComments(request.getComment());
 					application.setUpdatedBy("");
 					application.setUpdatedTimes(LocalDateTime.now());
 					
@@ -259,6 +283,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 						officerAssignment.setCrDTimes(LocalDateTime.now());
 					}
 					officerAssignmentRepo.save(officerAssignment);
+					mVSApplicationHistoryRepo.save(appHistory);
 				}
 			}
 			else {
@@ -278,6 +303,23 @@ public class ApplicationServiceImpl implements ApplicationService {
 		return null;
 	}
 	
+	private MVSApplicationHistory getAppHistoryEntity(MVSApplication application) {
+		MVSApplicationHistory appHistory = new MVSApplicationHistory();
+		appHistory.setRegId(application.getRegId());
+		appHistory.setService(application.getService());
+		appHistory.setServiceType(application.getServiceType());
+		appHistory.setReferenceURL(application.getReferenceURL());
+		appHistory.setAssignedOfficerId(application.getAssignedOfficerId());
+		appHistory.setAssignedOfficerName(application.getAssignedOfficerName());
+		appHistory.setAssignedOfficerRole(application.getAssignedOfficerRole());
+		appHistory.setStage(application.getStage());
+		appHistory.setComments(application.getComments());
+		appHistory.setRejectionCategory(application.getRejectionCategory());
+		appHistory.setCreatedBy(application.getCreatedBy());
+		appHistory.setCrDTimes(LocalDateTime.now());
+		return appHistory;
+	}
+
 	private OfficerDetailDTO fetchOfficerAssignment(String role, OfficerAssignment officerAssignment) {
 		if(officerDetailMap == null || officerDetailMap.isEmpty()) {
 			fetchUsers();

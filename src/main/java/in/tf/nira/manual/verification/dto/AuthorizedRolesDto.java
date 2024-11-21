@@ -15,5 +15,6 @@ import lombok.Setter;
 @Setter
 public class AuthorizedRolesDto {
 	private List<String> getApplicationsForUser;
-
+	private List<String> getApplicationDetails;
+	private List<String> updateApplicationStatus;
 }

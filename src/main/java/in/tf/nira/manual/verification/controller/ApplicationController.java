@@ -59,6 +59,7 @@ public class ApplicationController {
         return responseWrapper;
     }
     
+    @PreAuthorize("hasAnyRole(@authorizedRoles.getGetApplicationDetails())")
     @GetMapping("/{applicationId}")
     public ResponseWrapper<ApplicationDetailsResponse> getApplicationDetails(@PathVariable String applicationId) {
     	ResponseWrapper<ApplicationDetailsResponse> responseWrapper = new ResponseWrapper<>();
@@ -73,6 +74,7 @@ public class ApplicationController {
     	return responseWrapper;
     }
     
+    @PreAuthorize("hasAnyRole(@authorizedRoles.getUpdateApplicationStatus())")
     @PutMapping("/{applicationId}/status")
     public ResponseWrapper<AuthenticationResponse> updateApplicationStatus(@PathVariable String applicationId, @Valid @RequestBody UpdateStatusRequest request) {
         ResponseWrapper<AuthenticationResponse> responseWrapper = new ResponseWrapper<>();

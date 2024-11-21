@@ -9,6 +9,7 @@ public class UserApplicationsResponse {
 	private String applicationId;
 	private String service;
 	private String serviceType;
+	private String status;
 	private LocalDateTime crDTimes;
 	private String officerEscReason;
 	private String supervisorEscReason;
