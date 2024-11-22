@@ -53,7 +53,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - SERVICE_LOCATION: .
+          - SERVICE_LOCATION: ''
             SERVICE_NAME: ''
             BUILD_ARTIFACT: manual-verification-service
       fail-fast: false
