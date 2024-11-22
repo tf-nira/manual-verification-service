@@ -22,11 +22,11 @@ on:
       - MOSIP*
 
 jobs:
-  build-maven-manual-verfication-service:
+  build-maven-manual-verification-service:
     uses: mosip/kattu/.github/workflows/maven-build.yml@master
     with:
       SERVICE_LOCATION: .
-      BUILD_ARTIFACT: manual-verfication-service
+      BUILD_ARTIFACT: manual-verification-service
     secrets:
       OSSRH_USER: ${{ secrets.OSSRH_USER }}
       OSSRH_SECRET: ${{ secrets.OSSRH_SECRET }}
@@ -36,7 +36,7 @@ jobs:
 
   publish_to_nexus:
     if: "${{ !contains(github.ref, 'master') && github.event_name != 'pull_request' && github.event_name != 'release' && github.event_name != 'prerelease' && github.event_name != 'publish' }}"
-    needs: build-maven-manual-verfication-service
+    needs: build-maven-manual-verification-service
     uses: mosip/kattu/.github/workflows/maven-publish-to-nexus.yml@master
     with:
       SERVICE_LOCATION: .
@@ -49,13 +49,13 @@ jobs:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
   build-dockers:
-    needs: build-maven-manual-verfication-service
+    needs: build-maven-manual-verification-service
     strategy:
       matrix:
         include:
           - SERVICE_LOCATION: .
             SERVICE_NAME: ''
-            BUILD_ARTIFACT: manual-verfication-service
+            BUILD_ARTIFACT: manual-verification-service
       fail-fast: false
     name: ${{ matrix.SERVICE_NAME }}
     uses: mosip/kattu/.github/workflows/docker-build.yml@master
@@ -70,7 +70,7 @@ jobs:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
   sonar_analysis:
-    needs: build-maven-manual-verfication-service
+    needs: build-maven-manual-verification-service
     if: "${{  github.event_name != 'pull_request' }}"
     uses: mosip/kattu/.github/workflows/maven-sonar-analysis.yml@master
     with:
