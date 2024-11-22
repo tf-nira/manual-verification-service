@@ -224,43 +224,18 @@ public class ApplicationServiceImpl implements ApplicationService {
 		
 		if(request.getStatus().equals(CommonConstants.APPROVE_STATUS)) {
 			application.setStage(StageCode.APPROVED.getStage());
-			//comment
+			application.setComments(request.getComment());
 			mVSApplicationRepo.save(application);
 		}
 		else if(request.getStatus().equals(CommonConstants.REJECT_STATUS)) {
+			// send notification to applicant
 			application.setStage(StageCode.REJECTED.getStage());
-			//comment and rejection cat
+			application.setComments(request.getComment());
+			application.setRejectionCategory(request.getRejectionCategory());
 			mVSApplicationRepo.save(application);
 		}
 		else if(request.getStatus().equals(CommonConstants.ESCALATE_STATUS)) {
-			if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_OFFICER_ROLE)) {
-				OfficerAssignment officerAssignment = officerAssignmentRepo.findByUserRole(CommonConstants.MVS_SUPERVISOR_ROLE);
-				if(officerAssignment == null) {
-					officerAssignment = new OfficerAssignment();
-				}
-				OfficerDetailDTO selectedOfficer = fetchOfficerAssignment(CommonConstants.MVS_SUPERVISOR_ROLE, officerAssignment);
-				
-				if(selectedOfficer != null) {
-					MVSApplicationHistory appHistory = getAppHistoryEntity(application);
-					application.setAssignedOfficerId(selectedOfficer.getUserId());
-					application.setAssignedOfficerName(selectedOfficer.getUserName());
-					application.setAssignedOfficerRole(selectedOfficer.getUserRole());
-					application.setStage(StageCode.ASSIGNED_TO_SUPERVISOR.getStage());
-					application.setComments(request.getComment());
-					application.setUpdatedBy("");
-					application.setUpdatedTimes(LocalDateTime.now());
-					
-					mVSApplicationRepo.save(application);
-					
-					if(officerAssignment.getCrDTimes() == null) {
-						officerAssignment.setCreatedBy("");
-						officerAssignment.setCrDTimes(LocalDateTime.now());
-					}
-					officerAssignmentRepo.save(officerAssignment);
-					mVSApplicationHistoryRepo.save(appHistory);
-				}
-			}
-			else if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_SUPERVISOR_ROLE)) {
+			if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_SUPERVISOR_ROLE) || request.getInsufficientDocuments()) {
 				OfficerAssignment officerAssignment = officerAssignmentRepo.findByUserRole(CommonConstants.MVS_DISTRICT_OFFICER_ROLE);
 				if(officerAssignment == null) {
 					officerAssignment = new OfficerAssignment();
@@ -287,6 +262,33 @@ public class ApplicationServiceImpl implements ApplicationService {
 					mVSApplicationHistoryRepo.save(appHistory);
 				}
 			}
+			else if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_OFFICER_ROLE)) {
+				OfficerAssignment officerAssignment = officerAssignmentRepo.findByUserRole(CommonConstants.MVS_SUPERVISOR_ROLE);
+				if(officerAssignment == null) {
+					officerAssignment = new OfficerAssignment();
+				}
+				OfficerDetailDTO selectedOfficer = fetchOfficerAssignment(CommonConstants.MVS_SUPERVISOR_ROLE, officerAssignment);
+				
+				if(selectedOfficer != null) {
+					MVSApplicationHistory appHistory = getAppHistoryEntity(application);
+					application.setAssignedOfficerId(selectedOfficer.getUserId());
+					application.setAssignedOfficerName(selectedOfficer.getUserName());
+					application.setAssignedOfficerRole(selectedOfficer.getUserRole());
+					application.setStage(StageCode.ASSIGNED_TO_SUPERVISOR.getStage());
+					application.setComments(request.getComment());
+					application.setUpdatedBy("");
+					application.setUpdatedTimes(LocalDateTime.now());
+					
+					mVSApplicationRepo.save(application);
+					
+					if(officerAssignment.getCrDTimes() == null) {
+						officerAssignment.setCreatedBy("");
+						officerAssignment.setCrDTimes(LocalDateTime.now());
+					}
+					officerAssignmentRepo.save(officerAssignment);
+					mVSApplicationHistoryRepo.save(appHistory);
+				}
+			}
 			else {
 				//cannot escalate
 			}
@@ -294,12 +296,21 @@ public class ApplicationServiceImpl implements ApplicationService {
 		else if(request.getStatus().equals(CommonConstants.SCHEDULE_INTERVIEW_STATUS)) {
 			if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE) || 
 					application.getAssignedOfficerRole().equals(CommonConstants.MVS_LEGAL_OFFICER_ROLE)) {
+				//send invite to applicant
 				application.setStage(StageCode.INTERVIEW_SCHEDULED.getStage());
 				mVSApplicationRepo.save(application);
 			}
 			else {
 				// invalid status for given role
 			}
+		}
+		else if(request.getStatus().equals(CommonConstants.UPLOAD_DOCUMENTS_STATUS)) {
+			//only for district officer?
+			//upload document back to packet in reg proc
+			//approve
+			application.setStage(StageCode.APPROVED.getStage());
+			application.setComments(request.getComment());
+			mVSApplicationRepo.save(application);
 		}
 		return null;
 	}

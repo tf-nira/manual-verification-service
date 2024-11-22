@@ -12,4 +12,5 @@ public class CommonConstants {
 	public static final String REJECT_STATUS = "REJECT";
 	public static final String ESCALATE_STATUS = "ESCALATE";
 	public static final String SCHEDULE_INTERVIEW_STATUS = "SCHEDULE_INTERVIEW";
+	public static final String UPLOAD_DOCUMENTS_STATUS = "UPLOAD_DOCUMENTS";
 }
