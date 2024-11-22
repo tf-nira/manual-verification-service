@@ -20,9 +20,14 @@
                 <url>https://www.mozilla.org/en-US/MPL/2.0/</url>	
           </license>	
         </licenses>
-	<developers>
-		<developer/>
-	</developers>
+	<developers>	
+                <developer>	
+                  <name>Mosip</name>	
+                  <email>mosip.emailnotifier@gmail.com</email>	
+                  <organization>io.mosip</organization>	
+                  <organizationUrl>https://github.com/tf-nira/manual-verfication-service</organizationUrl>	
+                </developer>	
+     </developers>
 	<scm>
 		<connection/>
 		<developerConnection/>
