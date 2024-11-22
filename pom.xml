@@ -11,9 +11,11 @@
 	<groupId>in.tf.nira</groupId>
 	<artifactId>manual-verification-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
+	<packaging>pom</packaging>
+	
 	<name>manual-verification-service</name>
 	<description>backend service for manual verification</description>
-	<url>https://github.com/tf-nira/manual-verfication-service</url>
+	<url>https://github.com/tf-nira/manual-verification-service</url>
 	<licenses>	
           <license>	
                 <name>MPL 2.0</name>	
@@ -25,14 +27,14 @@
                   <name>Mosip</name>	
                   <email>mosip.emailnotifier@gmail.com</email>	
                   <organization>io.mosip</organization>	
-                  <organizationUrl>https://github.com/tf-nira/manual-verfication-service</organizationUrl>	
+                  <organizationUrl>https://github.com/tf-nira/manual-verification-service</organizationUrl>	
                 </developer>	
      </developers>
 	<scm>
-		<connection/>
-		<developerConnection/>
-		<tag/>
-		<url/>
+		<connection>scm:git:git://github.com/tf-nira/manual-verification-service.git</connection>
+		<developerConnection>scm:git:ssh://github.com:tf-nira/manual-verification-service.git</developerConnection>
+		<url>https://github.com/tf-nira/manual-verification-service</url>
+		<tag>HEAD</tag>
 	</scm>
 	<properties>
 		<java.version>11</java.version>
