@@ -14,9 +14,12 @@
 	<name>manual-verification-service</name>
 	<description>backend service for manual verification</description>
 	<url/>
-	<licenses>
-		<license/>
-	</licenses>
+	<licenses>	
+          <license>	
+                <name>MPL 2.0</name>	
+                <url>https://www.mozilla.org/en-US/MPL/2.0/</url>	
+          </license>	
+        </licenses>
 	<developers>
 		<developer/>
 	</developers>
