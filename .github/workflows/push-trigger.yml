@@ -53,8 +53,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - SERVICE_LOCATION: manual-verification-service
-            SERVICE_NAME: manual-verification-service
+          - SERVICE_LOCATION: .
+            SERVICE_NAME: ''
             BUILD_ARTIFACT: manual-verification-service
       fail-fast: false
     name: ${{ matrix.SERVICE_NAME }}
