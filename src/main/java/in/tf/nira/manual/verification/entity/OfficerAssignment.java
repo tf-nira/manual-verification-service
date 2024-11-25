@@ -31,4 +31,10 @@ public class OfficerAssignment {
 	@NotNull
 	@Column(name = "cr_dtimes")
 	private LocalDateTime crDTimes;
+	
+	@Column(name = "upd_by")
+	private String updatedBy;
+
+	@Column(name = "upd_dtimes")
+	private LocalDateTime updatedTimes;
 }
