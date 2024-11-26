@@ -24,17 +24,14 @@ public class MVSApplicationHistory {
 	@Column(name = "service_type")
 	private String serviceType;
 	
-	@Column(name = "reference_url")
-	private String referenceURL;
+	@Column(name = "verified_officer_id")
+	private String verifiedOfficerId;
 	
-	@Column(name = "assigned_officer_id")
-	private String assignedOfficerId;
+	@Column(name = "verified_officer_name")
+	private String verifiedOfficerName;
 	
-	@Column(name = "assigned_officer_name")
-	private String assignedOfficerName;
-	
-	@Column(name = "assigned_officer_role")
-	private String assignedOfficerRole;
+	@Column(name = "verified_officer_role")
+	private String verifiedOfficerRole;
 	
 	@Column(name = "stage")
 	private String stage;
@@ -52,16 +49,4 @@ public class MVSApplicationHistory {
 	@NotNull
 	@Column(name = "cr_dtimes")
 	private LocalDateTime crDTimes;
-	
-	@Column(name = "upd_by")
-	private String updatedBy;
-
-	@Column(name = "upd_dtimes")
-	private LocalDateTime updatedTimes;
-	
-	@Column(name = "is_deleted")
-	private Boolean isDeleted;
-	
-	@Column(name = "del_dtimes")
-	private LocalDateTime deletedTimes;
 }

@@ -9,6 +9,6 @@ import in.tf.nira.manual.verification.entity.MVSApplicationHistory;
 
 public interface MVSApplicationHistoryRepo extends JpaRepository<MVSApplicationHistory, String> {
 
-	List<MVSApplicationHistory> findByAssignedOfficerId(String assignedOfficerId);
-	MVSApplicationHistory findByRegIdAndAssignedOfficerRole(String regId, String assignedOfficerRole);
+	List<MVSApplicationHistory> findByVerifiedOfficerId(String verifiedOfficerId);
+	MVSApplicationHistory findByRegIdAndVerifiedOfficerRole(String regId, String verifiedOfficerRole);
 }

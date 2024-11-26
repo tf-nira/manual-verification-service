@@ -1,7 +1,10 @@
 package in.tf.nira.manual.verification.service.impl;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -12,6 +15,9 @@ import java.util.UUID;
 
 import javax.annotation.PostConstruct;
 
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.json.JSONException;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -21,12 +27,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -52,6 +61,9 @@ import in.tf.nira.manual.verification.repository.MVSApplicationRepo;
 import in.tf.nira.manual.verification.repository.OfficerAssignmentRepo;
 import in.tf.nira.manual.verification.service.ApplicationService;
 import in.tf.nira.manual.verification.util.CryptoCoreUtil;
+import io.mosip.kernel.core.http.RequestWrapper;
+import io.mosip.kernel.core.http.ResponseWrapper;
+import io.mosip.kernel.core.util.DateUtils;
 
 @Service
 public class ApplicationServiceImpl implements ApplicationService {
@@ -115,8 +127,14 @@ public class ApplicationServiceImpl implements ApplicationService {
 			mVSApplicationRepo.save(mVSApplication);
 			
 			if(officerAssignment.getCrDTimes() == null) {
+				//proper created by name
 				officerAssignment.setCreatedBy("");
 				officerAssignment.setCrDTimes(LocalDateTime.now());
+			}
+			else {
+				//proper created by name
+				officerAssignment.setUpdatedBy("");
+				officerAssignment.setUpdatedTimes(LocalDateTime.now());
 			}
 			officerAssignmentRepo.save(officerAssignment);
 		}
@@ -142,7 +160,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 			}
 			else if(app.getAssignedOfficerRole().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE)) {
 				userApp.setSupervisorEscReason(app.getComments());
-				MVSApplicationHistory appHistory = mVSApplicationHistoryRepo.findByRegIdAndAssignedOfficerRole(app.getRegId(), CommonConstants.MVS_SUPERVISOR_ROLE);
+				MVSApplicationHistory appHistory = mVSApplicationHistoryRepo.findByRegIdAndVerifiedOfficerRole(app.getRegId(), CommonConstants.MVS_SUPERVISOR_ROLE);
 				
 				if(appHistory != null) {
 					userApp.setOfficerEscReason(appHistory.getComments());
@@ -228,7 +246,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 			mVSApplicationRepo.save(application);
 		}
 		else if(request.getStatus().equals(CommonConstants.REJECT_STATUS)) {
-			// send notification to applicant
+			sendEmail(applicationId, "", "");
 			application.setStage(StageCode.REJECTED.getStage());
 			application.setComments(request.getComment());
 			application.setRejectionCategory(request.getRejectionCategory());
@@ -236,58 +254,12 @@ public class ApplicationServiceImpl implements ApplicationService {
 		}
 		else if(request.getStatus().equals(CommonConstants.ESCALATE_STATUS)) {
 			if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_SUPERVISOR_ROLE) || request.getInsufficientDocuments()) {
-				OfficerAssignment officerAssignment = officerAssignmentRepo.findByUserRole(CommonConstants.MVS_DISTRICT_OFFICER_ROLE);
-				if(officerAssignment == null) {
-					officerAssignment = new OfficerAssignment();
-				}
-				OfficerDetailDTO selectedOfficer = fetchOfficerAssignment(CommonConstants.MVS_DISTRICT_OFFICER_ROLE, officerAssignment);
-				
-				if(selectedOfficer != null) {
-					MVSApplicationHistory appHistory = getAppHistoryEntity(application);
-					application.setAssignedOfficerId(selectedOfficer.getUserId());
-					application.setAssignedOfficerName(selectedOfficer.getUserName());
-					application.setAssignedOfficerRole(selectedOfficer.getUserRole());
-					application.setStage(StageCode.ASSIGNED_TO_DISTRICT_OFFICER.getStage());
-					application.setComments(request.getComment());
-					application.setUpdatedBy("");
-					application.setUpdatedTimes(LocalDateTime.now());
-					
-					mVSApplicationRepo.save(application);
-					
-					if(officerAssignment.getCrDTimes() == null) {
-						officerAssignment.setCreatedBy("");
-						officerAssignment.setCrDTimes(LocalDateTime.now());
-					}
-					officerAssignmentRepo.save(officerAssignment);
-					mVSApplicationHistoryRepo.save(appHistory);
-				}
+				escalateApplication(application, CommonConstants.MVS_DISTRICT_OFFICER_ROLE, 
+						StageCode.ASSIGNED_TO_DISTRICT_OFFICER.getStage(), request.getComment());
 			}
 			else if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_OFFICER_ROLE)) {
-				OfficerAssignment officerAssignment = officerAssignmentRepo.findByUserRole(CommonConstants.MVS_SUPERVISOR_ROLE);
-				if(officerAssignment == null) {
-					officerAssignment = new OfficerAssignment();
-				}
-				OfficerDetailDTO selectedOfficer = fetchOfficerAssignment(CommonConstants.MVS_SUPERVISOR_ROLE, officerAssignment);
-				
-				if(selectedOfficer != null) {
-					MVSApplicationHistory appHistory = getAppHistoryEntity(application);
-					application.setAssignedOfficerId(selectedOfficer.getUserId());
-					application.setAssignedOfficerName(selectedOfficer.getUserName());
-					application.setAssignedOfficerRole(selectedOfficer.getUserRole());
-					application.setStage(StageCode.ASSIGNED_TO_SUPERVISOR.getStage());
-					application.setComments(request.getComment());
-					application.setUpdatedBy("");
-					application.setUpdatedTimes(LocalDateTime.now());
-					
-					mVSApplicationRepo.save(application);
-					
-					if(officerAssignment.getCrDTimes() == null) {
-						officerAssignment.setCreatedBy("");
-						officerAssignment.setCrDTimes(LocalDateTime.now());
-					}
-					officerAssignmentRepo.save(officerAssignment);
-					mVSApplicationHistoryRepo.save(appHistory);
-				}
+				escalateApplication(application, CommonConstants.MVS_SUPERVISOR_ROLE, 
+						StageCode.ASSIGNED_TO_SUPERVISOR.getStage(), request.getComment());
 			}
 			else {
 				//cannot escalate
@@ -296,7 +268,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 		else if(request.getStatus().equals(CommonConstants.SCHEDULE_INTERVIEW_STATUS)) {
 			if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE) || 
 					application.getAssignedOfficerRole().equals(CommonConstants.MVS_LEGAL_OFFICER_ROLE)) {
-				//send invite to applicant
+				sendEmail(applicationId, "", "");
 				application.setStage(StageCode.INTERVIEW_SCHEDULED.getStage());
 				mVSApplicationRepo.save(application);
 			}
@@ -305,12 +277,15 @@ public class ApplicationServiceImpl implements ApplicationService {
 			}
 		}
 		else if(request.getStatus().equals(CommonConstants.UPLOAD_DOCUMENTS_STATUS)) {
-			//only for district officer?
-			//upload document back to packet in reg proc
-			//approve
-			application.setStage(StageCode.APPROVED.getStage());
-			application.setComments(request.getComment());
-			mVSApplicationRepo.save(application);
+			if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE)) {
+				//upload document back to packet in reg proc
+				application.setStage(StageCode.APPROVED.getStage());
+				application.setComments(request.getComment());
+				mVSApplicationRepo.save(application);
+			}
+			else {
+				// invalid status for given role
+			}
 		}
 		return null;
 	}
@@ -320,16 +295,48 @@ public class ApplicationServiceImpl implements ApplicationService {
 		appHistory.setRegId(application.getRegId());
 		appHistory.setService(application.getService());
 		appHistory.setServiceType(application.getServiceType());
-		appHistory.setReferenceURL(application.getReferenceURL());
-		appHistory.setAssignedOfficerId(application.getAssignedOfficerId());
-		appHistory.setAssignedOfficerName(application.getAssignedOfficerName());
-		appHistory.setAssignedOfficerRole(application.getAssignedOfficerRole());
+		appHistory.setVerifiedOfficerId(application.getAssignedOfficerId());
+		appHistory.setVerifiedOfficerName(application.getAssignedOfficerName());
+		appHistory.setVerifiedOfficerRole(application.getAssignedOfficerRole());
 		appHistory.setStage(application.getStage());
 		appHistory.setComments(application.getComments());
 		appHistory.setRejectionCategory(application.getRejectionCategory());
 		appHistory.setCreatedBy(application.getCreatedBy());
 		appHistory.setCrDTimes(LocalDateTime.now());
 		return appHistory;
+	}
+	
+	private void escalateApplication(MVSApplication application, String role, String stage, String comment) {
+		OfficerAssignment officerAssignment = officerAssignmentRepo.findByUserRole(role);
+		if(officerAssignment == null) {
+			officerAssignment = new OfficerAssignment();
+		}
+		OfficerDetailDTO selectedOfficer = fetchOfficerAssignment(role, officerAssignment);
+		
+		if(selectedOfficer != null) {
+			MVSApplicationHistory appHistory = getAppHistoryEntity(application);
+			application.setAssignedOfficerId(selectedOfficer.getUserId());
+			application.setAssignedOfficerName(selectedOfficer.getUserName());
+			application.setAssignedOfficerRole(selectedOfficer.getUserRole());
+			application.setStage(stage);
+			application.setComments(comment);
+			application.setUpdatedBy("");
+			application.setUpdatedTimes(LocalDateTime.now());
+			
+			mVSApplicationRepo.save(application);
+			
+			if(officerAssignment.getCrDTimes() == null) {
+				officerAssignment.setCreatedBy("");
+				officerAssignment.setCrDTimes(LocalDateTime.now());
+			}
+			else {
+				//proper created by name
+				officerAssignment.setUpdatedBy("");
+				officerAssignment.setUpdatedTimes(LocalDateTime.now());
+			}
+			officerAssignmentRepo.save(officerAssignment);
+			mVSApplicationHistoryRepo.save(appHistory);
+		}
 	}
 
 	private OfficerDetailDTO fetchOfficerAssignment(String role, OfficerAssignment officerAssignment) {
@@ -368,6 +375,92 @@ public class ApplicationServiceImpl implements ApplicationService {
 			return null;
 		}
 	}
+	
+	private void sendEmail(String applicationId, String subjectArtifact, String artifact) {
+		try {
+			ApplicationDetailsResponse appResponse = getApplicationDetails(applicationId);
+			
+			String mailTo = appResponse.getDemographics().get("email");
+			LinkedMultiValueMap<String, Object> params = new LinkedMultiValueMap<>();
+			String apiHost = "";
+
+			UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(apiHost)
+			        .queryParam("mailTo", mailTo)
+			        .queryParam("mailSubject", subjectArtifact)
+			        .queryParam("mailContent", artifact);
+
+			params.add("attachments", null);
+			HttpHeaders headers = new HttpHeaders();
+			headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+			HttpEntity<LinkedMultiValueMap<String, Object>> requestEntity = new HttpEntity<>(params, headers);
+
+			RestTemplate restTemplate = new RestTemplate();
+			ResponseEntity<ResponseWrapper> responseEntity = restTemplate.exchange(
+			        builder.build().toUri(),
+			        HttpMethod.POST,
+			        requestEntity,
+			        ResponseWrapper.class
+			);
+
+			ResponseWrapper<?> responseWrapper = responseEntity.getBody();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+
+		//responseDto = mapper.readValue(mapper.writeValueAsString(responseWrapper.getResponse()), ResponseDto.class);
+
+		//return responseDto;
+	}
+	
+	/*
+	 * private void sendSMS(RegistrationAdditionalInfoDTO
+	 * registrationAdditionalInfoDTO, String templateTypeCode, Map<String, Object>
+	 * attributes,String preferedLanguage) throws ApisResourceAccessException,
+	 * IOException, JSONException { SmsResponseDto response; SmsRequestDto smsDto =
+	 * new SmsRequestDto(); RequestWrapper<SmsRequestDto> requestWrapper = new
+	 * RequestWrapper<>(); ResponseWrapper<?> responseWrapper;
+	 * 
+	 * regProcLogger.debug(LoggerFileConstant.SESSIONID.toString(),
+	 * LoggerFileConstant.USERID.toString(), registrationId,
+	 * "NotificationUtility::sendSms()::entry"); try { InputStream in =
+	 * templateGenerator.getTemplate(templateTypeCode, attributes,
+	 * preferedLanguage); String artifact = IOUtils.toString(in, ENCODING);
+	 * 
+	 * smsDto.setNumber(registrationAdditionalInfoDTO.getPhone());
+	 * smsDto.setMessage(artifact);
+	 * 
+	 * requestWrapper.setId(env.getProperty(SMS_SERVICE_ID));
+	 * requestWrapper.setVersion(env.getProperty(REG_PROC_APPLICATION_VERSION));
+	 * DateTimeFormatter format =
+	 * DateTimeFormatter.ofPattern(env.getProperty(DATETIME_PATTERN)); LocalDateTime
+	 * localdatetime = LocalDateTime
+	 * .parse(DateUtils.getUTCCurrentDateTimeString(env.getProperty(DATETIME_PATTERN
+	 * )), format); requestWrapper.setRequesttime(localdatetime);
+	 * requestWrapper.setRequest(smsDto);
+	 * 
+	 * responseWrapper = (ResponseWrapper<?>)
+	 * restClientService.postApi(ApiName.SMSNOTIFIER, "", "", requestWrapper,
+	 * ResponseWrapper.class); response =
+	 * mapper.readValue(mapper.writeValueAsString(responseWrapper.getResponse()),
+	 * SmsResponseDto.class); } catch (TemplateNotFoundException |
+	 * TemplateProcessingFailureException e) {
+	 * regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
+	 * LoggerFileConstant.REGISTRATIONID.toString(), registrationId,
+	 * PlatformErrorMessages.RPR_SMS_TEMPLATE_GENERATION_FAILURE.name() +
+	 * e.getMessage() + ExceptionUtils.getStackTrace(e)); throw new
+	 * TemplateGenerationFailedException(
+	 * PlatformErrorMessages.RPR_SMS_TEMPLATE_GENERATION_FAILURE.getCode(), e); }
+	 * catch (ApisResourceAccessException e) {
+	 * regProcLogger.error(LoggerFileConstant.SESSIONID.toString(),
+	 * LoggerFileConstant.REGISTRATIONID.toString(), registrationId,
+	 * PlatformErrorMessages.RPR_PGS_API_RESOURCE_NOT_AVAILABLE.name() +
+	 * e.getMessage() + ExceptionUtils.getStackTrace(e)); throw new
+	 * ApisResourceAccessException(PlatformErrorMessages.
+	 * RPR_PGS_API_RESOURCE_NOT_AVAILABLE.name(), e); } return response; }
+	 */
 	
 	@Scheduled(cron = "0 0/3 * * * ?")
 	public void fetchUsers() {
