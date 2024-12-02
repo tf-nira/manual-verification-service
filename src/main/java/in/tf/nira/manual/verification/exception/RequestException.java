@@ -1,37 +1,28 @@
 package in.tf.nira.manual.verification.exception;
 
-public class RequestException extends RuntimeException {
-	public String reasonConstant = null;
-	public int delayResponse = 0;
+import java.util.ArrayList;
+import java.util.List;
 
-	public RequestException() {
-		super();
+import io.mosip.kernel.core.exception.BaseUncheckedException;
+import io.mosip.kernel.core.exception.ServiceError;
+
+public class RequestException extends BaseUncheckedException {
+	
+	private static final long serialVersionUID = -8072241272700356545L;
+
+	private List<ServiceError> errors = new ArrayList<>();
+	
+	public RequestException(String errorCode, String errorMessage) {
+		errors.add(new ServiceError(errorCode, errorMessage));
 	}
-
-	public RequestException(String reasonConstant) {
-		super();
-		this.reasonConstant = reasonConstant;
+	
+	public RequestException(List<ServiceError> errors) {
+		errors.stream().forEach(error -> super.addInfo(error.getErrorCode(), error.getMessage()));
+		//errors.stream().forEach(error -> errors.add(new ServiceError(error.getErrorCode(), error.getMessage())));
+		this.errors = errors;
 	}
-
-	public RequestException(String reasonConstant, int d) {
-		super();
-		this.reasonConstant = reasonConstant;
-		this.delayResponse = d;
-	}
-
-	public String getReasonConstant() {
-		return reasonConstant;
-	}
-
-	public void setReasonConstant(String reasonConstant) {
-		this.reasonConstant = reasonConstant;
-	}
-
-	public int getDelayResponse() {
-		return delayResponse;
-	}
-
-	public void setDelayResponse(int d) {
-		this.delayResponse = d;
+	
+	public List<ServiceError> getErrors() {
+		return errors;
 	}
 }

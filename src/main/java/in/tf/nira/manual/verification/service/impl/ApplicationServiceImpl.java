@@ -1,10 +1,7 @@
 package in.tf.nira.manual.verification.service.impl;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -15,15 +12,15 @@ import java.util.UUID;
 
 import javax.annotation.PostConstruct;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.JSONException;
+import org.json.JSONObject;
 import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -43,33 +40,49 @@ import in.tf.nira.manual.verification.constant.CommonConstants;
 import in.tf.nira.manual.verification.constant.FailureConstants;
 import in.tf.nira.manual.verification.constant.StageCode;
 import in.tf.nira.manual.verification.dto.ApplicationDetailsResponse;
-import in.tf.nira.manual.verification.dto.AuthenticationResponse;
+import in.tf.nira.manual.verification.dto.CreateAppRequestDTO;
 import in.tf.nira.manual.verification.dto.DataShareResponseDto;
+import in.tf.nira.manual.verification.dto.DocumentDTO;
 import in.tf.nira.manual.verification.dto.OfficerDetailDTO;
+import in.tf.nira.manual.verification.dto.PacketDto;
+import in.tf.nira.manual.verification.dto.PacketInfo;
+import in.tf.nira.manual.verification.dto.PageResponseDto;
+import in.tf.nira.manual.verification.dto.SchInterviewDTO;
+import in.tf.nira.manual.verification.dto.SearchDto;
+import in.tf.nira.manual.verification.dto.StatusResponseDTO;
 import in.tf.nira.manual.verification.dto.UpdateStatusRequest;
 import in.tf.nira.manual.verification.dto.UserApplicationsResponse;
 import in.tf.nira.manual.verification.dto.UserDto;
 import in.tf.nira.manual.verification.dto.UserResponse;
 import in.tf.nira.manual.verification.dto.UserResponse.Response;
-import in.tf.nira.manual.verification.dto.CreateAppRequestDTO;
 import in.tf.nira.manual.verification.entity.MVSApplication;
 import in.tf.nira.manual.verification.entity.MVSApplicationHistory;
 import in.tf.nira.manual.verification.entity.OfficerAssignment;
 import in.tf.nira.manual.verification.exception.RequestException;
+import in.tf.nira.manual.verification.helper.SearchHelper;
+import in.tf.nira.manual.verification.listener.Listener;
 import in.tf.nira.manual.verification.repository.MVSApplicationHistoryRepo;
 import in.tf.nira.manual.verification.repository.MVSApplicationRepo;
 import in.tf.nira.manual.verification.repository.OfficerAssignmentRepo;
 import in.tf.nira.manual.verification.service.ApplicationService;
 import in.tf.nira.manual.verification.util.CryptoCoreUtil;
+import in.tf.nira.manual.verification.util.PageUtils;
 import io.mosip.kernel.core.http.RequestWrapper;
 import io.mosip.kernel.core.http.ResponseWrapper;
 import io.mosip.kernel.core.util.DateUtils;
 
 @Service
 public class ApplicationServiceImpl implements ApplicationService {
+	private static final String PACKET_MANAGER_ID = "mosip.commmons.packetmanager";
+    private static final String PACKET_MANAGER_VERSION = "v1";
+    private static final String RESPONSE = "response";
+    private static final String SCHEMA_JSON = "schemaJson";
 	
 	@Value("${manual.verification.user.details.url}")
     private String userDetailsUrl;
+	
+	@Value("${manual.verification.create.packet.url}")
+    private String createPacketUrl;
 	
 	@Value("#{'${manual.verification.officer.roles}'.split(',')}")
     private List<String> officerRoles;
@@ -77,7 +90,18 @@ public class ApplicationServiceImpl implements ApplicationService {
 	@Value("${manual.verification.data.share.encryption:false}")
 	private boolean encryption;
 	
+	@Value("${manual.verification.latest.schema.url}")
+    private String schemaUrl;
+	
+	@Value("${manual.verification.packet.schema.version:0}")
+	private String schemaVersion;
+	
+	@Value("${manual.verification.email.notification.url}")
+    private String emailNotificationUrl;
+	
 	Map<String, List<OfficerDetailDTO>> officerDetailMap = new HashMap<>();
+	
+	private Map<String, String> schemajsonValue = null;
 
 	@Autowired(required = true)
 	@Qualifier("selfTokenRestTemplate")
@@ -98,13 +122,22 @@ public class ApplicationServiceImpl implements ApplicationService {
 	@Autowired
 	ObjectMapper objectMapper;
 	
+	@Autowired
+	Listener listener;
+	
+	@Autowired
+	SearchHelper searchHelper;
+	
+	@Autowired
+	private PageUtils pageUtils;
+	
 	@PostConstruct
     public void runAtStartup() {
         fetchUsers();
     }
 	
 	@Override
-	public AuthenticationResponse createApplication(CreateAppRequestDTO verifyRequest) throws Exception {
+	public StatusResponseDTO createApplication(CreateAppRequestDTO verifyRequest) throws Exception {
 		OfficerAssignment officerAssignment = officerAssignmentRepo.findByUserRole(CommonConstants.MVS_OFFICER_ROLE);
 		if(officerAssignment == null) {
 			officerAssignment = new OfficerAssignment();
@@ -138,7 +171,10 @@ public class ApplicationServiceImpl implements ApplicationService {
 			}
 			officerAssignmentRepo.save(officerAssignment);
 		}
-		return null;
+
+		StatusResponseDTO response = new StatusResponseDTO();
+		response.setStatus("Success");
+		return response;
 	}
 	
 	@Override
@@ -146,35 +182,13 @@ public class ApplicationServiceImpl implements ApplicationService {
 		List<MVSApplication> applications = mVSApplicationRepo.findByAssignedOfficerId(userId);
 		List<UserApplicationsResponse> response = new ArrayList<>();
 		
-		applications.stream().filter(app -> !app.getStage().equals(StageCode.APPROVED.getStage()) && 
-				!app.getStage().equals(StageCode.REJECTED.getStage())).forEach(app -> {
-			UserApplicationsResponse userApp = new UserApplicationsResponse();
-			userApp.setApplicationId(app.getRegId());
-			userApp.setService(app.getService());
-			userApp.setServiceType(app.getServiceType());
-			userApp.setStatus(app.getStage());
-			userApp.setCrDTimes(app.getCrDTimes());
-			
-			if(app.getAssignedOfficerRole().equals(CommonConstants.MVS_SUPERVISOR_ROLE)) {
-				userApp.setOfficerEscReason(app.getComments());
-			}
-			else if(app.getAssignedOfficerRole().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE)) {
-				userApp.setSupervisorEscReason(app.getComments());
-				MVSApplicationHistory appHistory = mVSApplicationHistoryRepo.findByRegIdAndVerifiedOfficerRole(app.getRegId(), CommonConstants.MVS_SUPERVISOR_ROLE);
-				
-				if(appHistory != null) {
-					userApp.setOfficerEscReason(appHistory.getComments());
-				}
-			}
-			
-			response.add(userApp);
-		});
+		buildUserApplicationsResponse(applications, response);
 		
 		return response;
 	}
 	
 	@Override
-	public ApplicationDetailsResponse getApplicationDetails(String applicationId) throws Exception {
+	public ApplicationDetailsResponse getApplicationDetails(String applicationId) {
 		try {
 			Optional<MVSApplication> optional = mVSApplicationRepo.findById(applicationId);
 			MVSApplication application = optional.get();
@@ -195,14 +209,14 @@ public class ApplicationServiceImpl implements ApplicationService {
 						String errorCode = ((String) error.get("errorCode")).trim();
 						String message = ((String) error.get("message")).trim();
 						//logger.info(String.format("ErrorCode[%s], ErrorMessage[%s],", errorCode, message));
-						throw new RequestException(errorCode);
+						throw new RequestException(errorCode, message);
 					}
 				}
 			} catch (RequestException ex) {
-				if (ex.getReasonConstant().equalsIgnoreCase("DAT-SER-006"))
-					throw new RequestException(FailureConstants.DATA_SHARE_URL_EXPIRED);
+				if (ex.getErrorCode().equalsIgnoreCase("DAT-SER-006"))
+					throw new RequestException(FailureConstants.DATA_SHARE_URL_EXPIRED, "");
 				else
-					throw new RequestException(FailureConstants.UNEXPECTED_ERROR);
+					throw new RequestException(FailureConstants.UNEXPECTED_ERROR, "");
 			} catch (Exception ex) {
 				// ex.printStackTrace();
 			}
@@ -224,72 +238,195 @@ public class ApplicationServiceImpl implements ApplicationService {
 		} catch (HttpClientErrorException ex) {
 			ex.printStackTrace();
 			//logger.error("issue with httpclient URL " + ex.getLocalizedMessage());
-			throw new RequestException(FailureConstants.UNABLE_TO_FETCH_BIOMETRIC_DETAILS);
+			throw new RequestException(FailureConstants.UNABLE_TO_FETCH_BIOMETRIC_DETAILS, "");
 		} catch (URISyntaxException | IllegalArgumentException ex) {
 			ex.printStackTrace();
 			//logger.error("issue with httpclient URL Syntax " + ex.getLocalizedMessage());
-			throw new RequestException(FailureConstants.UNABLE_TO_FETCH_BIOMETRIC_DETAILS);
+			throw new RequestException(FailureConstants.UNABLE_TO_FETCH_BIOMETRIC_DETAILS, "");
 		} catch (Exception ex) {
 			ex.printStackTrace();
-			throw ex;
+			throw new RequestException(((RequestException) ex).getErrors());
+			//throw ex;
 		}
 	}
 	
 	@Override
-	public AuthenticationResponse updateApplicationStatus(String applicationId, UpdateStatusRequest request) {
+	public StatusResponseDTO updateApplicationStatus(String applicationId, UpdateStatusRequest request) {
 		Optional<MVSApplication> optional = mVSApplicationRepo.findById(applicationId);
 		MVSApplication application = optional.get();
 		
 		if(request.getStatus().equals(CommonConstants.APPROVE_STATUS)) {
 			application.setStage(StageCode.APPROVED.getStage());
-			application.setComments(request.getComment());
+			application.getComments().put(application.getAssignedOfficerRole(), request.getComment());
+			application.setComments(application.getComments());
 			mVSApplicationRepo.save(application);
 		}
 		else if(request.getStatus().equals(CommonConstants.REJECT_STATUS)) {
 			sendEmail(applicationId, "", "");
 			application.setStage(StageCode.REJECTED.getStage());
-			application.setComments(request.getComment());
+			application.getComments().put(application.getAssignedOfficerRole(), request.getComment());
+			application.setComments(application.getComments());
 			application.setRejectionCategory(request.getRejectionCategory());
 			mVSApplicationRepo.save(application);
 		}
 		else if(request.getStatus().equals(CommonConstants.ESCALATE_STATUS)) {
-			if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_SUPERVISOR_ROLE) || request.getInsufficientDocuments()) {
+			if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_SUPERVISOR_ROLE) || (request.getInsufficientDocuments() != null && request.getInsufficientDocuments())) {
 				escalateApplication(application, CommonConstants.MVS_DISTRICT_OFFICER_ROLE, 
-						StageCode.ASSIGNED_TO_DISTRICT_OFFICER.getStage(), request.getComment());
+						StageCode.ASSIGNED_TO_DISTRICT_OFFICER.getStage(), CommonConstants.MVS_SUPERVISOR_ROLE, request.getComment());
 			}
 			else if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_OFFICER_ROLE)) {
 				escalateApplication(application, CommonConstants.MVS_SUPERVISOR_ROLE, 
-						StageCode.ASSIGNED_TO_SUPERVISOR.getStage(), request.getComment());
+						StageCode.ASSIGNED_TO_SUPERVISOR.getStage(), CommonConstants.MVS_OFFICER_ROLE, request.getComment());
 			}
 			else {
 				//cannot escalate
 			}
 		}
-		else if(request.getStatus().equals(CommonConstants.SCHEDULE_INTERVIEW_STATUS)) {
-			if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE) || 
-					application.getAssignedOfficerRole().equals(CommonConstants.MVS_LEGAL_OFFICER_ROLE)) {
-				sendEmail(applicationId, "", "");
-				application.setStage(StageCode.INTERVIEW_SCHEDULED.getStage());
-				mVSApplicationRepo.save(application);
-			}
-			else {
-				// invalid status for given role
-			}
-		}
-		else if(request.getStatus().equals(CommonConstants.UPLOAD_DOCUMENTS_STATUS)) {
-			if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE)) {
-				//upload document back to packet in reg proc
-				application.setStage(StageCode.APPROVED.getStage());
-				application.setComments(request.getComment());
-				mVSApplicationRepo.save(application);
-			}
-			else {
-				// invalid status for given role
-			}
-		}
-		return null;
+		
+		StatusResponseDTO response = new StatusResponseDTO();
+		response.setStatus("Success");
+		return response;
 	}
 	
+	@Override
+	public StatusResponseDTO scheduleInterview(String applicationId, SchInterviewDTO schInterviewDTO) {
+		Optional<MVSApplication> optional = mVSApplicationRepo.findById(applicationId);
+		MVSApplication application = optional.get();
+		StatusResponseDTO response = new StatusResponseDTO();
+		
+		if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE) || 
+				application.getAssignedOfficerRole().equals(CommonConstants.MVS_LEGAL_OFFICER_ROLE)) {
+			sendEmail(applicationId, schInterviewDTO.getSubject(), schInterviewDTO.getContent());
+			//sendSMS();
+			application.setStage(StageCode.INTERVIEW_SCHEDULED.getStage());
+			mVSApplicationRepo.save(application);
+			
+			response.setStatus("Success");
+		}
+		else {
+			response.setStatus("Failure");
+		}
+		
+		return response;
+	}
+	
+	@Override
+	public StatusResponseDTO uploadDocuments(String applicationId, DocumentDTO documentDTO) {
+		Optional<MVSApplication> applicationOpp = mVSApplicationRepo.findById(applicationId);
+		MVSApplication application = applicationOpp.get();
+		
+		StatusResponseDTO response = new StatusResponseDTO();
+		if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE)) {
+			uploadToPacketManager(application, documentDTO);
+			application.setStage(StageCode.APPROVED.getStage());
+			mVSApplicationRepo.save(application);
+			
+			response.setStatus("Success");
+		}
+		else {
+			response.setStatus("Failure");
+		}
+		
+		return response;
+	}
+	
+	@Override
+	public PageResponseDto<UserApplicationsResponse> searchApplications(SearchDto dto) {
+		List<UserApplicationsResponse> applicationsResponse = new ArrayList<>();
+		PageResponseDto<UserApplicationsResponse> pageDto = new PageResponseDto<>();
+		
+		Page<MVSApplication> page = searchHelper.search(MVSApplication.class, dto);
+		if (page.getContent() != null && !page.getContent().isEmpty()) {
+			buildUserApplicationsResponse(page.getContent(), applicationsResponse);
+			pageDto = pageUtils.sortPage(applicationsResponse, dto.getSort(), dto.getPagination(), page.getTotalElements());
+		}
+		return pageDto;
+	}
+	
+	private void uploadToPacketManager(MVSApplication application, DocumentDTO documentDTO) {
+		PacketDto packetDto = new PacketDto();
+    	packetDto.setId(application.getRegId());
+    	packetDto.setSource("REGISTRATION_CLIENT");
+    	packetDto.setProcess("MVS_DOC");
+    	packetDto.setRefId("10002_10034");
+    	packetDto.setSchemaVersion(schemaVersion);
+    	packetDto.setSchemaJson(getSchemaJson());
+    	
+    	List<Map<String, String>> audits = new ArrayList<>();
+    	Map<String, String> audit = new HashMap<>();
+    	audit.put("id", application.getRegId());
+    	audits.add(audit);
+    	packetDto.setAudits(audits);
+    	
+    	packetDto.setDocuments(documentDTO.getDocuments());
+    	
+    	RequestWrapper<PacketDto> request = new RequestWrapper<>();
+        request.setId(PACKET_MANAGER_ID);
+        request.setVersion(PACKET_MANAGER_VERSION);
+        request.setRequesttime(DateUtils.getUTCCurrentDateTime());
+        request.setRequest(packetDto);
+        
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<RequestWrapper<PacketDto>> httpEntity = new HttpEntity<>(request, headers);
+        
+        ResponseEntity<ResponseWrapper<List<PacketInfo>>> response = restTemplate.exchange(createPacketUrl, HttpMethod.PUT, httpEntity, 
+        		new ParameterizedTypeReference<ResponseWrapper<List<PacketInfo>>>() {});
+        
+	}
+	
+	private String getSchemaJson() {
+		if (schemajsonValue != null && !schemajsonValue.isEmpty() && schemajsonValue.get(schemaVersion) != null)
+			return schemajsonValue.get(schemaVersion);
+			
+		String url = schemaUrl + "?schemaVersion=" + schemaVersion;
+		ResponseEntity<String> responseSchemaJson = null;
+		try {
+			responseSchemaJson = restTemplate.exchange(url, HttpMethod.GET, null,
+				 String.class);
+		} catch (Exception e) {
+			//throw new ApiNotAccessibleException("Could not fetch schemajson with version : " + version);
+		}
+
+		//if (responseSchemaJson == null)
+			//throw new ApiNotAccessibleException("Could not fetch schemajson with version : " + version);
+
+		String responseString = null;
+		try {
+			JSONObject jsonObject = new JSONObject(responseSchemaJson.getBody());
+			JSONObject respObj = (JSONObject) jsonObject.get(RESPONSE);
+			responseString = respObj != null ? (String) respObj.get(SCHEMA_JSON) : null;
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+		
+		if (responseString != null) {
+			if (schemajsonValue == null) {
+				schemajsonValue = new HashMap<>();
+				schemajsonValue.put(schemaVersion, responseString);
+			} else
+				schemajsonValue.put(schemaVersion, responseString);
+		}
+
+		return schemajsonValue.get(schemaVersion);
+	}
+	
+	private void buildUserApplicationsResponse(List<MVSApplication> applications, List<UserApplicationsResponse> applicationsResponse) {
+		applications.stream().filter(app -> !app.getStage().equals(StageCode.APPROVED.getStage()) && 
+				!app.getStage().equals(StageCode.REJECTED.getStage())).forEach(app -> {
+			UserApplicationsResponse userApp = new UserApplicationsResponse();
+			userApp.setApplicationId(app.getRegId());
+			userApp.setService(app.getService());
+			userApp.setServiceType(app.getServiceType());
+			userApp.setStatus(app.getStage());
+			userApp.setCrDTimes(app.getCrDTimes());
+			userApp.setOfficerEscReason(app.getComments().get(CommonConstants.MVS_OFFICER_ROLE));
+			userApp.setSupervisorEscReason(app.getComments().get(CommonConstants.MVS_SUPERVISOR_ROLE));
+			
+			applicationsResponse.add(userApp);
+		});
+	}
+
 	private MVSApplicationHistory getAppHistoryEntity(MVSApplication application) {
 		MVSApplicationHistory appHistory = new MVSApplicationHistory();
 		appHistory.setRegId(application.getRegId());
@@ -306,12 +443,12 @@ public class ApplicationServiceImpl implements ApplicationService {
 		return appHistory;
 	}
 	
-	private void escalateApplication(MVSApplication application, String role, String stage, String comment) {
-		OfficerAssignment officerAssignment = officerAssignmentRepo.findByUserRole(role);
+	private void escalateApplication(MVSApplication application, String assignedRole, String stage, String role, String comment) {
+		OfficerAssignment officerAssignment = officerAssignmentRepo.findByUserRole(assignedRole);
 		if(officerAssignment == null) {
 			officerAssignment = new OfficerAssignment();
 		}
-		OfficerDetailDTO selectedOfficer = fetchOfficerAssignment(role, officerAssignment);
+		OfficerDetailDTO selectedOfficer = fetchOfficerAssignment(assignedRole, officerAssignment);
 		
 		if(selectedOfficer != null) {
 			MVSApplicationHistory appHistory = getAppHistoryEntity(application);
@@ -319,7 +456,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 			application.setAssignedOfficerName(selectedOfficer.getUserName());
 			application.setAssignedOfficerRole(selectedOfficer.getUserRole());
 			application.setStage(stage);
-			application.setComments(comment);
+			application.getComments().put(role, comment);
+			application.setComments(application.getComments());
 			application.setUpdatedBy("");
 			application.setUpdatedTimes(LocalDateTime.now());
 			
@@ -380,11 +518,10 @@ public class ApplicationServiceImpl implements ApplicationService {
 		try {
 			ApplicationDetailsResponse appResponse = getApplicationDetails(applicationId);
 			
-			String mailTo = appResponse.getDemographics().get("email");
+			String mailTo = "abc@gmail.com";//appResponse.getDemographics().get("email");
 			LinkedMultiValueMap<String, Object> params = new LinkedMultiValueMap<>();
-			String apiHost = "";
 
-			UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(apiHost)
+			UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(emailNotificationUrl)
 			        .queryParam("mailTo", mailTo)
 			        .queryParam("mailSubject", subjectArtifact)
 			        .queryParam("mailContent", artifact);
@@ -395,7 +532,6 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 			HttpEntity<LinkedMultiValueMap<String, Object>> requestEntity = new HttpEntity<>(params, headers);
 
-			RestTemplate restTemplate = new RestTemplate();
 			ResponseEntity<ResponseWrapper> responseEntity = restTemplate.exchange(
 			        builder.build().toUri(),
 			        HttpMethod.POST,

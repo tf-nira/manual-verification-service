@@ -1,5 +1,6 @@
 package in.tf.nira.manual.verification.listener;
 
+import java.io.UnsupportedEncodingException;
 import java.time.OffsetDateTime;
 import java.util.*;
 
@@ -25,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -43,11 +45,11 @@ public class Listener {
 	private static final String APPROVED = "APPROVED";
 	private static final String REJECTED = "REJECTED";
 
-	@Value("${registration.processor.queue.verification.response:manual-verification-to-mosip}")
+	@Value("${registration.processor.queue.verification.response:mvs-to-mosip}")
 	private String verificationResponseAddress;
 
 	/** The address. */
-	@Value("${registration.processor.queue.verification.request:mosip-to-manual-verification}")
+	@Value("${registration.processor.queue.verification.request:mosip-to-mvs}")
 	private String verificationRequestAddress;
 	
 	@Value("${registration.processor.verification.queue.username}")
@@ -190,6 +192,19 @@ public class Listener {
 					object.setListener(message);
 				}
 			};
+	}
+	
+	public void sendToQueue(ResponseEntity<Object> obj, Integer textType)
+			throws JsonProcessingException, UnsupportedEncodingException {
+		final ObjectMapper mapper = new ObjectMapper();
+		mapper.findAndRegisterModules();
+		mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+		logger.info("Response: ", obj.getBody().toString());
+		if (textType == 2) {
+			send(mapper.writeValueAsString(obj.getBody()).getBytes("UTF-8"), verificationResponseAddress);
+		} else if (textType == 1) {
+			send(mapper.writeValueAsString(obj.getBody()), verificationResponseAddress);
+		}
 	}
 
 	public Boolean send(byte[] message, String address) {

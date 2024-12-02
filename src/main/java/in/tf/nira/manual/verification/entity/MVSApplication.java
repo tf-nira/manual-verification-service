@@ -1,13 +1,16 @@
 package in.tf.nira.manual.verification.entity;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 import javax.persistence.Column;
+import javax.persistence.Convert;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 
+import in.tf.nira.manual.verification.util.StringToMapConverter;
 import lombok.Data;
 
 @Entity(name = "mvs_application")
@@ -39,8 +42,9 @@ public class MVSApplication {
 	@Column(name = "stage")
 	private String stage;
 	
+	@Convert(converter = StringToMapConverter.class)
 	@Column(name = "comments")
-	private String comments;
+	private Map<String, String> comments;
 	
 	@Column(name = "rejection_category")
 	private String rejectionCategory;

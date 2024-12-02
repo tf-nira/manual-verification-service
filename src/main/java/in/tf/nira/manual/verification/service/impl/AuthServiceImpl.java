@@ -25,13 +25,13 @@ public class AuthServiceImpl implements AuthService {
 	 * @Value("${io.mosip.manualVerificationService.getUsersUrl}") private String
 	 * fetchUsersUrl;
 	 */
-    @Value("${manual.verification.auth.app.id}")
+    @Value("${mosip.iam.adapter.appid}")
     private String appId;
     
-    @Value("${manual.verification.auth.client.id}")
+    @Value("${mosip.iam.adapter.clientid}")
     private String clientId;
     
-    @Value("${manual.verification.auth.client.secret}")
+    @Value("${mosip.iam.adapter.clientsecret}")
     private String clientSecret;
 
     @Autowired

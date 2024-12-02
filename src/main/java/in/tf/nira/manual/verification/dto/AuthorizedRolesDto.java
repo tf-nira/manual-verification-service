@@ -17,4 +17,7 @@ public class AuthorizedRolesDto {
 	private List<String> getApplicationsForUser;
 	private List<String> getApplicationDetails;
 	private List<String> updateApplicationStatus;
+	private List<String> scheduleInterview;
+	private List<String> uploadDocuments;
+	private List<String> searchApplications;
 }
