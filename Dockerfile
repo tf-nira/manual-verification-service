@@ -79,7 +79,7 @@ RUN chown -R ${container_user}:${container_user} /home/${container_user}
 # select container user for all tasks
 USER ${container_user_uid}:${container_user_gid}
 
-EXPOSE 9090
+EXPOSE 9002
 CMD if [ "$is_glowroot_env" = "present" ]; then \
     #wget -q --show-progress "${artifactory_url_env}"/artifactory/libs-release-local/io/mosip/kernel/kernel-ref-idobjectvalidator/kernel-ref-idobjectvalidator.jar "${loader_path_env}"/kernel-ref-idobjectvalidator.jar ; \
      wget -q --show-progress "${artifactory_url_env}"/artifactory/libs-release-local/io/mosip/kernel/kernel-ref-idobjectvalidator/kernel-ref-idobjectvalidator.jar -O "${loader_path_env}"/kernel-ref-idobjectvalidator.jar ; \
