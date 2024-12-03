@@ -29,7 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import in.tf.nira.manual.verification.constant.FilterTypeEnum;
 import in.tf.nira.manual.verification.constant.OrderEnum;
-import in.tf.nira.manual.verification.constant.SearchErrorCode;
+import in.tf.nira.manual.verification.constant.ErrorCode;
 import in.tf.nira.manual.verification.dto.Pagination;
 import in.tf.nira.manual.verification.dto.SearchDto;
 import in.tf.nira.manual.verification.dto.SearchFilter;
@@ -154,16 +154,16 @@ public class SearchHelper {
 		String value = filter.getValue();
 		String filterType = filter.getType();
 		if(filter.getValue() != null && !filter.getValue().isEmpty() && (filter.getValues() != null) &&!filter.getValues().isEmpty()) {
-			throw new RequestException(SearchErrorCode.INVALID_VALUE_VALUES.getErrorCode(),
-					SearchErrorCode.INVALID_VALUE_VALUES.getErrorMessage());			
+			throw new RequestException(ErrorCode.INVALID_VALUE_VALUES.getErrorCode(),
+					ErrorCode.INVALID_VALUE_VALUES.getErrorMessage());			
 		}
 		if (FilterTypeEnum.CONTAINS.name().equalsIgnoreCase(filterType)) {
 			Expression<String> lowerCase=null;
 			try {
 				lowerCase = builder.lower(root.get(columnName));
 			} catch (Exception e) {
-				throw new RequestException(SearchErrorCode.INVALID_COLUMN.getErrorCode(),
-						String.format(SearchErrorCode.INVALID_COLUMN.getErrorMessage(), columnName));
+				throw new RequestException(ErrorCode.INVALID_COLUMN.getErrorCode(),
+						String.format(ErrorCode.INVALID_COLUMN.getErrorMessage(), columnName));
 			}
 			
 			if (value.startsWith("*") && value.endsWith("*")) {
@@ -192,8 +192,8 @@ public class SearchHelper {
 			try {
 				 lowerCase = builder.lower(root.get(columnName));
 			} catch (Exception e) {
-				throw new RequestException(SearchErrorCode.INVALID_COLUMN.getErrorCode(),
-						String.format(SearchErrorCode.INVALID_COLUMN.getErrorMessage(), columnName));
+				throw new RequestException(ErrorCode.INVALID_COLUMN.getErrorCode(),
+						String.format(ErrorCode.INVALID_COLUMN.getErrorMessage(), columnName));
 			}
 			return builder.like(lowerCase, builder.lower(builder.literal(value + WILD_CARD_CHARACTER)));
 		}
@@ -219,8 +219,8 @@ public class SearchHelper {
 				try {
 					path = root.get(i.getSortField());
 				} catch (IllegalArgumentException | IllegalStateException e) {
-					throw new RequestException(SearchErrorCode.INVALID_SORT_FIELD.getErrorCode(),
-							String.format(SearchErrorCode.INVALID_SORT_FIELD.getErrorMessage(), i.getSortField()));
+					throw new RequestException(ErrorCode.INVALID_SORT_FIELD.getErrorCode(),
+							String.format(ErrorCode.INVALID_SORT_FIELD.getErrorMessage(), i.getSortField()));
 				}
 				if (path != null) {
 					if (OrderEnum.asc.name().equalsIgnoreCase(i.getSortType()))
@@ -228,8 +228,8 @@ public class SearchHelper {
 					else if (OrderEnum.desc.name().equalsIgnoreCase(i.getSortType()))
 						return builder.desc(root.get(i.getSortField()));
 					else {
-						throw new RequestException(SearchErrorCode.INVALID_SORT_TYPE.getErrorCode(),
-								String.format(SearchErrorCode.INVALID_SORT_TYPE.getErrorMessage(), i.getSortType()));
+						throw new RequestException(ErrorCode.INVALID_SORT_TYPE.getErrorCode(),
+								String.format(ErrorCode.INVALID_SORT_TYPE.getErrorMessage(), i.getSortType()));
 					}
 				}
 				return null;
@@ -248,8 +248,8 @@ public class SearchHelper {
 	private void paginationQuery(Query query, Pagination page) {
 		if (page != null) {
 			if (page.getPageStart() < 0 || page.getPageFetch() < 1) {
-				throw new RequestException(SearchErrorCode.INVALID_PAGINATION_VALUE.getErrorCode(),
-						String.format(SearchErrorCode.INVALID_PAGINATION_VALUE.getErrorMessage(), page.getPageStart(),
+				throw new RequestException(ErrorCode.INVALID_PAGINATION_VALUE.getErrorCode(),
+						String.format(ErrorCode.INVALID_PAGINATION_VALUE.getErrorMessage(), page.getPageStart(),
 								page.getPageFetch()));
 			} 
 //			else {
@@ -299,8 +299,8 @@ public class SearchHelper {
 				return builder.between(root.get(columnName), fromValue, toValue);
 			}
 		} catch (IllegalArgumentException | IllegalStateException | InvalidDataAccessApiUsageException e) {
-			throw new RequestException(SearchErrorCode.INVALID_COLUMN.getErrorCode(),
-					String.format(SearchErrorCode.INVALID_COLUMN.getErrorMessage(), filter.getColumnName()));
+			throw new RequestException(ErrorCode.INVALID_COLUMN.getErrorCode(),
+					String.format(ErrorCode.INVALID_COLUMN.getErrorMessage(), filter.getColumnName()));
 		}
 		return null;
 	}
@@ -402,8 +402,8 @@ public class SearchHelper {
 			if (filter.getColumnName() != null && !filter.getColumnName().trim().isEmpty()) {
 				return FilterTypes(filter);
 			} else {
-				throw new RequestException(SearchErrorCode.MISSING_FILTER_COLUMN.getErrorCode(),
-						SearchErrorCode.MISSING_FILTER_COLUMN.getErrorMessage());
+				throw new RequestException(ErrorCode.MISSING_FILTER_COLUMN.getErrorCode(),
+						ErrorCode.MISSING_FILTER_COLUMN.getErrorMessage());
 			}
 		}
 		return false;
@@ -415,8 +415,8 @@ public class SearchHelper {
 				return true;
 			}
 		} else {
-			throw new RequestException(SearchErrorCode.FILTER_TYPE_NOT_AVAILABLE.getErrorCode(),
-					String.format(SearchErrorCode.FILTER_TYPE_NOT_AVAILABLE.getErrorMessage(), filter.getColumnName()));
+			throw new RequestException(ErrorCode.FILTER_TYPE_NOT_AVAILABLE.getErrorCode(),
+					String.format(ErrorCode.FILTER_TYPE_NOT_AVAILABLE.getErrorMessage(), filter.getColumnName()));
 		}
 		return false;
 	}
@@ -430,8 +430,8 @@ public class SearchHelper {
 	private boolean validateFilter(SearchFilter filter) {
 		boolean flag = false;
 		if (filter.getValue() != null && !filter.getValue().isEmpty() && (filter.getValues() != null) && !filter.getValues().isEmpty()) {
-			throw new RequestException(SearchErrorCode.INVALID_VALUE_VALUES.getErrorCode(),
-					SearchErrorCode.INVALID_VALUE_VALUES.getErrorMessage());			
+			throw new RequestException(ErrorCode.INVALID_VALUE_VALUES.getErrorCode(),
+					ErrorCode.INVALID_VALUE_VALUES.getErrorMessage());			
 		}
 		if (FilterTypeEnum.EQUALS.name().equalsIgnoreCase(filter.getType())
 				&& filter.getColumnName().equalsIgnoreCase(IS_ACTIVE_COLUMN_NAME)) {
@@ -440,24 +440,24 @@ public class SearchHelper {
 					&& (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("false"))) {
 				flag = true;
 			} else {
-				throw new RequestException(SearchErrorCode.INVALID_VALUE.getErrorCode(),
-						SearchErrorCode.INVALID_VALUE.getErrorMessage());
+				throw new RequestException(ErrorCode.INVALID_VALUE.getErrorCode(),
+						ErrorCode.INVALID_VALUE.getErrorMessage());
 			}
 
 		} else if(FilterTypeEnum.IN.name().equalsIgnoreCase(filter.getType())) {
 			if(filter.getValues() != null && !filter.getValues().isEmpty() ) {
 				flag = true;
 			} else {
-				throw new RequestException(SearchErrorCode.INVALID_VALUES.getErrorCode(),
-						SearchErrorCode.INVALID_VALUES.getErrorMessage());
+				throw new RequestException(ErrorCode.INVALID_VALUES.getErrorCode(),
+						ErrorCode.INVALID_VALUES.getErrorMessage());
 			}			
 		} else if (!FilterTypeEnum.BETWEEN.name().equalsIgnoreCase(filter.getType())) {
 			String value = filter.getValue();
 			if (value != null && !value.trim().isEmpty()) {
 				flag = true;
 			} else {
-				throw new RequestException(SearchErrorCode.INVALID_VALUE.getErrorCode(),
-						SearchErrorCode.INVALID_VALUE.getErrorMessage());
+				throw new RequestException(ErrorCode.INVALID_VALUE.getErrorCode(),
+						ErrorCode.INVALID_VALUE.getErrorMessage());
 			}
 		} else {
 			String fromValue = filter.getFromValue();
@@ -465,8 +465,8 @@ public class SearchHelper {
 			if (fromValue != null && !fromValue.trim().isEmpty() && toValue != null && !toValue.trim().isEmpty()) {
 				flag = true;
 			} else {
-				throw new RequestException(SearchErrorCode.INVALID_BETWEEN_VALUES.getErrorCode(), String
-						.format(SearchErrorCode.INVALID_BETWEEN_VALUES.getErrorMessage(), filter.getColumnName()));
+				throw new RequestException(ErrorCode.INVALID_BETWEEN_VALUES.getErrorCode(), String
+						.format(ErrorCode.INVALID_BETWEEN_VALUES.getErrorMessage(), filter.getColumnName()));
 			}
 		}
 		return flag;
@@ -485,8 +485,8 @@ public class SearchHelper {
 			if (field != null && !field.isEmpty() && type != null && !type.isEmpty()) {
 				return true;
 			} else {
-				throw new RequestException(SearchErrorCode.INVALID_SORT_INPUT.getErrorCode(),
-						SearchErrorCode.INVALID_SORT_INPUT.getErrorMessage());
+				throw new RequestException(ErrorCode.INVALID_SORT_INPUT.getErrorCode(),
+						ErrorCode.INVALID_SORT_INPUT.getErrorMessage());
 			}
 		}
 		return false;

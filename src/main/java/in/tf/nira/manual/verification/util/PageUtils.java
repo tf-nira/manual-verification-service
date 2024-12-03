@@ -8,7 +8,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
-import in.tf.nira.manual.verification.constant.SearchErrorCode;
+import in.tf.nira.manual.verification.constant.ErrorCode;
 import in.tf.nira.manual.verification.dto.PageResponseDto;
 import in.tf.nira.manual.verification.dto.Pagination;
 import in.tf.nira.manual.verification.dto.SearchSort;
@@ -69,15 +69,15 @@ public class PageUtils {
 	private boolean validate(Pagination page) {
 		if (page != null) {
 			if (page.getPageStart() < 0 || page.getPageFetch() < 1) {
-				throw new RequestException(SearchErrorCode.INVALID_PAGINATION_VALUE.getErrorCode(),
-						String.format(SearchErrorCode.INVALID_PAGINATION_VALUE.getErrorMessage(),
+				throw new RequestException(ErrorCode.INVALID_PAGINATION_VALUE.getErrorCode(),
+						String.format(ErrorCode.INVALID_PAGINATION_VALUE.getErrorMessage(),
 								page.getPageStart(), page.getPageFetch()));
 			} else {
 				return true;
 			}
 		} else {
-			throw new RequestException(SearchErrorCode.INVALID_PAGINATION.getErrorCode(),
-					SearchErrorCode.INVALID_PAGINATION.getErrorMessage());
+			throw new RequestException(ErrorCode.INVALID_PAGINATION.getErrorCode(),
+					ErrorCode.INVALID_PAGINATION.getErrorMessage());
 		}
 	}
 

@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 
 import in.tf.nira.manual.verification.constant.OrderEnum;
-import in.tf.nira.manual.verification.constant.SearchErrorCode;
+import in.tf.nira.manual.verification.constant.ErrorCode;
 import in.tf.nira.manual.verification.dto.SearchSort;
 import in.tf.nira.manual.verification.exception.RequestException;
 
@@ -80,14 +80,14 @@ public class SortUtils {
 	private Field findField(List<Field> fields, String name) {
 		Optional<Field> field = fields.stream().filter(f -> f.getName().equalsIgnoreCase(name)).findFirst();
 		if (StringUtils.isBlank(name)) {
-			throw new RequestException(SearchErrorCode.INVALID_SORT_INPUT.getErrorCode(),
-					SearchErrorCode.INVALID_SORT_INPUT.getErrorMessage());
+			throw new RequestException(ErrorCode.INVALID_SORT_INPUT.getErrorCode(),
+					ErrorCode.INVALID_SORT_INPUT.getErrorMessage());
 		}
 		if (field.isPresent()) {
 			return field.get();
 		} else {
-			throw new RequestException(SearchErrorCode.INVALID_SORT_FIELD.getErrorCode(),
-					String.format(SearchErrorCode.INVALID_SORT_FIELD.getErrorMessage(), name));
+			throw new RequestException(ErrorCode.INVALID_SORT_FIELD.getErrorCode(),
+					String.format(ErrorCode.INVALID_SORT_FIELD.getErrorMessage(), name));
 
 		}
 	}

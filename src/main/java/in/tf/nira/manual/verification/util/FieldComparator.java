@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.Date;
 
-import in.tf.nira.manual.verification.constant.SearchErrorCode;
+import in.tf.nira.manual.verification.constant.ErrorCode;
 import in.tf.nira.manual.verification.dto.SearchSort;
 import in.tf.nira.manual.verification.exception.RequestException;
 import lombok.AllArgsConstructor;
@@ -34,13 +34,13 @@ public class FieldComparator<T> implements Comparator<T> {
 			} else if ("ASC".equalsIgnoreCase(sort.getSortType())) {
 				return compare(type, value1, value2);
 			} else {
-				throw new RequestException(SearchErrorCode.INVALID_SORT_TYPE.getErrorCode(), String
-					.format(SearchErrorCode.INVALID_SORT_TYPE.getErrorMessage(), sort.getSortType()));
+				throw new RequestException(ErrorCode.INVALID_SORT_TYPE.getErrorCode(), String
+					.format(ErrorCode.INVALID_SORT_TYPE.getErrorMessage(), sort.getSortType()));
 			}
 		} catch (IllegalArgumentException | IllegalAccessException e) {
-			throw new RequestException(SearchErrorCode.ERROR_OCCURED_WHILE_SORTING.getErrorCode(),
+			throw new RequestException(ErrorCode.ERROR_OCCURED_WHILE_SORTING.getErrorCode(),
 					String
-					.format(SearchErrorCode.ERROR_OCCURED_WHILE_SORTING.getErrorMessage(), e.getMessage()));
+					.format(ErrorCode.ERROR_OCCURED_WHILE_SORTING.getErrorMessage(), e.getMessage()));
 		}
 	}
 
