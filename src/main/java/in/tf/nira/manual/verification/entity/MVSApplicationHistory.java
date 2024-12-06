@@ -1,7 +1,7 @@
 package in.tf.nira.manual.verification.entity;
 
 import java.time.LocalDateTime;
-import java.util.Map;
+import java.util.List;
 
 import javax.persistence.Column;
 import javax.persistence.Convert;
@@ -11,7 +11,8 @@ import javax.persistence.IdClass;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 
-import in.tf.nira.manual.verification.util.StringToMapConverter;
+import in.tf.nira.manual.verification.dto.EscalationDetailsDTO;
+import in.tf.nira.manual.verification.util.EscalationDetailsConverter;
 import lombok.Data;
 
 @Entity(name = "mvs_application_h")
@@ -42,12 +43,15 @@ public class MVSApplicationHistory {
 	@Column(name = "stage")
 	private String stage;
 	
-	@Convert(converter = StringToMapConverter.class)
 	@Column(name = "comments")
-	private Map<String, String> comments;
+	private String comments;
 	
 	@Column(name = "rejection_category")
 	private String rejectionCategory;
+
+	@Convert(converter = EscalationDetailsConverter.class)
+    @Column(name = "escalation_details")
+	private List<EscalationDetailsDTO> escalationDetails;
 
 	@NotNull
 	@Column(name = "cr_by")

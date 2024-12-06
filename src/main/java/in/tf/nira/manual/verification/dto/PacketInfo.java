@@ -1,9 +1,9 @@
 package in.tf.nira.manual.verification.dto;
 
+import java.io.Serializable;
+
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-
-import java.io.Serializable;
 
 @Data
 @EqualsAndHashCode

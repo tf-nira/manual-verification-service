@@ -1,7 +1,7 @@
 package in.tf.nira.manual.verification.entity;
 
 import java.time.LocalDateTime;
-import java.util.Map;
+import java.util.List;
 
 import javax.persistence.Column;
 import javax.persistence.Convert;
@@ -10,12 +10,16 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 
-import in.tf.nira.manual.verification.util.StringToMapConverter;
+import org.hibernate.annotations.Where;
+
+import in.tf.nira.manual.verification.dto.EscalationDetailsDTO;
+import in.tf.nira.manual.verification.util.EscalationDetailsConverter;
 import lombok.Data;
 
 @Entity(name = "mvs_application")
 @Table
 @Data
+@Where(clause = "is_deleted is not true")
 public class MVSApplication {
 	@Id
 	@Column(name = "reg_id")
@@ -30,6 +34,15 @@ public class MVSApplication {
 	@Column(name = "reference_url")
 	private String referenceURL;
 	
+	@Column(name = "source")
+	private String source;
+	
+	@Column(name = "ref_id")
+	private String refId;
+	
+	@Column(name = "schema_version")
+	private String schemaVersion;
+	
 	@Column(name = "assigned_officer_id")
 	private String assignedOfficerId;
 	
@@ -42,13 +55,16 @@ public class MVSApplication {
 	@Column(name = "stage")
 	private String stage;
 	
-	@Convert(converter = StringToMapConverter.class)
 	@Column(name = "comments")
-	private Map<String, String> comments;
+	private String comments;
 	
 	@Column(name = "rejection_category")
 	private String rejectionCategory;
 
+	@Convert(converter = EscalationDetailsConverter.class)
+    @Column(name = "escalation_details")
+	private List<EscalationDetailsDTO> escalationDetails;
+	
 	@NotNull
 	@Column(name = "cr_by")
 	private String createdBy;

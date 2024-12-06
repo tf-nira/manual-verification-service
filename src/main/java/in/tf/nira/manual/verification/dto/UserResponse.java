@@ -1,9 +1,8 @@
 package in.tf.nira.manual.verification.dto;
 
-import lombok.Data;
-import lombok.Getter;
-
 import java.util.List;
+
+import lombok.Data;
 
 @Data
 public class UserResponse {

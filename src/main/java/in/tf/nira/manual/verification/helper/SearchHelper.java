@@ -19,7 +19,6 @@ import javax.persistence.criteria.Path;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -27,9 +26,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import in.tf.nira.manual.verification.constant.ErrorCode;
 import in.tf.nira.manual.verification.constant.FilterTypeEnum;
 import in.tf.nira.manual.verification.constant.OrderEnum;
-import in.tf.nira.manual.verification.constant.ErrorCode;
 import in.tf.nira.manual.verification.dto.Pagination;
 import in.tf.nira.manual.verification.dto.SearchDto;
 import in.tf.nira.manual.verification.dto.SearchFilter;
@@ -102,7 +101,7 @@ public class SearchHelper {
 			if(hibernateException instanceof RequestException) {
 				throw new RequestException(((RequestException) hibernateException).getErrors());
 			}
-			throw new RequestException("PMS-MSD-394",
+			throw new RequestException("MVS-030",
 					String.format(hibernateException.getMessage(), hibernateException.getLocalizedMessage()));
 		}
 		return new PageImpl<>(result,
@@ -277,7 +276,7 @@ public class SearchHelper {
 			String fromValue = filter.getFromValue();
 			if (LocalDateTime.class.getName().equals(fieldType)) {
 				return builder.between(root.get(columnName), DateUtils.parseToLocalDateTime(fromValue),
-						DateUtils.convertUTCToLocalDateTime(toValue));
+						DateUtils.parseToLocalDateTime(toValue));
 			}
 			if (LocalDate.class.getName().equals(fieldType)) {
 				return builder.between(root.get(columnName), LocalDate.parse(fromValue), LocalDate.parse(toValue));

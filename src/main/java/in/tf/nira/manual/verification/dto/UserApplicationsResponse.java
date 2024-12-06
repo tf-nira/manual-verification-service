@@ -11,6 +11,6 @@ public class UserApplicationsResponse {
 	private String serviceType;
 	private String status;
 	private LocalDateTime crDTimes;
-	private String officerEscReason;
-	private String supervisorEscReason;
+	private EscalationDetailsDTO officerEscDetails;
+	private EscalationDetailsDTO supervisorEscDetails;
 }

@@ -1,8 +1,8 @@
 package in.tf.nira.manual.verification.listener;
 
 import java.io.UnsupportedEncodingException;
-import java.time.OffsetDateTime;
-import java.util.*;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import javax.jms.BytesMessage;
 import javax.jms.Connection;
@@ -11,7 +11,6 @@ import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageConsumer;
 import javax.jms.MessageListener;
-import javax.jms.MessageNotWriteableException;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
 import javax.jms.TextMessage;

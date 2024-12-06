@@ -10,8 +10,11 @@ public class CreateAppRequestDTO {
 	private String version;
 	private String requestId;
 	private LocalDateTime requesttime;
-	private String referenceId;
+	private String regId;
 	private String service;
 	private String serviceType;
 	private String referenceURL;
+	private String source;
+	private String refId;
+	private String schemaVersion;
 }

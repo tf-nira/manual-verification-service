@@ -6,6 +6,6 @@ import lombok.Data;
 public class UpdateStatusRequest {
 	private String status;
 	private String comment;
-	private String rejectionCategory;
+	private String category;
 	private Boolean insufficientDocuments;
 }

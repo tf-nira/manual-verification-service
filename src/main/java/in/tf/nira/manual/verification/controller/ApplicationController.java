@@ -25,13 +25,12 @@ import in.tf.nira.manual.verification.dto.StatusResponseDTO;
 import in.tf.nira.manual.verification.dto.UpdateStatusRequest;
 import in.tf.nira.manual.verification.dto.UserApplicationsResponse;
 import in.tf.nira.manual.verification.service.ApplicationService;
-import io.mosip.kernel.core.exception.ServiceError;
 import io.mosip.kernel.core.http.RequestWrapper;
 import io.mosip.kernel.core.http.ResponseWrapper;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
 @RestController
 @RequestMapping("/applications")

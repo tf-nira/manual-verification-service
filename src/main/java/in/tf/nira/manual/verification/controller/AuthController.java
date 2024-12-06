@@ -29,9 +29,4 @@ public class AuthController {
 		responseWrapper.setResponse(authService.loginClient(authRequest));
         return responseWrapper;
     }
-	/*
-	 * @GetMapping(value = "/userdetails") public ResponseEntity<UserResponse>
-	 * fetchUsersByRole (@RequestParam String role) { UserResponse userResponse =
-	 * authService.fetchUsersByRole(role); return ResponseEntity.ok(userResponse); }
-	 */
 }
