@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import in.tf.nira.manual.verification.constant.CommonConstants;
+import in.tf.nira.manual.verification.constant.ErrorCode;
 import in.tf.nira.manual.verification.dto.ApplicationDetailsResponse;
 import in.tf.nira.manual.verification.dto.CreateAppRequestDTO;
 import in.tf.nira.manual.verification.dto.DocumentDTO;
@@ -24,6 +25,7 @@ import in.tf.nira.manual.verification.dto.SearchDto;
 import in.tf.nira.manual.verification.dto.StatusResponseDTO;
 import in.tf.nira.manual.verification.dto.UpdateStatusRequest;
 import in.tf.nira.manual.verification.dto.UserApplicationsResponse;
+import in.tf.nira.manual.verification.exception.RequestException;
 import in.tf.nira.manual.verification.service.ApplicationService;
 import io.mosip.kernel.core.http.RequestWrapper;
 import io.mosip.kernel.core.http.ResponseWrapper;
@@ -45,11 +47,18 @@ public class ApplicationController {
             @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(hidden = true))),
             @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(hidden = true))),
             @ApiResponse(responseCode = "404", description = "Not Found", content = @Content(schema = @Schema(hidden = true))) })
-    public ResponseWrapper<StatusResponseDTO> createApplication(@Valid @RequestBody CreateAppRequestDTO verifyRequest) throws Exception {
+    public ResponseWrapper<StatusResponseDTO> createApplication(@Valid @RequestBody CreateAppRequestDTO verifyRequest) {
         ResponseWrapper<StatusResponseDTO> responseWrapper = new ResponseWrapper<>();
 		responseWrapper.setId(CommonConstants.CREATE_APP_ID);
 		responseWrapper.setVersion(CommonConstants.VERSION);
-		responseWrapper.setResponse(applicationService.createApplication(verifyRequest));
+		try {
+			responseWrapper.setResponse(applicationService.createApplication(verifyRequest));
+		} catch (RequestException e) {
+			throw e;
+		} catch (Exception exc) {
+			throw new RequestException(ErrorCode.UNKNOWN_ERROR.getErrorCode(),
+					String.format(exc.getMessage(), exc.getLocalizedMessage()));
+		}
     	
     	return responseWrapper;
     }
@@ -61,11 +70,18 @@ public class ApplicationController {
             @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(hidden = true))),
             @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(hidden = true))),
             @ApiResponse(responseCode = "404", description = "Not Found", content = @Content(schema = @Schema(hidden = true))) })
-    public ResponseWrapper<List<UserApplicationsResponse>> getApplicationsForUser(@PathVariable String userId) throws Exception {
+    public ResponseWrapper<List<UserApplicationsResponse>> getApplicationsForUser(@PathVariable String userId) {
     	ResponseWrapper<List<UserApplicationsResponse>> responseWrapper = new ResponseWrapper<>();
 		responseWrapper.setId(CommonConstants.GET_USER_APP_ID);
 		responseWrapper.setVersion(CommonConstants.VERSION);
-		responseWrapper.setResponse(applicationService.getApplicationsForUser(userId));
+		try {
+			responseWrapper.setResponse(applicationService.getApplicationsForUser(userId));
+		} catch (RequestException e) {
+			throw e;
+		} catch (Exception exc) {
+			throw new RequestException(ErrorCode.UNKNOWN_ERROR.getErrorCode(),
+					String.format(exc.getMessage(), exc.getLocalizedMessage()));
+		}
 		
         return responseWrapper;
     }
@@ -80,7 +96,14 @@ public class ApplicationController {
 	public ResponseWrapper<PageResponseDto<UserApplicationsResponse>> searchApplications(
 			@RequestBody @Valid RequestWrapper<SearchDto> request) {
 		ResponseWrapper<PageResponseDto<UserApplicationsResponse>> responseWrapper = new ResponseWrapper<>();
-		responseWrapper.setResponse(applicationService.searchApplications(request.getRequest()));
+		try {
+			responseWrapper.setResponse(applicationService.searchApplications(request.getRequest()));
+		} catch (RequestException e) {
+			throw e;
+		} catch (Exception exc) {
+			throw new RequestException(ErrorCode.UNKNOWN_ERROR.getErrorCode(),
+					String.format(exc.getMessage(), exc.getLocalizedMessage()));
+		}
 		
 		return responseWrapper;
 	}
@@ -96,7 +119,14 @@ public class ApplicationController {
     	ResponseWrapper<ApplicationDetailsResponse> responseWrapper = new ResponseWrapper<>();
 		responseWrapper.setId(CommonConstants.GET_APP_ID);
 		responseWrapper.setVersion(CommonConstants.VERSION);
-		responseWrapper.setResponse(applicationService.getApplicationDetails(applicationId));
+		try {
+			responseWrapper.setResponse(applicationService.getApplicationDetails(applicationId));
+		} catch (RequestException e) {
+			throw e;
+		} catch (Exception exc) {
+			throw new RequestException(ErrorCode.UNKNOWN_ERROR.getErrorCode(),
+					String.format(exc.getMessage(), exc.getLocalizedMessage()));
+		}
     	
     	return responseWrapper;
     }
@@ -112,7 +142,14 @@ public class ApplicationController {
         ResponseWrapper<StatusResponseDTO> responseWrapper = new ResponseWrapper<>();
 		responseWrapper.setId(CommonConstants.UPDATE_APP_ID);
 		responseWrapper.setVersion(CommonConstants.VERSION);
-		responseWrapper.setResponse(applicationService.updateApplicationStatus(applicationId, request.getRequest()));
+		try {
+			responseWrapper.setResponse(applicationService.updateApplicationStatus(applicationId, request.getRequest()));
+		} catch (RequestException e) {
+			throw e;
+		} catch (Exception exc) {
+			throw new RequestException(ErrorCode.UNKNOWN_ERROR.getErrorCode(),
+					String.format(exc.getMessage(), exc.getLocalizedMessage()));
+		}
     	
     	return responseWrapper;
     }
@@ -128,7 +165,14 @@ public class ApplicationController {
         ResponseWrapper<StatusResponseDTO> responseWrapper = new ResponseWrapper<>();
 		responseWrapper.setId(CommonConstants.SCHEDULE_APP_ID);
 		responseWrapper.setVersion(CommonConstants.VERSION);
-		responseWrapper.setResponse(applicationService.scheduleInterview(applicationId, request.getRequest()));
+		try {
+			responseWrapper.setResponse(applicationService.scheduleInterview(applicationId, request.getRequest()));
+		} catch (RequestException e) {
+			throw e;
+		} catch (Exception exc) {
+			throw new RequestException(ErrorCode.UNKNOWN_ERROR.getErrorCode(),
+					String.format(exc.getMessage(), exc.getLocalizedMessage()));
+		}
     	
     	return responseWrapper;
     }
@@ -144,7 +188,14 @@ public class ApplicationController {
         ResponseWrapper<StatusResponseDTO> responseWrapper = new ResponseWrapper<>();
 		responseWrapper.setId(CommonConstants.UPLOAD_APP_ID);
 		responseWrapper.setVersion(CommonConstants.VERSION);
-		responseWrapper.setResponse(applicationService.uploadDocuments(applicationId, request.getRequest()));
+		try {
+			responseWrapper.setResponse(applicationService.uploadDocuments(applicationId, request.getRequest()));
+		} catch (RequestException e) {
+			throw e;
+		} catch (Exception exc) {
+			throw new RequestException(ErrorCode.UNKNOWN_ERROR.getErrorCode(),
+					String.format(exc.getMessage(), exc.getLocalizedMessage()));
+		}
     	
     	return responseWrapper;
     }

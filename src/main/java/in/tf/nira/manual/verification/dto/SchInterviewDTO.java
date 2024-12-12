@@ -6,4 +6,5 @@ import lombok.Data;
 public class SchInterviewDTO {
 	private String subject;
 	private String content;
+	private String district;
 }

@@ -14,7 +14,7 @@ import in.tf.nira.manual.verification.dto.UserApplicationsResponse;
 
 public interface ApplicationService {
 
-	StatusResponseDTO createApplication(CreateAppRequestDTO verifyRequest) throws Exception;
+	StatusResponseDTO createApplication(CreateAppRequestDTO verifyRequest);
     List<UserApplicationsResponse> getApplicationsForUser(String userId);
 	ApplicationDetailsResponse getApplicationDetails(String applicationId);
 	StatusResponseDTO updateApplicationStatus(String applicationId, UpdateStatusRequest request);

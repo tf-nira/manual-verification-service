@@ -34,7 +34,10 @@ public enum ErrorCode {
 	SMS_NOTIFICATION_FAILED("MVS-032", "Failed to send sms notification "),
 	FAILED_SMS_NOTIFICATION_RESPONSE("MVS-033", "Received error response from notifier "),
 	AUTHENTICATION_FAILED("MVS-034", "Authentication failed "),
-	FAILED_AUTHENTICATION_RESPONSE("MVS-035", "Received error response for authentication ");
+	FAILED_AUTHENTICATION_RESPONSE("MVS-035", "Received error response for authentication "),
+	NO_OFFICER_FOR_DISTRICT("MVS-036", "No Officer available for district: %s"),
+	DISTRICT_NOT_PRESENT("MVS-037", "District value cannot be null"),
+	UNKNOWN_ERROR("MVS-038", "Unknown error occured");
      
 	/**
 	 * The error code.

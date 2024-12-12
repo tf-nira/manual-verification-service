@@ -53,10 +53,10 @@ public class PageUtils {
 	public <D> PageResponseDto<D> sortPage(List<D> content, List<SearchSort> sort, Pagination page,long totalNumberOfRecords) {
 		PageResponseDto<D> pageResponse = new PageResponseDto<>();
 		page.setPageFetch(page.getPageFetch());
-		List<D> sortedList = sortUtils.sort(content, sort);
+		//List<D> sortedList = sortUtils.sort(content, sort);
 		List<D> pageList = Collections.emptyList();
 		if (validate(page)) {
-			pageList = getPage(sortedList, page);
+			pageList = getPage(content, page);
 		}
 		if (!pageList.isEmpty()) {
 			pageResponse = pageResponse(

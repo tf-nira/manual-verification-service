@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.Comparator;
 
 import javax.annotation.PostConstruct;
 
@@ -17,7 +18,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.simple.JSONArray;
 import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +40,8 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import in.tf.nira.manual.verification.constant.CommonConstants;
@@ -48,6 +50,7 @@ import in.tf.nira.manual.verification.constant.StageCode;
 import in.tf.nira.manual.verification.dto.ApplicationDetailsResponse;
 import in.tf.nira.manual.verification.dto.CreateAppRequestDTO;
 import in.tf.nira.manual.verification.dto.DataShareResponseDto;
+import in.tf.nira.manual.verification.dto.DemograhicValue;
 import in.tf.nira.manual.verification.dto.DocumentDTO;
 import in.tf.nira.manual.verification.dto.EscalationDetailsDTO;
 import in.tf.nira.manual.verification.dto.OfficerDetailDTO;
@@ -60,9 +63,6 @@ import in.tf.nira.manual.verification.dto.SearchDto;
 import in.tf.nira.manual.verification.dto.StatusResponseDTO;
 import in.tf.nira.manual.verification.dto.UpdateStatusRequest;
 import in.tf.nira.manual.verification.dto.UserApplicationsResponse;
-import in.tf.nira.manual.verification.dto.UserDto;
-import in.tf.nira.manual.verification.dto.UserResponse;
-import in.tf.nira.manual.verification.dto.UserResponse.Response;
 import in.tf.nira.manual.verification.entity.MVSApplication;
 import in.tf.nira.manual.verification.entity.MVSApplicationHistory;
 import in.tf.nira.manual.verification.entity.OfficerAssignment;
@@ -76,6 +76,7 @@ import in.tf.nira.manual.verification.repository.OfficerAssignmentRepo;
 import in.tf.nira.manual.verification.service.ApplicationService;
 import in.tf.nira.manual.verification.util.CryptoCoreUtil;
 import in.tf.nira.manual.verification.util.PageUtils;
+import in.tf.nira.manual.verification.util.UserDetailUtil;
 import io.mosip.kernel.core.http.RequestWrapper;
 import io.mosip.kernel.core.http.ResponseWrapper;
 import io.mosip.kernel.core.util.DateUtils;
@@ -88,6 +89,7 @@ public class ApplicationServiceImpl implements ApplicationService {
     private static final String PACKET_MANAGER_VERSION = "v1";
     private static final String RESPONSE = "response";
     private static final String SCHEMA_JSON = "schemaJson";
+    private static final String SYSTEM = "System";
 	
 	@Value("${manual.verification.user.details.url}")
     private String userDetailsUrl;
@@ -113,13 +115,19 @@ public class ApplicationServiceImpl implements ApplicationService {
 	@Value("${manual.verification.document.upload.process}")
 	private String documentUploadProcess;
 	
-	Map<String, List<OfficerDetailDTO>> officerDetailMap = new HashMap<>();
+	private Map<String, List<OfficerDetailDTO>> officerDetailMap = new HashMap<>();
 	
 	private Map<String, String> schemajsonValue = null;
+	
+	private Map<String, Integer> assignmentCounts = new HashMap<>();
 
 	@Autowired(required = true)
 	@Qualifier("selfTokenRestTemplate")
 	private RestTemplate restTemplate;
+	
+	@Qualifier(value = "keycloakRestTemplate")
+	@Autowired
+	private RestTemplate keycloakRestTemplate;
 	
 	@Autowired
 	CryptoCoreUtil cryptoUtil;
@@ -148,16 +156,17 @@ public class ApplicationServiceImpl implements ApplicationService {
 	@PostConstruct
     public void runAtStartup() {
         fetchUsers();
+        populateAppCountForDisOfficers();
     }
 	
 	@Override
-	public StatusResponseDTO createApplication(CreateAppRequestDTO verifyRequest) throws Exception {
+	public StatusResponseDTO createApplication(CreateAppRequestDTO verifyRequest) {
 		logger.info("Application received for manual verification in mvs with reg id: " + verifyRequest.getRegId());
 		OfficerAssignment officerAssignment = officerAssignmentRepo.findByUserRole(CommonConstants.MVS_OFFICER_ROLE);
 		if(officerAssignment == null) {
 			officerAssignment = new OfficerAssignment();
 		}
-		OfficerDetailDTO selectedOfficer = fetchOfficerAssignment(CommonConstants.MVS_OFFICER_ROLE, officerAssignment);
+		OfficerDetailDTO selectedOfficer = fetchOfficerForAssignment(CommonConstants.MVS_OFFICER_ROLE, officerAssignment, null);
 		
 		if(selectedOfficer != null) {
 			logger.info("Assigning application to officer: " + selectedOfficer.getUserId());
@@ -173,19 +182,17 @@ public class ApplicationServiceImpl implements ApplicationService {
 			mVSApplication.setAssignedOfficerName(selectedOfficer.getUserName());
 			mVSApplication.setAssignedOfficerRole(selectedOfficer.getUserRole());
 			mVSApplication.setStage(StageCode.ASSIGNED_TO_OFFICER.getStage());
-			mVSApplication.setCreatedBy("");
+			mVSApplication.setCreatedBy(SYSTEM);
 			mVSApplication.setCrDTimes(LocalDateTime.now());
 			
 			mVSApplicationRepo.save(mVSApplication);
 			
 			if(officerAssignment.getCrDTimes() == null) {
-				//proper created by name
-				officerAssignment.setCreatedBy("");
+				officerAssignment.setCreatedBy(SYSTEM);
 				officerAssignment.setCrDTimes(LocalDateTime.now());
 			}
 			else {
-				//proper created by name
-				officerAssignment.setUpdatedBy("");
+				officerAssignment.setUpdatedBy(SYSTEM);
 				officerAssignment.setUpdatedTimes(LocalDateTime.now());
 			}
 			officerAssignmentRepo.save(officerAssignment);
@@ -249,13 +256,17 @@ public class ApplicationServiceImpl implements ApplicationService {
 				rejectApplication(application, request.getComment(), request.getCategory());
 				break;
 			case CommonConstants.ESCALATE_STATUS:
-				if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_SUPERVISOR_ROLE) || (request.getInsufficientDocuments() != null && request.getInsufficientDocuments())) {
+				if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_SUPERVISOR_ROLE) || 
+						(request.getInsufficientDocuments() != null && request.getInsufficientDocuments())) {
+					ApplicationDetailsResponse appResponse = getApplicationDetails(application);
+					String district = getDemoValue(appResponse.getDemographics().get("applicantPlaceOfResidenceDistrict"));
+					
 					escalateApplication(application, CommonConstants.MVS_DISTRICT_OFFICER_ROLE, 
-							StageCode.ASSIGNED_TO_DISTRICT_OFFICER.getStage(), CommonConstants.MVS_SUPERVISOR_ROLE, request);
+							StageCode.ASSIGNED_TO_DISTRICT_OFFICER.getStage(), request, district);
 				}
 				else if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_OFFICER_ROLE)) {
 					escalateApplication(application, CommonConstants.MVS_SUPERVISOR_ROLE, 
-							StageCode.ASSIGNED_TO_SUPERVISOR.getStage(), CommonConstants.MVS_OFFICER_ROLE, request);
+							StageCode.ASSIGNED_TO_SUPERVISOR.getStage(), request, null);
 				}
 				else {
 					logger.error("Application already escalated to highest level");
@@ -286,9 +297,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 		if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE) || 
 				application.getAssignedOfficerRole().equals(CommonConstants.MVS_LEGAL_OFFICER_ROLE)) {
 			sendNotification(application, schInterviewDTO.getSubject(), schInterviewDTO.getContent());
-			
-			application.setStage(StageCode.INTERVIEW_SCHEDULED.getStage());
-			mVSApplicationRepo.save(application);
+			scheduleInterview(application, schInterviewDTO.getDistrict());
 		}
 		else {
 			logger.error("{} not allowed to schedule interview", application.getAssignedOfficerRole());
@@ -326,8 +335,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 		return response;
 	}
 	
-	private OfficerDetailDTO fetchOfficerAssignment(String role, OfficerAssignment officerAssignment) {
-		if(officerDetailMap == null || officerDetailMap.isEmpty()) {
+	private OfficerDetailDTO fetchOfficerForAssignment(String role, OfficerAssignment officerAssignment, String district) {
+		if (officerDetailMap == null || officerDetailMap.isEmpty()) {
 			fetchUsers();
 		}
 		
@@ -341,8 +350,30 @@ public class ApplicationServiceImpl implements ApplicationService {
 					String.format(ErrorCode.OFFICER_FOR_ROLE_NOT_AVAILABLE.getErrorMessage(), role));
 	    }
 		
+		if (CommonConstants.MVS_DISTRICT_OFFICER_ROLE.equals(role)) {
+			//fetch officer by district
+			if (district != null) {
+				List<OfficerDetailDTO> disOfficers = officers.stream().filter(officer -> {
+					Map<String, String> attributes = officer.getAttributes();
+					return attributes != null && district.equals(attributes.get("district"));
+				}).collect(Collectors.toList());
+				
+				if (disOfficers != null && !disOfficers.isEmpty()) {
+					OfficerDetailDTO assignedOfficer = leastLoadedOfficer(disOfficers);
+					
+					return assignedOfficer;
+				} else {
+					throw new RequestException(ErrorCode.NO_OFFICER_FOR_DISTRICT.getErrorCode(),
+							String.format(ErrorCode.NO_OFFICER_FOR_DISTRICT.getErrorMessage(), district));
+				}
+			} else {
+				throw new RequestException(ErrorCode.DISTRICT_NOT_PRESENT.getErrorCode(),
+						ErrorCode.DISTRICT_NOT_PRESENT.getErrorMessage());
+			}
+		}
+		
 		Optional<OfficerDetailDTO> optionalOff;
-		if(officerAssignment.getUserId() == null) {
+		if (officerAssignment.getUserId() == null) {
 			optionalOff = officers.stream().findFirst();
 			officerAssignment.setId(UUID.randomUUID().toString());
 			officerAssignment.setUserRole(role);
@@ -352,7 +383,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 			optionalOff = officers.stream().filter(officer -> officer.getUserId().equals(userId)).findFirst();
 		}
 		
-		if(optionalOff.isPresent()) {
+		if (optionalOff.isPresent()) {
 			OfficerDetailDTO selectedOfficer = optionalOff.get();
 			int currentIndex = officers.indexOf(selectedOfficer);
 			
@@ -365,6 +396,12 @@ public class ApplicationServiceImpl implements ApplicationService {
 			throw new RequestException(ErrorCode.OFFICER_FOR_ID_NOT_AVAILABLE.getErrorCode(),
 					ErrorCode.OFFICER_FOR_ID_NOT_AVAILABLE.getErrorMessage());
 		}
+	}
+	
+	private OfficerDetailDTO leastLoadedOfficer(List<OfficerDetailDTO> officers) {
+		return officers.stream()
+				.min(Comparator.comparingInt(officer -> assignmentCounts.getOrDefault(officer.getUserId(), 0)))
+				.get();
 	}
 	
 	private List<UserApplicationsResponse> buildUserApplicationsResponse(List<MVSApplication> applications) {
@@ -448,6 +485,22 @@ public class ApplicationServiceImpl implements ApplicationService {
 	    }
 	}
 	
+	private String getDemoValue(String demoString) {
+		if(demoString == null)
+			return null;
+		
+		String value = null;
+		
+		try {
+			List<DemograhicValue> demoValues = objectMapper.readValue(demoString, new TypeReference<List<DemograhicValue>>() {});
+			value = demoValues.get(0).getValue();
+		} catch (JsonProcessingException e) {
+			e.printStackTrace();
+		}
+		
+		return value;
+	}
+	
 	private void handleResponseErrors(String response) {
 		try {
 			JSONParser parser = new JSONParser();
@@ -476,6 +529,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 		application.setStage(StageCode.APPROVED.getStage());
 		application.setComments(comment);
 		application.setIsDeleted(true);
+		application.setUpdatedBy(UserDetailUtil.getLoggedInUserId());
+		application.setUpdatedTimes(LocalDateTime.now());
 		mVSApplicationRepo.save(application);
 		
 		//send back to mvs stage
@@ -492,11 +547,12 @@ public class ApplicationServiceImpl implements ApplicationService {
 	
 	private void rejectApplication(MVSApplication application, String comment, String rejectionCategory) {
 		logger.info("Rejecting application");
-		sendNotification(application, "Application Rejection", "Application rejected in mvs");
 		application.setStage(StageCode.REJECTED.getStage());
 		application.setComments(comment);
 		application.setRejectionCategory(rejectionCategory);
 		application.setIsDeleted(true);
+		application.setUpdatedBy(UserDetailUtil.getLoggedInUserId());
+		application.setUpdatedTimes(LocalDateTime.now());
 		mVSApplicationRepo.save(application);
 		
 		//send back to mvs stage
@@ -513,8 +569,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 	
 	private void sendNotification(MVSApplication application, String subject, String content) {
 		ApplicationDetailsResponse appResponse = getApplicationDetails(application);
-        String email = appResponse.getDemographics().get("email");
-        String phone = appResponse.getDemographics().get("phone");
+        String email = getDemoValue(appResponse.getDemographics().get("email"));
+        String phone = getDemoValue(appResponse.getDemographics().get("phone"));
         
 		if (email != null) {
 			sendEmail(email, subject, content);
@@ -577,17 +633,23 @@ public class ApplicationServiceImpl implements ApplicationService {
 	    }
 	}
 	
-	private void escalateApplication(MVSApplication application, String assignedRole, String stage, String role, UpdateStatusRequest request) {
+	private void escalateApplication(MVSApplication application, String roleToAssign, String stage,
+			UpdateStatusRequest request, String district) {
 		logger.info("Escalating application to next level");
-		OfficerAssignment officerAssignment = officerAssignmentRepo.findByUserRole(assignedRole);
+		
+		OfficerAssignment officerAssignment = null;
+		if (!CommonConstants.MVS_DISTRICT_OFFICER_ROLE.equals(roleToAssign)) {
+			officerAssignment = officerAssignmentRepo.findByUserRole(roleToAssign);
+		}
 		
 		if (officerAssignment == null) {
 			officerAssignment = new OfficerAssignment();
 		}
 		
-		OfficerDetailDTO selectedOfficer = fetchOfficerAssignment(assignedRole, officerAssignment);
+		OfficerDetailDTO selectedOfficer = fetchOfficerForAssignment(roleToAssign, officerAssignment, district);
 		
 		if(selectedOfficer != null) {
+			String assignedRole = application.getAssignedOfficerRole();
 			MVSApplicationHistory appHistory = getAppHistoryEntity(application);
 			application.setAssignedOfficerId(selectedOfficer.getUserId());
 			application.setAssignedOfficerName(selectedOfficer.getUserName());
@@ -601,7 +663,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 			}
 			
 			EscalationDetailsDTO escDto = new EscalationDetailsDTO();
-			escDto.setLevel(role);
+			escDto.setLevel(assignedRole);
 			escDto.setCategory(request.getCategory());
 			escDto.setComment(request.getComment());
 			escDto.setEscDTimes(LocalDateTime.now());
@@ -610,23 +672,28 @@ public class ApplicationServiceImpl implements ApplicationService {
 			escDetails.add(escDto);
 			application.setEscalationDetails(escDetails);
 			
-			application.setUpdatedBy("");
+			application.setUpdatedBy(UserDetailUtil.getLoggedInUserId());
 			application.setUpdatedTimes(LocalDateTime.now());
 			
 			mVSApplicationRepo.save(application);
 			
-			if (officerAssignment.getCrDTimes() == null) {
-				officerAssignment.setCreatedBy("");
-				officerAssignment.setCrDTimes(LocalDateTime.now());
+			if (CommonConstants.MVS_DISTRICT_OFFICER_ROLE.equals(roleToAssign)) {
+				assignmentCounts.put(selectedOfficer.getUserId(),
+						assignmentCounts.getOrDefault(selectedOfficer.getUserId(), 0) + 1);
 			} else {
-				// proper created by name
-				officerAssignment.setUpdatedBy("");
-				officerAssignment.setUpdatedTimes(LocalDateTime.now());
+				if (officerAssignment.getCrDTimes() == null) {
+					officerAssignment.setCreatedBy(SYSTEM);
+					officerAssignment.setCrDTimes(LocalDateTime.now());
+				} else {
+					officerAssignment.setUpdatedBy(SYSTEM);
+					officerAssignment.setUpdatedTimes(LocalDateTime.now());
+				}
+				officerAssignmentRepo.save(officerAssignment);
 			}
-			officerAssignmentRepo.save(officerAssignment);
+			
 			mVSApplicationHistoryRepo.save(appHistory);
 			
-			logger.info("Application escalated to officer: " + selectedOfficer.getUserId());
+			logger.info("Application assigned to officer: " + selectedOfficer.getUserId());
 		}
 	}
 	
@@ -798,34 +865,40 @@ public class ApplicationServiceImpl implements ApplicationService {
 					ErrorCode.SMS_NOTIFICATION_FAILED.getErrorMessage() + "with error: " + ex.getMessage());
 	    }
 	}
-	 
 	
+	private void scheduleInterview(MVSApplication application, String district) {
+		if (district == null) {
+			ApplicationDetailsResponse appResponse = getApplicationDetails(application);
+			district = getDemoValue(appResponse.getDemographics().get("applicantPlaceOfResidenceDistrict"));
+		}
+		
+		UpdateStatusRequest updateRequest = new UpdateStatusRequest();
+		updateRequest.setComment("Interview required for further clarifications");
+		
+		escalateApplication(application, CommonConstants.MVS_DISTRICT_OFFICER_ROLE, 
+				StageCode.INTERVIEW_SCHEDULED.getStage(), updateRequest, district);
+	}
+	 
 	@Scheduled(cron = "${manual.verification.cron.expression:0 0/3 * * * ?}")
 	public void fetchUsers() {
 		logger.info("Fetching user details for assignment");
         HttpHeaders headers = new HttpHeaders();
         headers.set("Content-Type", "application/json");
         HttpEntity<String> entity = new HttpEntity<>(headers);
+        UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.fromUriString(userDetailsUrl);
+        Map<String, String> pathParams = new HashMap<>();
 
 		officerRoles.forEach(role -> {
-			String url = String.format(userDetailsUrl + "?roleName=" + role);
+			pathParams.put("role-name", role);
+			
 	        try {
-				ResponseEntity<UserResponse> response = restTemplate.exchange(url, HttpMethod.GET, entity, UserResponse.class);
+				ResponseEntity<String> response = keycloakRestTemplate.exchange(uriComponentsBuilder.buildAndExpand(pathParams).toString(),
+						HttpMethod.GET, entity, String.class);
 				
-				if(response.getBody() != null && response.getBody().getResponse() != null) {
-					List<UserDto> users = ((Response) response.getBody().getResponse()).getMosipUserDtoList();
-				    
-				    List<OfficerDetailDTO> userDetails = new ArrayList<OfficerDetailDTO>();
-				    
-				    users.forEach(user -> {
-				    	OfficerDetailDTO userDetail = new OfficerDetailDTO();
-				    	userDetail.setId(user.getRid());
-				    	userDetail.setUserId(user.getUserId());
-				    	userDetail.setUserName(user.getName());
-				    	userDetail.setUserRole(user.getRole());
-				    	userDetails.add(userDetail);
-				    });
-				    
+				if(response.getBody() != null) {
+					JsonNode node = objectMapper.readTree(response.getBody());
+				    List<OfficerDetailDTO> userDetails = mapUsersToUserDetailDto(node, role);
+					
 				    userDetails.sort((o1, o2) -> o1.getUserId().compareTo(o2.getUserId()));
 				    officerDetailMap.put(role, userDetails);
 				    logger.info("{} users fetched for role: {}", userDetails.size(), role);
@@ -836,5 +909,51 @@ public class ApplicationServiceImpl implements ApplicationService {
 				logger.error("Unable to fetch user details for role: {}, error: {}", role, exc);
 			}
 		});
+	}
+	
+	private List<OfficerDetailDTO> mapUsersToUserDetailDto(JsonNode node, String roleName) {
+		List<OfficerDetailDTO> officerDetailDTOs = new ArrayList<>();
+		if (node == null) {
+			logger.error("response from openid is null >>");
+			return officerDetailDTOs;
+		}
+
+		for (JsonNode jsonNode : node) {
+			OfficerDetailDTO officerDetailDTO = new OfficerDetailDTO();
+			String username = jsonNode.get("username").textValue();
+			officerDetailDTO.setUserId(username);
+			officerDetailDTO.setEmail(jsonNode.hasNonNull("email") ? jsonNode.get("email").textValue() : null);
+			officerDetailDTO.setUserName(String.format("%s %s",
+					(jsonNode.hasNonNull("firstName") ? jsonNode.get("firstName").textValue() : ""),
+					(jsonNode.hasNonNull("lastName") ? jsonNode.get("lastName").textValue() : "")));
+			officerDetailDTO.setUserRole(roleName);
+			
+			if (jsonNode.hasNonNull("attributes")) {
+				JsonNode attributeNodes = jsonNode.get("attributes");
+				
+				Map<String, String> attributes = new HashMap<>();
+				attributeNodes.fields().forEachRemaining(entry -> {
+					attributes.put(entry.getKey(), entry.getValue().get(0).textValue());
+				});
+				
+				officerDetailDTO.setAttributes(attributes);
+			}
+			
+			officerDetailDTOs.add(officerDetailDTO);
+		}
+
+		return officerDetailDTOs;
+	}
+	
+	private void populateAppCountForDisOfficers() {
+		List<OfficerDetailDTO> userDetails = officerDetailMap.get(CommonConstants.MVS_DISTRICT_OFFICER_ROLE);
+		
+		userDetails.forEach(u -> {
+	    	assignmentCounts.put(u.getUserId(), getApplicationCount(u.getUserId()));
+    	});
+	}
+	
+	private int getApplicationCount(String userId) {
+		return mVSApplicationRepo.countByAssignedOfficerId(userId);
 	}
 }
