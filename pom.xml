@@ -169,6 +169,11 @@
 			<artifactId>postgresql</artifactId>
 			<version>${postgresql.version}</version>
 		</dependency>
+		<dependency>
+		    <groupId>org.bouncycastle</groupId>
+		    <artifactId>bcprov-jdk15to18</artifactId>
+		    <version>1.76</version>
+		</dependency>
 	</dependencies>
 
 	<dependencyManagement>
