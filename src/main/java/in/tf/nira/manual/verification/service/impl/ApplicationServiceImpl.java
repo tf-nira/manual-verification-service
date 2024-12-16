@@ -99,6 +99,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 	
 	@Value("#{'${manual.verification.officer.roles}'.split(',')}")
     private List<String> officerRoles;
+
+	@Value("#{'${manual.verification.officerAssignment.serviceTypesForLegalOfficer}'.split(',')}")
+	private List<String> serviceTypesForLegalOfficer;
 	
 	@Value("${manual.verification.data.share.encryption:false}")
 	private boolean encryption;
@@ -162,11 +165,20 @@ public class ApplicationServiceImpl implements ApplicationService {
 	@Override
 	public StatusResponseDTO createApplication(CreateAppRequestDTO verifyRequest) {
 		logger.info("Application received for manual verification in mvs with reg id: " + verifyRequest.getRegId());
-		OfficerAssignment officerAssignment = officerAssignmentRepo.findByUserRole(CommonConstants.MVS_OFFICER_ROLE);
+
+		String officerRole = "";
+
+		if (verifyRequest.getService().equals("COP") && serviceTypesForLegalOfficer.contains(verifyRequest.getServiceType())) {
+			officerRole = CommonConstants.MVS_LEGAL_OFFICER_ROLE;
+		} else {
+			officerRole = CommonConstants.MVS_OFFICER_ROLE;
+		}
+
+		OfficerAssignment officerAssignment = officerAssignmentRepo.findByUserRole(officerRole);
 		if(officerAssignment == null) {
 			officerAssignment = new OfficerAssignment();
 		}
-		OfficerDetailDTO selectedOfficer = fetchOfficerForAssignment(CommonConstants.MVS_OFFICER_ROLE, officerAssignment, null);
+		OfficerDetailDTO selectedOfficer = fetchOfficerForAssignment(officerRole, officerAssignment, null);
 		
 		if(selectedOfficer != null) {
 			logger.info("Assigning application to officer: " + selectedOfficer.getUserId());
@@ -256,16 +268,24 @@ public class ApplicationServiceImpl implements ApplicationService {
 				rejectApplication(application, request.getComment(), request.getCategory());
 				break;
 			case CommonConstants.ESCALATE_STATUS:
-				if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_SUPERVISOR_ROLE) || 
+				if (application.getAssignedOfficerRole().equals(CommonConstants.MVS_LEGAL_OFFICER_ROLE)) {
+					escalateApplication(application, CommonConstants.MVS_EXECUTIVE_DIRECTOR,
+							StageCode.ASSIGNED_TO_EXECUTIVE_DIRECTOR.getStage(), request, null);
+				}
+				else if(request.getEscalationToLegalOfficer() != null && request.getEscalationToLegalOfficer()) {
+					escalateApplication(application, CommonConstants.MVS_LEGAL_OFFICER_ROLE,
+							StageCode.ASSIGNED_TO_LEGAL_OFFICER.getStage(), request, null);
+				}
+				else if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_SUPERVISOR_ROLE) ||
 						(request.getInsufficientDocuments() != null && request.getInsufficientDocuments())) {
 					ApplicationDetailsResponse appResponse = getApplicationDetails(application);
 					String district = getDemoValue(appResponse.getDemographics().get("applicantPlaceOfResidenceDistrict"));
-					
-					escalateApplication(application, CommonConstants.MVS_DISTRICT_OFFICER_ROLE, 
+
+					escalateApplication(application, CommonConstants.MVS_DISTRICT_OFFICER_ROLE,
 							StageCode.ASSIGNED_TO_DISTRICT_OFFICER.getStage(), request, district);
 				}
 				else if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_OFFICER_ROLE)) {
-					escalateApplication(application, CommonConstants.MVS_SUPERVISOR_ROLE, 
+					escalateApplication(application, CommonConstants.MVS_SUPERVISOR_ROLE,
 							StageCode.ASSIGNED_TO_SUPERVISOR.getStage(), request, null);
 				}
 				else {
@@ -294,8 +314,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 		
 		MVSApplication application = getApplicationById(applicationId);
 		
-		if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE) || 
-				application.getAssignedOfficerRole().equals(CommonConstants.MVS_LEGAL_OFFICER_ROLE)) {
+		if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE) ||
+				application.getAssignedOfficerRole().equals(CommonConstants.MVS_LEGAL_OFFICER_ROLE) ||
+				application.getAssignedOfficerRole().equals(CommonConstants.MVS_EXECUTIVE_DIRECTOR)) {
 			sendNotification(application, schInterviewDTO.getSubject(), schInterviewDTO.getContent());
 			scheduleInterview(application, schInterviewDTO.getDistrict());
 		}
@@ -424,7 +445,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 	                userApp.setOfficerEscDetails(esc);
 	            } else if (CommonConstants.MVS_SUPERVISOR_ROLE.equals(esc.getLevel())) {
 	                userApp.setSupervisorEscDetails(esc);
-	            }
+	            } else if (CommonConstants.MVS_LEGAL_OFFICER_ROLE.equals(esc.getLevel())) {
+					userApp.setLegalEscDetails(esc);
+				}
 	        });
 	    }
 	    
@@ -867,16 +890,27 @@ public class ApplicationServiceImpl implements ApplicationService {
 	}
 	
 	private void scheduleInterview(MVSApplication application, String district) {
-		if (district == null) {
-			ApplicationDetailsResponse appResponse = getApplicationDetails(application);
-			district = getDemoValue(appResponse.getDemographics().get("applicantPlaceOfResidenceDistrict"));
-		}
-		
 		UpdateStatusRequest updateRequest = new UpdateStatusRequest();
 		updateRequest.setComment("Interview required for further clarifications");
-		
-		escalateApplication(application, CommonConstants.MVS_DISTRICT_OFFICER_ROLE, 
-				StageCode.INTERVIEW_SCHEDULED.getStage(), updateRequest, district);
+
+		String officerRole = application.getAssignedOfficerRole();
+
+		if(officerRole.equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE)) {
+			if (district == null) {
+				ApplicationDetailsResponse appResponse = getApplicationDetails(application);
+				district = getDemoValue(appResponse.getDemographics().get("applicantPlaceOfResidenceDistrict"));
+			}
+
+			escalateApplication(application, CommonConstants.MVS_DISTRICT_OFFICER_ROLE,
+					StageCode.INTERVIEW_SCHEDULED.getStage(), updateRequest, district);
+		}
+		else {
+			application.setStage(StageCode.INTERVIEW_SCHEDULED.getStage());
+			application.setUpdatedBy(UserDetailUtil.getLoggedInUserId());
+			application.setUpdatedTimes(LocalDateTime.now());
+
+			mVSApplicationRepo.save(application);
+		}
 	}
 	 
 	@Scheduled(cron = "${manual.verification.cron.expression:0 0/3 * * * ?}")

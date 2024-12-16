@@ -6,6 +6,7 @@ public class CommonConstants {
 	public static final String MVS_SUPERVISOR_ROLE = "MVS_SUPERVISOR";
 	public static final String MVS_DISTRICT_OFFICER_ROLE = "MVS_DISTRICT_OFFICER";
 	public static final String MVS_LEGAL_OFFICER_ROLE = "MVS_LEGAL_OFFICER";
+	public static final String MVS_EXECUTIVE_DIRECTOR = "MVS_EXECUTIVE_DIRECTOR";
 	
 	//status
 	public static final String APPROVE_STATUS = "APPROVE";

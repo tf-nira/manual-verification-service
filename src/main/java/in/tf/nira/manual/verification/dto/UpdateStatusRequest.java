@@ -8,4 +8,5 @@ public class UpdateStatusRequest {
 	private String comment;
 	private String category;
 	private Boolean insufficientDocuments;
+	private Boolean escalationToLegalOfficer;
 }

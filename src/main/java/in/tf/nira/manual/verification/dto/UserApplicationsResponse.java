@@ -13,4 +13,5 @@ public class UserApplicationsResponse {
 	private LocalDateTime crDTimes;
 	private EscalationDetailsDTO officerEscDetails;
 	private EscalationDetailsDTO supervisorEscDetails;
+	private EscalationDetailsDTO legalEscDetails;
 }
