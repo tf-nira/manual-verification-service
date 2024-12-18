@@ -11,6 +11,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.Comparator;
+import java.util.stream.IntStream;
 
 import javax.annotation.PostConstruct;
 
@@ -121,8 +122,10 @@ public class ApplicationServiceImpl implements ApplicationService {
 	private Map<String, List<OfficerDetailDTO>> officerDetailMap = new HashMap<>();
 	
 	private Map<String, String> schemajsonValue = null;
-	
-	private Map<String, Integer> assignmentCounts = new HashMap<>();
+
+	private Map<String, List<OfficerDetailDTO>> districtOfficerMap = new HashMap<>();
+
+	private Map<String, String> districtOfficerAssignment = new HashMap<>();
 
 	@Autowired(required = true)
 	@Qualifier("selfTokenRestTemplate")
@@ -159,7 +162,6 @@ public class ApplicationServiceImpl implements ApplicationService {
 	@PostConstruct
     public void runAtStartup() {
         fetchUsers();
-        populateAppCountForDisOfficers();
     }
 	
 	@Override
@@ -374,15 +376,23 @@ public class ApplicationServiceImpl implements ApplicationService {
 		if (CommonConstants.MVS_DISTRICT_OFFICER_ROLE.equals(role)) {
 			//fetch officer by district
 			if (district != null) {
-				List<OfficerDetailDTO> disOfficers = officers.stream().filter(officer -> {
-					Map<String, String> attributes = officer.getAttributes();
-					return attributes != null && district.equals(attributes.get("district"));
-				}).collect(Collectors.toList());
+				List<OfficerDetailDTO>disOfficers = districtOfficerMap.get(district);
 				
 				if (disOfficers != null && !disOfficers.isEmpty()) {
-					OfficerDetailDTO assignedOfficer = leastLoadedOfficer(disOfficers);
-					
+
+					String nextOfficerId = districtOfficerAssignment.get(district);
+
+					OfficerDetailDTO assignedOfficer = disOfficers.stream()
+							.filter(o -> o.getUserId().equals(nextOfficerId))
+							.findFirst()
+							.orElse(disOfficers.get(0));
+
+					int currentIndex = disOfficers.indexOf(assignedOfficer);
+					int newNextOfficerIndex = (currentIndex + 1) % disOfficers.size();
+					districtOfficerAssignment.put(district, disOfficers.get(newNextOfficerIndex).getUserId());
+
 					return assignedOfficer;
+
 				} else {
 					throw new RequestException(ErrorCode.NO_OFFICER_FOR_DISTRICT.getErrorCode(),
 							String.format(ErrorCode.NO_OFFICER_FOR_DISTRICT.getErrorMessage(), district));
@@ -418,13 +428,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 					ErrorCode.OFFICER_FOR_ID_NOT_AVAILABLE.getErrorMessage());
 		}
 	}
-	
-	private OfficerDetailDTO leastLoadedOfficer(List<OfficerDetailDTO> officers) {
-		return officers.stream()
-				.min(Comparator.comparingInt(officer -> assignmentCounts.getOrDefault(officer.getUserId(), 0)))
-				.get();
-	}
-	
+
 	private List<UserApplicationsResponse> buildUserApplicationsResponse(List<MVSApplication> applications) {
 	    return applications.stream()
 	            .map(this::mapToUserApplicationsResponse)
@@ -700,10 +704,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 			
 			mVSApplicationRepo.save(application);
 			
-			if (CommonConstants.MVS_DISTRICT_OFFICER_ROLE.equals(roleToAssign)) {
-				assignmentCounts.put(selectedOfficer.getUserId(),
-						assignmentCounts.getOrDefault(selectedOfficer.getUserId(), 0) + 1);
-			} else {
+			if (!CommonConstants.MVS_DISTRICT_OFFICER_ROLE.equals(roleToAssign)) {
 				if (officerAssignment.getCrDTimes() == null) {
 					officerAssignment.setCreatedBy(SYSTEM);
 					officerAssignment.setCrDTimes(LocalDateTime.now());
@@ -943,6 +944,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 				logger.error("Unable to fetch user details for role: {}, error: {}", role, exc);
 			}
 		});
+
+		populateMapsForDisOfficers();
 	}
 	
 	private List<OfficerDetailDTO> mapUsersToUserDetailDto(JsonNode node, String roleName) {
@@ -979,12 +982,21 @@ public class ApplicationServiceImpl implements ApplicationService {
 		return officerDetailDTOs;
 	}
 	
-	private void populateAppCountForDisOfficers() {
+	private void populateMapsForDisOfficers() {
 		List<OfficerDetailDTO> userDetails = officerDetailMap.get(CommonConstants.MVS_DISTRICT_OFFICER_ROLE);
-		
+
 		userDetails.forEach(u -> {
-	    	assignmentCounts.put(u.getUserId(), getApplicationCount(u.getUserId()));
-    	});
+			Map<String, String> attributes = u.getAttributes();
+			String district = attributes.get("district");
+
+			if (district != null) {
+				districtOfficerMap.computeIfAbsent(district, k -> new ArrayList<>()).add(u);
+				districtOfficerAssignment.putIfAbsent(district, u.getUserId());
+			}
+			else {
+                logger.error("District not available for the user: {}", u.getUserId());
+			}
+		});
 	}
 	
 	private int getApplicationCount(String userId) {
