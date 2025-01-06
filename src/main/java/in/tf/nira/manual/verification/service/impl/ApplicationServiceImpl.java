@@ -52,6 +52,7 @@ import in.tf.nira.manual.verification.dto.ApplicationDetailsResponse;
 import in.tf.nira.manual.verification.dto.CreateAppRequestDTO;
 import in.tf.nira.manual.verification.dto.DataShareResponseDto;
 import in.tf.nira.manual.verification.dto.DemograhicValue;
+import in.tf.nira.manual.verification.dto.DemographicDetailsDTO;
 import in.tf.nira.manual.verification.dto.DocumentDTO;
 import in.tf.nira.manual.verification.dto.EscalationDetailsDTO;
 import in.tf.nira.manual.verification.dto.OfficerDetailDTO;
@@ -109,6 +110,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 	
 	@Value("${manual.verification.latest.schema.url}")
     private String schemaUrl;
+	
+	@Value("${manual.verification.id.repo.url}")
+    private String idRepoUrl;
 	
 	@Value("${manual.verification.email.notification.url}")
     private String emailNotificationUrl;
@@ -270,15 +274,19 @@ public class ApplicationServiceImpl implements ApplicationService {
 				rejectApplication(application, request.getComment(), request.getCategory());
 				break;
 			case CommonConstants.ESCALATE_STATUS:
-				if (application.getAssignedOfficerRole().equals(CommonConstants.MVS_LEGAL_OFFICER_ROLE)) {
-					escalateApplication(application, CommonConstants.MVS_EXECUTIVE_DIRECTOR,
-							StageCode.ASSIGNED_TO_EXECUTIVE_DIRECTOR.getStage(), request, null);
-				}
-				else if(request.getEscalationToLegalOfficer() != null && request.getEscalationToLegalOfficer()) {
+				if (request.getSelectedOfficerLevel() != null && request.getSelectedOfficerLevel().equals(CommonConstants.MVS_LEGAL_OFFICER_ROLE)) {
 					escalateApplication(application, CommonConstants.MVS_LEGAL_OFFICER_ROLE,
 							StageCode.ASSIGNED_TO_LEGAL_OFFICER.getStage(), request, null);
 				}
-				else if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_SUPERVISOR_ROLE) ||
+//				else if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_SUPERVISOR_ROLE) ||
+//						(request.getInsufficientDocuments() != null && request.getInsufficientDocuments())) {
+//					ApplicationDetailsResponse appResponse = getApplicationDetails(application);
+//					String district = getDemoValue(appResponse.getDemographics().get("applicantPlaceOfResidenceDistrict"));
+//
+//					escalateApplication(application, CommonConstants.MVS_DISTRICT_OFFICER_ROLE,
+//							StageCode.ASSIGNED_TO_DISTRICT_OFFICER.getStage(), request, district);
+//				}
+				else if(request.getSelectedOfficerLevel() != null && request.getSelectedOfficerLevel().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE) ||
 						(request.getInsufficientDocuments() != null && request.getInsufficientDocuments())) {
 					ApplicationDetailsResponse appResponse = getApplicationDetails(application);
 					String district = getDemoValue(appResponse.getDemographics().get("applicantPlaceOfResidenceDistrict"));
@@ -286,9 +294,13 @@ public class ApplicationServiceImpl implements ApplicationService {
 					escalateApplication(application, CommonConstants.MVS_DISTRICT_OFFICER_ROLE,
 							StageCode.ASSIGNED_TO_DISTRICT_OFFICER.getStage(), request, district);
 				}
-				else if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_OFFICER_ROLE)) {
+				else if(request.getSelectedOfficerLevel() != null && request.getSelectedOfficerLevel().equals(CommonConstants.MVS_SUPERVISOR_ROLE)) {
 					escalateApplication(application, CommonConstants.MVS_SUPERVISOR_ROLE,
 							StageCode.ASSIGNED_TO_SUPERVISOR.getStage(), request, null);
+				}
+				else if(request.getSelectedOfficerLevel() != null && request.getSelectedOfficerLevel().equals(CommonConstants.MVS_EXECUTIVE_DIRECTOR)) {
+					escalateApplication(application, CommonConstants.MVS_EXECUTIVE_DIRECTOR,
+							StageCode.ASSIGNED_TO_EXECUTIVE_DIRECTOR.getStage(), request, null);
 				}
 				else {
 					logger.error("Application already escalated to highest level");
@@ -1001,5 +1013,25 @@ public class ApplicationServiceImpl implements ApplicationService {
 	
 	private int getApplicationCount(String userId) {
 		return mVSApplicationRepo.countByAssignedOfficerId(userId);
+	}
+	
+	public DemographicDetailsDTO getDemographicDetails(String registrationId) {
+		logger.info("Fetching demographic data from id repo: {}");
+		
+		String url = idRepoUrl + registrationId;
+		logger.info("Fetching demographic data from URL: {}", url);
+		ResponseEntity<DemographicDetailsDTO> response = null;
+		try {
+			System.out.println("malay:: reponse"+restTemplate.exchange(url, HttpMethod.GET, null,
+					DemographicDetailsDTO.class));
+			response = restTemplate.exchange(url, HttpMethod.GET, null,
+					DemographicDetailsDTO.class);
+			System.out.println("malay:: reponse"+response);
+		} catch (Exception e) {
+			throw new ApiNotAccessibleException("Could not fetch demographic data from id repo: {} " );
+		}
+
+		return response.getBody();
+		
 	}
 }
