@@ -308,6 +308,7 @@
 					<argLine>
 						${argLine} --add-opens java.xml/jdk.xml.internal=ALL-UNNAMED --illegal-access=permit
 					</argLine>
+					 <argLine>--add-modules jdk.crypto.ec</argLine>
 				</configuration>
 			</plugin>
 			<plugin>
