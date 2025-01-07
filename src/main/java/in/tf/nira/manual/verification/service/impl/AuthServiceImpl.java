@@ -36,8 +36,9 @@ public class AuthServiceImpl implements AuthService {
     @Value("${mosip.iam.adapter.clientsecret}")
     private String clientSecret;
     
-    @Autowired(required = true)
-	private RestTemplate restTemplate;
+    @Autowired
+    @Qualifier("selfTokenRestTemplate")
+    RestTemplate localRestTemplate;
 
     @Override
     public AuthenticationResponse loginClient(RequestWrapper<AuthenticationRequest> authRequest) {
@@ -52,7 +53,7 @@ public class AuthServiceImpl implements AuthService {
 			authRequest.getRequest().setClientSecret(clientSecret);
 			HttpEntity<RequestWrapper<AuthenticationRequest>> entity = new HttpEntity<>(authRequest, headers);
 
-			ResponseEntity<ResponseWrapper<AuthenticationResponse>> response = restTemplate.exchange(
+			ResponseEntity<ResponseWrapper<AuthenticationResponse>> response = localRestTemplate.exchange(
 			        authenticationUrl,
 			        HttpMethod.POST,
 			        entity,
