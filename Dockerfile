@@ -67,9 +67,7 @@ CMD if [ "$is_glowroot_env" = "present" ]; then \
     echo "Downloading IAM Adapter JAR..."; \
     wget -q "${iam_adapter_url_env}" -O "${loader_path}/kernel-auth-adapter.jar" && \
     echo "Starting manual-verification-service..."; \
-    java -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -XX:MaxRAMFraction=1 \
-        -XX:+HeapDumpOnOutOfMemoryError -XX:+UseG1GC -XX:+UseStringDeduplication \
-        -Dloader.path="${loader_path}" \
+    java -Dloader.path="${loader_path}" \
         ${is_glowroot_env:+-javaagent:glowroot/glowroot.jar} \
         -Dspring.cloud.config.label="${spring_config_label_env}" \
         -Dspring.profiles.active="${active_profile_env}" \
