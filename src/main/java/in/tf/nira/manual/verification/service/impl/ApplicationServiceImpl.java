@@ -15,6 +15,7 @@ import java.util.stream.IntStream;
 
 import javax.annotation.PostConstruct;
 
+import in.tf.nira.manual.verification.dto.*;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.simple.JSONArray;
@@ -48,22 +49,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import in.tf.nira.manual.verification.constant.CommonConstants;
 import in.tf.nira.manual.verification.constant.ErrorCode;
 import in.tf.nira.manual.verification.constant.StageCode;
-import in.tf.nira.manual.verification.dto.ApplicationDetailsResponse;
-import in.tf.nira.manual.verification.dto.CreateAppRequestDTO;
-import in.tf.nira.manual.verification.dto.DataShareResponseDto;
-import in.tf.nira.manual.verification.dto.DemograhicValue;
-import in.tf.nira.manual.verification.dto.DocumentDTO;
-import in.tf.nira.manual.verification.dto.EscalationDetailsDTO;
-import in.tf.nira.manual.verification.dto.OfficerDetailDTO;
-import in.tf.nira.manual.verification.dto.PacketDto;
-import in.tf.nira.manual.verification.dto.PacketInfo;
-import in.tf.nira.manual.verification.dto.PageResponseDto;
-import in.tf.nira.manual.verification.dto.SMSRequestDTO;
-import in.tf.nira.manual.verification.dto.SchInterviewDTO;
-import in.tf.nira.manual.verification.dto.SearchDto;
-import in.tf.nira.manual.verification.dto.StatusResponseDTO;
-import in.tf.nira.manual.verification.dto.UpdateStatusRequest;
-import in.tf.nira.manual.verification.dto.UserApplicationsResponse;
 import in.tf.nira.manual.verification.entity.MVSApplication;
 import in.tf.nira.manual.verification.entity.MVSApplicationHistory;
 import in.tf.nira.manual.verification.entity.OfficerAssignment;
@@ -563,9 +548,11 @@ public class ApplicationServiceImpl implements ApplicationService {
 		//send back to mvs stage
 		logger.info("Notifying mvs stage for approval");
 		try {
-			StatusResponseDTO response = new StatusResponseDTO();
-			response.setStatus(StageCode.APPROVED.getStage());
+			MVSResponseDto response = new MVSResponseDto();
+			response.setRegId(application.getRegId());
+			response.setReturnValue(0);
 			ResponseEntity<Object> responseEntity = new ResponseEntity<>(response, HttpStatus.OK);
+			System.out.println("response: " + responseEntity);
 			listener.sendToQueue(responseEntity, 1);
 		} catch (JsonProcessingException | UnsupportedEncodingException e) {
 			logger.error("Unable to send response to mvs stage, {}", e);
@@ -585,8 +572,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 		//send back to mvs stage
 		logger.info("Notifying mvs stage for rejection");
 		try {
-			StatusResponseDTO response = new StatusResponseDTO();
-			response.setStatus(StageCode.REJECTED.getStage());
+			MVSResponseDto response = new MVSResponseDto();
+			response.setRegId(application.getRegId());
+			response.setReturnValue(1);
 			ResponseEntity<Object> responseEntity = new ResponseEntity<>(response, HttpStatus.OK);
 			listener.sendToQueue(responseEntity, 1);
 		} catch (JsonProcessingException | UnsupportedEncodingException e) {
