@@ -11,7 +11,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.beans.factory.annotation.Qualifier;
 
 import in.tf.nira.manual.verification.constant.ErrorCode;
 import in.tf.nira.manual.verification.dto.AuthenticationRequest;
@@ -37,9 +36,8 @@ public class AuthServiceImpl implements AuthService {
     @Value("${mosip.iam.adapter.clientsecret}")
     private String clientSecret;
     
-    @Autowired
-    @Qualifier("selfTokenRestTemplate")
-    RestTemplate localRestTemplate;
+    @Autowired(required = true)
+    private RestTemplate restTemplate;
 
     @Override
     public AuthenticationResponse loginClient(RequestWrapper<AuthenticationRequest> authRequest) {
@@ -54,7 +52,7 @@ public class AuthServiceImpl implements AuthService {
 			authRequest.getRequest().setClientSecret(clientSecret);
 			HttpEntity<RequestWrapper<AuthenticationRequest>> entity = new HttpEntity<>(authRequest, headers);
 
-			ResponseEntity<ResponseWrapper<AuthenticationResponse>> response = localRestTemplate.exchange(
+			ResponseEntity<ResponseWrapper<AuthenticationResponse>> response = restTemplate.exchange(
 			        authenticationUrl,
 			        HttpMethod.POST,
 			        entity,
