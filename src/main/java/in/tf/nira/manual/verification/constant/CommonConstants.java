@@ -22,4 +22,5 @@ public class CommonConstants {
 	public static final String UPDATE_APP_ID = "tf.nira.app.update";
 	public static final String SCHEDULE_APP_ID = "tf.nira.app.schedule";
 	public static final String UPLOAD_APP_ID = "tf.nira.app.upload";
+	public static final String GET_NIN_DEMOGRAPHIC = "tf.nira.app.get.demographic";
 }

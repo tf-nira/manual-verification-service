@@ -2,8 +2,11 @@ package in.tf.nira.manual.verification.service;
 
 import java.util.List;
 
+import org.springframework.http.ResponseEntity;
+
 import in.tf.nira.manual.verification.dto.ApplicationDetailsResponse;
 import in.tf.nira.manual.verification.dto.CreateAppRequestDTO;
+import in.tf.nira.manual.verification.dto.DemographicDetailsDTO;
 import in.tf.nira.manual.verification.dto.DocumentDTO;
 import in.tf.nira.manual.verification.dto.PageResponseDto;
 import in.tf.nira.manual.verification.dto.SchInterviewDTO;
@@ -21,4 +24,5 @@ public interface ApplicationService {
 	StatusResponseDTO scheduleInterview(String applicationId, SchInterviewDTO request);
 	StatusResponseDTO uploadDocuments(String applicationId, DocumentDTO documentDTO);
 	PageResponseDto<UserApplicationsResponse> searchApplications(SearchDto request);
+	DemographicDetailsDTO getDemographicDetails(String registrationId);
 }
