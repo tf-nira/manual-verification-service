@@ -9,7 +9,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 import in.tf.nira.manual.verification.listener.Listener;
 
-@ComponentScan(basePackages = {"io.mosip.*", "in.tf.nira.*"})
+@ComponentScan(basePackages = {"io.mosip.*", "in.tf.nira.*", "${mosip.auth.adapter.impl.basepackage}"})
 @SpringBootApplication
 @EnableJpaRepositories(basePackages = "in.tf.nira.manual.verification.repository")
 @EnableScheduling
