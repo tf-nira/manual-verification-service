@@ -18,6 +18,7 @@ import in.tf.nira.manual.verification.constant.CommonConstants;
 import in.tf.nira.manual.verification.constant.ErrorCode;
 import in.tf.nira.manual.verification.dto.ApplicationDetailsResponse;
 import in.tf.nira.manual.verification.dto.CreateAppRequestDTO;
+import in.tf.nira.manual.verification.dto.DemographicDetailsDTO;
 import in.tf.nira.manual.verification.dto.DocumentDTO;
 import in.tf.nira.manual.verification.dto.PageResponseDto;
 import in.tf.nira.manual.verification.dto.SchInterviewDTO;
@@ -199,4 +200,29 @@ public class ApplicationController {
     	
     	return responseWrapper;
     }
+    
+    //@PreAuthorize("hasAnyRole(@authorizedRoles.getUpdateApplicationStatus())")
+    @GetMapping("/demographics/{registrationId}")
+    @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "OK"),
+            @ApiResponse(responseCode = "201", description = "Created", content = @Content(schema = @Schema(hidden = true))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(hidden = true))),
+            @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(hidden = true))),
+            @ApiResponse(responseCode = "404", description = "Not Found", content = @Content(schema = @Schema(hidden = true))) })
+    public ResponseWrapper<DemographicDetailsDTO> fetchDemographicDetails(@PathVariable String registrationId) {
+        ResponseWrapper<DemographicDetailsDTO> responseWrapper = new ResponseWrapper<>();
+		responseWrapper.setId(CommonConstants.GET_NIN_DEMOGRAPHIC);
+		responseWrapper.setVersion(CommonConstants.VERSION);
+		try {
+			responseWrapper.setResponse(applicationService.getDemographicDetails(registrationId));
+			System.out.println("malay:: reponse wrapper"+responseWrapper);
+		} catch (RequestException e) {
+			throw e;
+		} catch (Exception exc) {
+			throw new RequestException(ErrorCode.UNKNOWN_ERROR.getErrorCode(),
+					String.format(exc.getMessage(), exc.getLocalizedMessage()));
+		}
+    	
+    	return responseWrapper;
+    }
+    
 }

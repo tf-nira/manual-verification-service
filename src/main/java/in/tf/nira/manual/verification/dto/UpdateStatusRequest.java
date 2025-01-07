@@ -9,4 +9,5 @@ public class UpdateStatusRequest {
 	private String category;
 	private Boolean insufficientDocuments;
 	private Boolean escalationToLegalOfficer;
+	private String selectedOfficerLevel;
 }
