@@ -41,6 +41,9 @@ public class AuthServiceImpl implements AuthService {
     private String clientSecret;
     
     @Autowired
+    private RestTemplate restTemplate;
+    
+    @Autowired
 	ObjectMapper objectMapper;
 
     @Override
@@ -57,8 +60,6 @@ public class AuthServiceImpl implements AuthService {
 			HttpEntity<RequestWrapper<AuthenticationRequest>> entity = new HttpEntity<>(authRequest, headers);
 
 			UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(authenticationUrl);
-			
-			RestTemplate restTemplate = new RestTemplate();
 			
 			ResponseEntity<String> response = restTemplate.postForEntity(builder.build().toUri(),
                     entity, String.class);
