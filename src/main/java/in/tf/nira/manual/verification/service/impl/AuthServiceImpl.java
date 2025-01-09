@@ -11,6 +11,10 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import in.tf.nira.manual.verification.constant.ErrorCode;
 import in.tf.nira.manual.verification.dto.AuthenticationRequest;
@@ -36,8 +40,11 @@ public class AuthServiceImpl implements AuthService {
     @Value("${mosip.iam.adapter.clientsecret}")
     private String clientSecret;
     
-    @Autowired(required = true)
+    @Autowired
     private RestTemplate restTemplate;
+    
+    @Autowired
+	ObjectMapper objectMapper;
 
     @Override
     public AuthenticationResponse loginClient(RequestWrapper<AuthenticationRequest> authRequest) {
@@ -52,12 +59,10 @@ public class AuthServiceImpl implements AuthService {
 			authRequest.getRequest().setClientSecret(clientSecret);
 			HttpEntity<RequestWrapper<AuthenticationRequest>> entity = new HttpEntity<>(authRequest, headers);
 
-			ResponseEntity<ResponseWrapper<AuthenticationResponse>> response = restTemplate.exchange(
-			        authenticationUrl,
-			        HttpMethod.POST,
-			        entity,
-			        new ParameterizedTypeReference<ResponseWrapper<AuthenticationResponse>>() {}
-			);
+			UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(authenticationUrl);
+			
+			ResponseEntity<String> response = restTemplate.postForEntity(builder.build().toUri(),
+                    entity, String.class);
 			
 			if (response.getBody() == null) {
 				logger.error("Failed to authenticate. Status code: " + response.getStatusCodeValue());
@@ -65,7 +70,8 @@ public class AuthServiceImpl implements AuthService {
 						ErrorCode.AUTHENTICATION_FAILED.getErrorMessage() + "with status code: " + response.getStatusCodeValue());
 			}
 			
-			ResponseWrapper<AuthenticationResponse> authResponse = response.getBody();
+			ResponseWrapper<AuthenticationResponse> authResponse = objectMapper.readValue(response.getBody(),
+		                new TypeReference<ResponseWrapper<AuthenticationResponse>>() {});
 			
 			if (authResponse.getErrors() != null && !authResponse.getErrors().isEmpty()) {
 				logger.error("Authentication error: {}", authResponse.getErrors().get(0));
