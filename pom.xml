@@ -48,8 +48,24 @@
 		<maven.jar.plugin.version>3.0.2</maven.jar.plugin.version>
 		<maven.war.plugin.version>3.1.0</maven.war.plugin.version>
 		<spring.boot.version>2.0.2.RELEASE</spring.boot.version>
+		<kernel.core.version>1.2.0.1</kernel.core.version>
 	</properties>
 	<dependencies>
+		<dependency>
+			<groupId>io.mosip.kernel</groupId>
+			<artifactId>kernel-core</artifactId>
+			<version>${kernel.core.version}</version>
+		</dependency>
+		<dependency> 
+			<groupId>org.json</groupId>
+		 	<artifactId>json</artifactId> 
+		 	<version>20180813</version>
+		 </dependency>
+		 <dependency> 
+		 	<groupId>commons-collections</groupId>
+		  	<artifactId>commons-collections</artifactId>
+		   	<version>3.2.2</version> 
+		  </dependency>
 <!--		<dependency>-->
 <!--			<groupId>org.springframework.boot</groupId>-->
 <!--			<artifactId>spring-boot-starter-security</artifactId>-->
@@ -135,7 +151,7 @@
 			<artifactId>springdoc-openapi-ui</artifactId>
 			<version>1.5.10</version>
 		</dependency>
-		<dependency>
+		<!-- <dependency>
 			<groupId>io.mosip.kernel</groupId>
 			<artifactId>kernel-auth-adapter</artifactId>
 			<version>1.2.0.1</version>
@@ -149,7 +165,7 @@
 					<artifactId>bcpkix-jdk15on</artifactId>
 				</exclusion>
 			</exclusions>
-		</dependency>
+		</dependency> -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-activemq</artifactId>
@@ -174,7 +190,7 @@
 
 	<dependencyManagement>
 		<dependencies>
-		<dependency>
+		<!-- <dependency>
 			<groupId>io.mosip.kernel</groupId>
 			<artifactId>kernel-auth-adapter</artifactId>
 			<version>1.2.0.1</version>
@@ -188,7 +204,7 @@
 					<artifactId>bcpkix-jdk15on</artifactId>
 				</exclusion>
 			</exclusions>
-			</dependency>
+			</dependency> -->
 			<dependency>
 				<groupId>com.fasterxml.jackson.core</groupId>
 				<artifactId>jackson-databind</artifactId>
