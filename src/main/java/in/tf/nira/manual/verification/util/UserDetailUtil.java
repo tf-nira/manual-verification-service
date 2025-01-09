@@ -4,8 +4,7 @@ import java.util.Objects;
 
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import io.mosip.kernel.openid.bridge.model.AuthUserDetails;
-
+import in.tf.nira.manual.verification.dto.AuthUserDetails;
 
 public class UserDetailUtil {
 	

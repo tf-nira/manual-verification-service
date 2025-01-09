@@ -17,6 +17,7 @@ import java.util.stream.IntStream;
 
 import javax.annotation.PostConstruct;
 
+import in.tf.nira.manual.verification.dto.*;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.simple.JSONArray;
@@ -122,7 +123,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 	
 	@Value("${manual.verification.id.repo.url}")
     private String idRepoUrl;
-	
+
 	@Value("${manual.verification.email.notification.url}")
     private String emailNotificationUrl;
 	
@@ -1036,10 +1037,10 @@ public class ApplicationServiceImpl implements ApplicationService {
 	private int getApplicationCount(String userId) {
 		return mVSApplicationRepo.countByAssignedOfficerId(userId);
 	}
-	
+
 	public DemographicDetailsDTO getDemographicDetails(String registrationId) {
 		logger.info("Fetching demographic data from id repo: {}");
-		
+
 		String url = idRepoUrl + registrationId;
 		logger.info("Fetching demographic data from URL: {}", url);
 		ResponseEntity<DemographicDetailsDTO> response = null;
@@ -1054,7 +1055,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 		}
 
 		return response.getBody();
-		
+
 	}
 	public byte[] extractFaceImageData(byte[] decodedBioValue) {
 
