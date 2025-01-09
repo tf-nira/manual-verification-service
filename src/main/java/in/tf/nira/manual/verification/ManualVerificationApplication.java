@@ -1,5 +1,8 @@
 package in.tf.nira.manual.verification;
 
+import java.security.Security;
+
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -16,6 +19,7 @@ import in.tf.nira.manual.verification.listener.Listener;
 public class ManualVerificationApplication {
 
 	public static void main(String[] args) {
+		Security.addProvider(new BouncyCastleProvider());
 		ConfigurableApplicationContext configurableApplcnConetxt = SpringApplication.run(ManualVerificationApplication.class, args);
         Listener listener = configurableApplcnConetxt.getBean(Listener.class);
         listener.runVerificationQueue();
