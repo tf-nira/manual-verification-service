@@ -36,7 +36,6 @@
 		<tag>HEAD</tag>
 	</scm>
 	<properties>
-		<java.version>11</java.version>
 		<maven-compiler-plugin.source>11</maven-compiler-plugin.source>
 		<maven-compiler-plugin.target>11</maven-compiler-plugin.target>
 		<maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
