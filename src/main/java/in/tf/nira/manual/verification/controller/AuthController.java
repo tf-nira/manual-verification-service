@@ -31,12 +31,11 @@ public class AuthController {
         AuthenticationResponse authenticationResponse = authService.loginClient(authRequest);
 
         String token = authenticationResponse.getToken();
-        Cookie authCookie = new Cookie("Authorization", token);
-        authCookie.setHttpOnly(true);
-        authCookie.setSecure(true);
-        authCookie.setPath("/");
-        authCookie.setMaxAge(authenticationResponse.getExpiryTime()); // Sets the cookie expiration time
-        httpServletResponse.addCookie(authCookie);
+        String cookieValue = String.format("Authorization=%s; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=%d",
+                token,
+                authenticationResponse.getExpiryTime());
+
+        httpServletResponse.addHeader("Set-Cookie", cookieValue);
 
         responseWrapper.setResponse(authenticationResponse);
         return responseWrapper;
