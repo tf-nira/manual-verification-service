@@ -31,7 +31,7 @@ public class AuthController {
         AuthenticationResponse authenticationResponse = authService.loginClient(authRequest);
 
         String token = authenticationResponse.getToken();
-        String cookieValue = String.format("Authorization=%s", token);
+        String cookieValue = String.format("Authorization=%s; Domain=mvs.niradev.idencode.link", token);
 
         httpServletResponse.addHeader("Set-Cookie", cookieValue);
 
