@@ -31,9 +31,7 @@ public class AuthController {
         AuthenticationResponse authenticationResponse = authService.loginClient(authRequest);
 
         String token = authenticationResponse.getToken();
-        String cookieValue = String.format("Authorization=%s; SameSite=None; Path=/; Max-Age=%d",
-                token,
-                authenticationResponse.getExpiryTime());
+        String cookieValue = String.format("Authorization=%s", token);
 
         httpServletResponse.addHeader("Set-Cookie", cookieValue);
 
