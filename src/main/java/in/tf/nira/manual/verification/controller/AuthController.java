@@ -44,7 +44,7 @@ public class AuthController {
         AuthenticationResponse authenticationResponse = authService.loginClient(authRequest);
 
         String token = authenticationResponse.getToken();
-        String cookieValue = String.format("Authorization=%s; SameSite=None: Secure; Path=/", token);
+        String cookieValue = String.format("Authorization=%s; SameSite=None; Secure; Path=/", token);
 //        String cookieValue = String.format("Authorization=%s; Domain=mvs.niradev.idencode.link", token);
         Cookie cookie = createCookie(token, 7 * 24 * 60 * 60);
 
