@@ -576,7 +576,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 		//send back to mvs stage
 		logger.info("Notifying mvs stage for approval");
 		try {
-			StatusResponseDTO response = new StatusResponseDTO();
+			MVSResponseDto response = new MVSResponseDto();
+			response.setRegId(application.getRegId());
 			response.setStatus(StageCode.APPROVED.getStage());
 			ResponseEntity<Object> responseEntity = new ResponseEntity<>(response, HttpStatus.OK);
 			listener.sendToQueue(responseEntity, 1);
@@ -598,7 +599,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 		//send back to mvs stage
 		logger.info("Notifying mvs stage for rejection");
 		try {
-			StatusResponseDTO response = new StatusResponseDTO();
+			MVSResponseDto response = new MVSResponseDto();
+			response.setRegId(application.getRegId());
 			response.setStatus(StageCode.REJECTED.getStage());
 			ResponseEntity<Object> responseEntity = new ResponseEntity<>(response, HttpStatus.OK);
 			listener.sendToQueue(responseEntity, 1);

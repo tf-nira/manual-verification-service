@@ -4,6 +4,9 @@ import lombok.Data;
 
 @Data
 public class MVSResponseDto {
-    private String regId;
-    private Integer returnValue;
+	private String id;
+	private String requestId;
+	private String regId;
+	private String responsetime ;
+	private String status;
 }
