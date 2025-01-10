@@ -1,5 +1,7 @@
 package in.tf.nira.manual.verification.controller;
 
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,11 +24,21 @@ public class AuthController {
     AuthService authService;
 
     @PostMapping(value = "/login")
-    public ResponseWrapper<AuthenticationResponse> authenticate(@Valid @RequestBody RequestWrapper<AuthenticationRequest> authRequest) {
+    public ResponseWrapper<AuthenticationResponse> authenticate(@Valid @RequestBody RequestWrapper<AuthenticationRequest> authRequest, HttpServletResponse httpServletResponse) {
     	ResponseWrapper<AuthenticationResponse> responseWrapper = new ResponseWrapper<>();
 		responseWrapper.setId("");
 		responseWrapper.setVersion("");
-		responseWrapper.setResponse(authService.loginClient(authRequest));
+        AuthenticationResponse authenticationResponse = authService.loginClient(authRequest);
+
+        String token = authenticationResponse.getToken();
+        Cookie authCookie = new Cookie("Authorization", token);
+        authCookie.setHttpOnly(true);
+        authCookie.setSecure(true);
+        authCookie.setPath("/");
+        authCookie.setMaxAge(authenticationResponse.getExpiryTime()); // Sets the cookie expiration time
+        httpServletResponse.addCookie(authCookie);
+
+        responseWrapper.setResponse(authenticationResponse);
         return responseWrapper;
     }
 }
