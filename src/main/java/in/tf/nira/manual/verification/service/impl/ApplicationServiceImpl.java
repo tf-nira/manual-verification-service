@@ -124,6 +124,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 	@Value("${manual.verification.document.upload.process}")
 	private String documentUploadProcess;
 	
+	@Value("${manual.verification.default.source:REGISTRATION_CLIENT}")
+	private String defaultSource;
+	
 	private Map<String, List<OfficerDetailDTO>> officerDetailMap = new HashMap<>();
 	
 	private Map<String, String> schemajsonValue = null;
@@ -194,7 +197,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 			mVSApplication.setService(verifyRequest.getService());
 			mVSApplication.setServiceType(verifyRequest.getServiceType());
 			mVSApplication.setReferenceURL(verifyRequest.getReferenceURL());
-			mVSApplication.setSource(verifyRequest.getSource());
+			mVSApplication.setSource(verifyRequest.getSource() != null ? verifyRequest.getSource() : defaultSource);
 			mVSApplication.setRefId(verifyRequest.getRefId());
 			mVSApplication.setSchemaVersion(verifyRequest.getSchemaVersion());
 			mVSApplication.setAssignedOfficerId(selectedOfficer.getUserId());
