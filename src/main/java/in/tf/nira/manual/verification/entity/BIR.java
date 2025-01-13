@@ -12,15 +12,20 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+
 import io.mosip.kernel.core.cbeffutil.common.Base64Adapter;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @XmlAccessorType(XmlAccessType.FIELD)
-@XmlRootElement(name = "BIR")
+@XmlType(name = "BIRType", propOrder = { "version", "cbeffversion", "birInfo", "bdbInfo",  "bdb",
+		"sb" ,"birs","sbInfo","others"})
+@XmlRootElement(name = "BIR", namespace = "http://standards.iso.org/iso-iec/19785/-3/ed-2/")
+
 @Data
 @NoArgsConstructor
-
+@JsonDeserialize(builder = BIR.BIRBuilder.class)
 public class BIR implements Serializable{
 	@XmlElement(name = "Version")
 	private VersionType version;
