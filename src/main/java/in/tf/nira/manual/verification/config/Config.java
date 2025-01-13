@@ -50,6 +50,7 @@ public class Config {
 		FilterRegistrationBean<Filter> corsBean = new FilterRegistrationBean<>();
 		corsBean.setFilter(registerCORSFilter());
 		corsBean.setOrder(0);
+		corsBean.addUrlPatterns("/*");
 		return corsBean;
 	}
 
