@@ -1,5 +1,7 @@
 package in.tf.nira.manual.verification.service.impl;
 
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.time.LocalDateTime;
@@ -77,6 +79,8 @@ import in.tf.nira.manual.verification.repository.MVSApplicationHistoryRepo;
 import in.tf.nira.manual.verification.repository.MVSApplicationRepo;
 import in.tf.nira.manual.verification.repository.OfficerAssignmentRepo;
 import in.tf.nira.manual.verification.service.ApplicationService;
+import in.tf.nira.manual.verification.service.CbeffUtil;
+import in.tf.nira.manual.verification.util.CbeffToBiometricUtil;
 import in.tf.nira.manual.verification.util.CryptoCoreUtil;
 import in.tf.nira.manual.verification.util.PageUtils;
 import in.tf.nira.manual.verification.util.UserDetailUtil;
@@ -93,10 +97,15 @@ public class ApplicationServiceImpl implements ApplicationService {
     private static final String RESPONSE = "response";
     private static final String SCHEMA_JSON = "schemaJson";
     private static final String SYSTEM = "System";
-	
+	/** The cbeffutil. */
+	@Autowired
+	private CbeffUtil cbeffutil;
+	/** The Constant FACE. */
+	private static final String FACE = "Face";
 	@Value("${manual.verification.user.details.url}")
     private String userDetailsUrl;
-	
+	/** The Constant APPLICANT_PHOTO. */
+	private static final String APPLICANT_PHOTO = "ApplicantPhoto";
 	@Value("${manual.verification.create.packet.url}")
     private String createPacketUrl;
 	
@@ -502,8 +511,21 @@ public class ApplicationServiceImpl implements ApplicationService {
 	        }
 	        
 	        DataShareResponseDto dataShareResponse = objectMapper.readValue(response, DataShareResponseDto.class);
-	        
+
 	        ApplicationDetailsResponse applicationDetailsResponse = new ApplicationDetailsResponse();
+	        //set photo private boolean setApplicantPhoto
+	        if(dataShareResponse.getBiometrics()!=null) {
+	        	 Map<String, Object> attributes= new HashMap<String, Object>();
+	        	CbeffToBiometricUtil util = new CbeffToBiometricUtil(cbeffutil);
+				List<String> subtype = new ArrayList<>();
+				//value=dataShareResponse.getBiometrics()
+				byte[] photoByte = util.getImageBytes(dataShareResponse.getBiometrics(), FACE, subtype);
+				if (photoByte != null) {
+					String data = java.util.Base64.getEncoder().encodeToString(extractFaceImageData(photoByte));
+					attributes.put(APPLICANT_PHOTO, "data:image/png;base64," + data);
+					applicationDetailsResponse.setBiometricAttributes(attributes);
+				}
+	        }
 		    applicationDetailsResponse.setApplicationId(application.getRegId());
 		    applicationDetailsResponse.setService(application.getService());
 		    applicationDetailsResponse.setServiceType(application.getServiceType());
@@ -1040,4 +1062,51 @@ public class ApplicationServiceImpl implements ApplicationService {
 		return response.getBody();
 
 	}
+	public byte[] extractFaceImageData(byte[] decodedBioValue) {
+
+		try (DataInputStream din = new DataInputStream(new ByteArrayInputStream(decodedBioValue))) {
+
+			byte[] format = new byte[4];
+			din.read(format, 0, 4);
+			byte[] version = new byte[4];
+			din.read(version, 0, 4);
+			int recordLength = din.readInt();
+			short numberofRepresentionRecord = din.readShort();
+			byte certificationFlag = din.readByte();
+			byte[] temporalSequence = new byte[2];
+			din.read(temporalSequence, 0, 2);
+			int representationLength = din.readInt();
+			byte[] representationData = new byte[representationLength - 4];
+			din.read(representationData, 0, representationData.length);
+			try (DataInputStream rdin = new DataInputStream(new ByteArrayInputStream(representationData))) {
+				byte[] captureDetails = new byte[14];
+				rdin.read(captureDetails, 0, 14);
+				byte noOfQualityBlocks = rdin.readByte();
+				if (noOfQualityBlocks > 0) {
+					byte[] qualityBlocks = new byte[noOfQualityBlocks * 5];
+					rdin.read(qualityBlocks, 0, qualityBlocks.length);
+				}
+				short noOfLandmarkPoints = rdin.readShort();
+				byte[] facialInformation = new byte[15];
+				rdin.read(facialInformation, 0, 15);
+				if (noOfLandmarkPoints > 0) {
+					byte[] landmarkPoints = new byte[noOfLandmarkPoints * 8];
+					rdin.read(landmarkPoints, 0, landmarkPoints.length);
+				}
+				byte faceType = rdin.readByte();
+				byte imageDataType = rdin.readByte();
+				byte[] otherImageInformation = new byte[9];
+				rdin.read(otherImageInformation, 0, otherImageInformation.length);
+				int lengthOfImageData = rdin.readInt();
+
+				byte[] image = new byte[lengthOfImageData];
+				rdin.read(image, 0, lengthOfImageData);
+
+				return image;
+			}
+		} catch (Exception ex) {
+			return null;
+		}
+	}
+
 }
