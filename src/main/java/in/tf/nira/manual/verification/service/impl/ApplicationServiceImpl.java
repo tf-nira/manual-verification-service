@@ -83,6 +83,7 @@ import in.tf.nira.manual.verification.util.PageUtils;
 import in.tf.nira.manual.verification.util.UserDetailUtil;
 import io.mosip.kernel.core.http.RequestWrapper;
 import io.mosip.kernel.core.http.ResponseWrapper;
+import io.mosip.kernel.core.util.CryptoUtil;
 import io.mosip.kernel.core.util.DateUtils;
 
 @Service
@@ -523,11 +524,19 @@ public class ApplicationServiceImpl implements ApplicationService {
 				}
 			}
 			
+			if (dataShareResponse.getDocuments() != null) {
+				Map<String, Object> documents = new HashMap<>();
+				dataShareResponse.getDocuments().forEach((key, value) -> {
+					documents.put(key, CryptoUtil.decodeURLSafeBase64(value));
+				});
+				
+				applicationDetailsResponse.setDocuments(documents);
+			}
+			
 		    applicationDetailsResponse.setApplicationId(application.getRegId());
 		    applicationDetailsResponse.setService(application.getService());
 		    applicationDetailsResponse.setServiceType(application.getServiceType());
 		    applicationDetailsResponse.setDemographics(dataShareResponse.getIdentity());
-		    applicationDetailsResponse.setDocuments(dataShareResponse.getDocuments());
 		    
 		    logger.info("Successfully fetched application details for ID: {}", application.getRegId());
 		    return applicationDetailsResponse;
@@ -1055,7 +1064,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 		return response.getBody();
 
 	}
-	public byte[] extractFaceImageData(byte[] decodedBioValue) {
+	
+	private byte[] extractFaceImageData(byte[] decodedBioValue) {
 
 		try (DataInputStream din = new DataInputStream(new ByteArrayInputStream(decodedBioValue))) {
 

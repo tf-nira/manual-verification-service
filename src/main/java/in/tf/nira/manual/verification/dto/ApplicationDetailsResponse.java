@@ -10,6 +10,6 @@ public class ApplicationDetailsResponse {
 	private String service;
 	private String serviceType;
 	private Map<String, String> demographics;
-	private Map<String, String> documents;
+	private Map<String, Object> documents;
 	private Map<String, Object> biometricAttributes;
 }
