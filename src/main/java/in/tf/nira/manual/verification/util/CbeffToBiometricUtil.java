@@ -1,29 +1,14 @@
 package in.tf.nira.manual.verification.util;
 
 import java.util.List;
-import in.tf.nira.manual.verification.service.CbeffUtil;
-import in.tf.nira.manual.verification.service.impl.CbeffImpl;
+import io.mosip.kernel.biometrics.commons.CbeffValidator;
+import io.mosip.kernel.biometrics.constant.BiometricType;
+import io.mosip.kernel.biometrics.entities.BIR;
 
 import org.apache.commons.codec.binary.Base64;
 
-import in.tf.nira.manual.verification.constant.BiometricType;
-import in.tf.nira.manual.verification.entity.BIR;
-
 public class CbeffToBiometricUtil {
-	/** The cbeffutil. */
-	private CbeffUtil cbeffutil = new CbeffImpl();
-	
 
-	/**
-	 * Instantiates a new cbeff to biometric util.
-	 *
-	 * @param cbeffutil the cbeffutil
-	 */
-	public CbeffToBiometricUtil(CbeffUtil cbeffutil) {
-		this.cbeffutil = cbeffutil;
-	}
-	
-	
 	/**
 	 * Gets the photo.
 	 *
@@ -39,24 +24,14 @@ public class CbeffToBiometricUtil {
 
 		byte[] photoBytes = null;
 		if (cbeffFileString != null) {
-			List<BIR> bIRTypeList = getBIRTypeList(cbeffFileString);
+			BIR birType = CbeffValidator.getBIRFromXML(Base64.decodeBase64(cbeffFileString));
+			List<BIR> bIRTypeList = birType.getBirs();
 			photoBytes = getPhotoByTypeAndSubType(bIRTypeList, type, subType);
 		}
 //		printLogger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.USERID.toString(), "",
 //				"CbeffToBiometricUtil::getImageBytes()::exit");
 
 		return photoBytes;
-	}
-	/**
-	 * Gets the BIR type list.
-	 *
-	 * @param cbeffFileString the cbeff file string
-	 * @return the BIR type list
-	 * @throws Exception the exception
-	 */
-
-	public List<BIR> getBIRTypeList(String cbeffFileString) throws Exception {
-		return cbeffutil.getBIRDataFromXML(Base64.decodeBase64(cbeffFileString));
 	}
 	
 	/**

@@ -12,12 +12,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import java.util.Comparator;
-import java.util.stream.IntStream;
 
 import javax.annotation.PostConstruct;
 
-import in.tf.nira.manual.verification.dto.*;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.simple.JSONArray;
@@ -58,6 +55,7 @@ import in.tf.nira.manual.verification.dto.DemograhicValue;
 import in.tf.nira.manual.verification.dto.DemographicDetailsDTO;
 import in.tf.nira.manual.verification.dto.DocumentDTO;
 import in.tf.nira.manual.verification.dto.EscalationDetailsDTO;
+import in.tf.nira.manual.verification.dto.MVSResponseDto;
 import in.tf.nira.manual.verification.dto.OfficerDetailDTO;
 import in.tf.nira.manual.verification.dto.PacketDto;
 import in.tf.nira.manual.verification.dto.PacketInfo;
@@ -79,7 +77,6 @@ import in.tf.nira.manual.verification.repository.MVSApplicationHistoryRepo;
 import in.tf.nira.manual.verification.repository.MVSApplicationRepo;
 import in.tf.nira.manual.verification.repository.OfficerAssignmentRepo;
 import in.tf.nira.manual.verification.service.ApplicationService;
-import in.tf.nira.manual.verification.service.CbeffUtil;
 import in.tf.nira.manual.verification.util.CbeffToBiometricUtil;
 import in.tf.nira.manual.verification.util.CryptoCoreUtil;
 import in.tf.nira.manual.verification.util.PageUtils;
@@ -91,21 +88,20 @@ import io.mosip.kernel.core.util.DateUtils;
 @Service
 public class ApplicationServiceImpl implements ApplicationService {
 	private static final Logger logger = LoggerFactory.getLogger(ApplicationServiceImpl.class);
+	/** The Constant APPLICANT_PHOTO. */
+	private static final String APPLICANT_PHOTO = "ApplicantPhoto";
+	/** The Constant FACE. */
+	private static final String FACE = "Face";
 	
 	private static final String PACKET_MANAGER_ID = "mosip.commmons.packetmanager";
     private static final String PACKET_MANAGER_VERSION = "v1";
     private static final String RESPONSE = "response";
     private static final String SCHEMA_JSON = "schemaJson";
     private static final String SYSTEM = "System";
-	/** The cbeffutil. */
-	@Autowired
-	private CbeffUtil cbeffutil;
-	/** The Constant FACE. */
-	private static final String FACE = "Face";
+    
 	@Value("${manual.verification.user.details.url}")
     private String userDetailsUrl;
-	/** The Constant APPLICANT_PHOTO. */
-	private static final String APPLICANT_PHOTO = "ApplicantPhoto";
+	
 	@Value("${manual.verification.create.packet.url}")
     private String createPacketUrl;
 	
@@ -513,19 +509,20 @@ public class ApplicationServiceImpl implements ApplicationService {
 	        DataShareResponseDto dataShareResponse = objectMapper.readValue(response, DataShareResponseDto.class);
 
 	        ApplicationDetailsResponse applicationDetailsResponse = new ApplicationDetailsResponse();
-	        //set photo private boolean setApplicantPhoto
-	        if(dataShareResponse.getBiometrics()!=null) {
-	        	 Map<String, Object> attributes= new HashMap<String, Object>();
-	        	CbeffToBiometricUtil util = new CbeffToBiometricUtil(cbeffutil);
+	        
+			if (dataShareResponse.getBiometrics() != null) {
+				Map<String, Object> attributes = new HashMap<String, Object>();
+				CbeffToBiometricUtil util = new CbeffToBiometricUtil();
 				List<String> subtype = new ArrayList<>();
-				//value=dataShareResponse.getBiometrics()
 				byte[] photoByte = util.getImageBytes(dataShareResponse.getBiometrics(), FACE, subtype);
+				
 				if (photoByte != null) {
 					String data = java.util.Base64.getEncoder().encodeToString(extractFaceImageData(photoByte));
 					attributes.put(APPLICANT_PHOTO, "data:image/png;base64," + data);
 					applicationDetailsResponse.setBiometricAttributes(attributes);
 				}
-	        }
+			}
+			
 		    applicationDetailsResponse.setApplicationId(application.getRegId());
 		    applicationDetailsResponse.setService(application.getService());
 		    applicationDetailsResponse.setServiceType(application.getServiceType());
@@ -1039,10 +1036,6 @@ public class ApplicationServiceImpl implements ApplicationService {
 		});
 	}
 	
-	private int getApplicationCount(String userId) {
-		return mVSApplicationRepo.countByAssignedOfficerId(userId);
-	}
-
 	public DemographicDetailsDTO getDemographicDetails(String registrationId) {
 		logger.info("Fetching demographic data from id repo: {}");
 
