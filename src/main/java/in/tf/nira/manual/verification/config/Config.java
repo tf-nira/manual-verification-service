@@ -45,17 +45,17 @@ public class Config {
 		return restTemplate;
 	}
 
-	@Bean(name = "CorsFilter")
-	public FilterRegistrationBean<Filter> registerCORSFilterBean() {
-		FilterRegistrationBean<Filter> corsBean = new FilterRegistrationBean<>();
-		corsBean.setFilter(registerCORSFilter());
-		corsBean.setOrder(0);
-		corsBean.addUrlPatterns("/*");
-		return corsBean;
-	}
-
-	@Bean
-	public Filter registerCORSFilter() {
-		return new CorsFilter();
-	}
+//	@Bean(name = "CorsFilter")
+//	public FilterRegistrationBean<Filter> registerCORSFilterBean() {
+//		FilterRegistrationBean<Filter> corsBean = new FilterRegistrationBean<>();
+//		corsBean.setFilter(registerCORSFilter());
+//		corsBean.setOrder(0);
+//		corsBean.addUrlPatterns("/*");
+//		return corsBean;
+//	}
+//
+//	@Bean
+//	public Filter registerCORSFilter() {
+//		return new CorsFilter();
+//	}
 }
