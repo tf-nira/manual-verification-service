@@ -1,7 +1,10 @@
 package in.tf.nira.manual.verification.service.impl;
 
+import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.time.LocalDateTime;
@@ -14,6 +17,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
+import javax.imageio.ImageIO;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -518,7 +522,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 				byte[] photoByte = util.getImageBytes(dataShareResponse.getBiometrics(), FACE, subtype);
 				
 				if (photoByte != null) {
-					String data = java.util.Base64.getEncoder().encodeToString(extractFaceImageData(photoByte));
+					byte[] pngBytes = convertJP2ToPNG(extractFaceImageData(photoByte));
+					String data = java.util.Base64.getEncoder().encodeToString(pngBytes);
 					attributes.put(APPLICANT_PHOTO, "data:image/png;base64," + data);
 					applicationDetailsResponse.setBiometricAttributes(attributes);
 				}
@@ -1109,6 +1114,23 @@ public class ApplicationServiceImpl implements ApplicationService {
 			}
 		} catch (Exception ex) {
 			return null;
+		}
+	}
+	
+	private byte[] convertJP2ToPNG(byte[] jp2Bytes) throws IOException {
+		try (ByteArrayInputStream jp2InputStream = new ByteArrayInputStream(jp2Bytes)) {
+			BufferedImage image = ImageIO.read(jp2InputStream);
+			if (image == null) {
+				throw new IOException("Failed to decode JP2 image");
+			}
+
+			try (ByteArrayOutputStream pngOutputStream = new ByteArrayOutputStream()) {
+				boolean writeSuccess = ImageIO.write(image, "png", pngOutputStream);
+				if (!writeSuccess) {
+					throw new IOException("Failed to encode image to PNG");
+				}
+				return pngOutputStream.toByteArray();
+			}
 		}
 	}
 
