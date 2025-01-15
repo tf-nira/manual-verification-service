@@ -1050,24 +1050,44 @@ public class ApplicationServiceImpl implements ApplicationService {
 		});
 	}
 	
-	public DemographicDetailsDTO getDemographicDetails(String registrationId) {
+	public DemographicDetailsDTO getDemographicDetails(String nin) {
 		logger.info("Fetching demographic data from id repo: {}");
 
-		String url = idRepoUrl + registrationId;
-		logger.info("Fetching demographic data from URL: {}", url);
-		ResponseEntity<DemographicDetailsDTO> response = null;
+		String handle = nin.toLowerCase() + "@nin";
+		String url = idRepoUrl + handle;
+		
+		UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(url)
+                .queryParam("type", "all")
+                .queryParam("idType", "handle");
+		
+		HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<String> entity = new HttpEntity<>(null, headers);
+		
 		try {
-			System.out.println("malay:: reponse"+restTemplate.exchange(url, HttpMethod.GET, null,
-					DemographicDetailsDTO.class));
-			response = restTemplate.exchange(url, HttpMethod.GET, null,
-					DemographicDetailsDTO.class);
-			System.out.println("malay:: reponse"+response);
-		} catch (Exception e) {
-			throw new ApiNotAccessibleException("Could not fetch demographic data from id repo: {} " );
+			ResponseEntity<ResponseWrapper<DemographicDetailsDTO>> responseEntity = restTemplate.exchange(builder.build().toUri(), HttpMethod.GET, entity,
+					new ParameterizedTypeReference<ResponseWrapper<DemographicDetailsDTO>>() {});
+			
+			if (responseEntity.getBody() == null) {
+	            logger.error("Failed to get details from idrepo. Status code: " + responseEntity.getStatusCodeValue());
+	            throw new RequestException(ErrorCode.IDREPO_FETCH_FAILED.getErrorCode(),
+						ErrorCode.IDREPO_FETCH_FAILED.getErrorMessage() + "with status code: " + responseEntity.getStatusCodeValue());
+	        }
+
+			ResponseWrapper<DemographicDetailsDTO> responseWrapper = responseEntity.getBody();
+
+	        if (responseWrapper.getErrors() != null && !responseWrapper.getErrors().isEmpty()) {
+	        	logger.error("IdRepo fetch failed: {}", responseWrapper.getErrors().get(0));
+	            throw new RequestException(ErrorCode.INVALID_IDREPO_RESPONSE.getErrorCode(),
+						ErrorCode.INVALID_IDREPO_RESPONSE.getErrorMessage() + "with error: " + responseWrapper.getErrors().get(0));
+	        }
+	        
+	        return responseWrapper.getResponse();
+		} catch (RestClientException e) {
+			logger.error("Failed to get details from idrepo, {}", e);
+        	throw new RequestException(ErrorCode.IDREPO_FETCH_FAILED.getErrorCode(),
+					ErrorCode.IDREPO_FETCH_FAILED.getErrorMessage() + "with error: " + e.getMessage());
 		}
-
-		return response.getBody();
-
 	}
 	
 	private byte[] extractFaceImageData(byte[] decodedBioValue) {

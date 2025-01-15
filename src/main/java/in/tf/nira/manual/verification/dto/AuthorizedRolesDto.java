@@ -20,4 +20,5 @@ public class AuthorizedRolesDto {
 	private List<String> scheduleInterview;
 	private List<String> uploadDocuments;
 	private List<String> searchApplications;
+	private List<String> fetchDemographicDetails;
 }

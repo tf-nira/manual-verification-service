@@ -14,28 +14,12 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class DemographicDetailsDTO {
 
-    private String id;
-    private String version;
-    private String responsetime;
-    private Object metadata;
-    private Response response;
-    private List<Object> errors;
-
-    @Data
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class Response {
-        private String status;
-        private Identity identity;
-        private List<Object> documents;
-        private List<Object> verifiedAttributes;
-
-        @JsonFormat(pattern = "yyyy/MM/dd")
-        private LocalDate dateOfIssuance;
-
-        @JsonFormat(pattern = "yyyy/MM/dd")
-        private LocalDate dateOfExpiry;
-    }
+	private String status;
+    private Identity identity;
+    private List<Object> documents;
+    private List<Object> verifiedAttributes;
+    private String dateOfIssuance;
+    private String dateOfExpiry;
 
     @Data
     @JsonInclude(JsonInclude.Include.NON_NULL)

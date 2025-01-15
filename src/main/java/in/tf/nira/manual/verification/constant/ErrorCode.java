@@ -37,7 +37,9 @@ public enum ErrorCode {
 	FAILED_AUTHENTICATION_RESPONSE("MVS-035", "Received error response for authentication "),
 	NO_OFFICER_FOR_DISTRICT("MVS-036", "No Officer available for district: %s"),
 	DISTRICT_NOT_PRESENT("MVS-037", "District value cannot be null"),
-	UNKNOWN_ERROR("MVS-038", "Unknown error occured");
+	UNKNOWN_ERROR("MVS-038", "Unknown error occured"),
+	IDREPO_FETCH_FAILED("MVS-039", "Failed to fetch details from idrepo "),
+	INVALID_IDREPO_RESPONSE("MVS-040", "Received response from IDREPO ");
      
 	/**
 	 * The error code.

@@ -201,20 +201,19 @@ public class ApplicationController {
     	return responseWrapper;
     }
     
-    //@PreAuthorize("hasAnyRole(@authorizedRoles.getUpdateApplicationStatus())")
-    @GetMapping("/demographics/{registrationId}")
+    @PreAuthorize("hasAnyRole(@authorizedRoles.getFetchDemographicDetails())")
+    @GetMapping("/demographics/{nin}")
     @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "OK"),
             @ApiResponse(responseCode = "201", description = "Created", content = @Content(schema = @Schema(hidden = true))),
             @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(hidden = true))),
             @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(hidden = true))),
             @ApiResponse(responseCode = "404", description = "Not Found", content = @Content(schema = @Schema(hidden = true))) })
-    public ResponseWrapper<DemographicDetailsDTO> fetchDemographicDetails(@PathVariable String registrationId) {
+    public ResponseWrapper<DemographicDetailsDTO> fetchDemographicDetails(@PathVariable String nin) {
         ResponseWrapper<DemographicDetailsDTO> responseWrapper = new ResponseWrapper<>();
 		responseWrapper.setId(CommonConstants.GET_NIN_DEMOGRAPHIC);
 		responseWrapper.setVersion(CommonConstants.VERSION);
 		try {
-			responseWrapper.setResponse(applicationService.getDemographicDetails(registrationId));
-			System.out.println("malay:: reponse wrapper"+responseWrapper);
+			responseWrapper.setResponse(applicationService.getDemographicDetails(nin));
 		} catch (RequestException e) {
 			throw e;
 		} catch (Exception exc) {
