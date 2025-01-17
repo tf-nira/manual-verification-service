@@ -1,0 +1,4 @@
+CREATE ROLE mvsuser WITH 
+	INHERIT
+	LOGIN
+	PASSWORD :dbuserpwd;
