@@ -271,7 +271,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         
         MVSApplication application = getApplicationById(applicationId);
 		
-	    return getApplicationDetails(application);
+	    return getApplicationDetails(application, true, true);
 	}
 
 	@Override
@@ -302,7 +302,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 //				}
 				else if(request.getSelectedOfficerLevel() != null && request.getSelectedOfficerLevel().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE) ||
 						(request.getInsufficientDocuments() != null && request.getInsufficientDocuments())) {
-					ApplicationDetailsResponse appResponse = getApplicationDetails(application);
+					ApplicationDetailsResponse appResponse = getApplicationDetails(application, false, false);
 					String district = getDemoValue(appResponse.getDemographics().get("applicantPlaceOfResidenceDistrict"));
 
 					escalateApplication(application, CommonConstants.MVS_DISTRICT_OFFICER_ROLE,
@@ -345,8 +345,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 		if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE) ||
 				application.getAssignedOfficerRole().equals(CommonConstants.MVS_LEGAL_OFFICER_ROLE) ||
 				application.getAssignedOfficerRole().equals(CommonConstants.MVS_EXECUTIVE_DIRECTOR)) {
-			sendNotification(application, schInterviewDTO.getSubject(), schInterviewDTO.getContent());
-			scheduleInterview(application, schInterviewDTO.getDistrict());
+			ApplicationDetailsResponse appResponse = getApplicationDetails(application, false, false);
+			sendNotification(application, schInterviewDTO.getSubject(), schInterviewDTO.getContent(), appResponse);
+			scheduleInterview(application, schInterviewDTO.getDistrict(), appResponse);
 		}
 		else {
 			logger.error("{} not allowed to schedule interview", application.getAssignedOfficerRole());
@@ -402,7 +403,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 		if (CommonConstants.MVS_DISTRICT_OFFICER_ROLE.equals(role)) {
 			//fetch officer by district
 			if (district != null) {
-				List<OfficerDetailDTO>disOfficers = districtOfficerMap.get(district);
+				List<OfficerDetailDTO> disOfficers = districtOfficerMap.get(district);
 				
 				if (disOfficers != null && !disOfficers.isEmpty()) {
 
@@ -492,7 +493,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 		});
 	}
 	
-	private ApplicationDetailsResponse getApplicationDetails(MVSApplication application) {
+	private ApplicationDetailsResponse getApplicationDetails(MVSApplication application, boolean includeBiometrics, boolean includeDocuments) {
 		try {
 	        logger.info("Fetching application details, data share URL: {}", application.getReferenceURL());
 	        
@@ -515,7 +516,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 	        ApplicationDetailsResponse applicationDetailsResponse = new ApplicationDetailsResponse();
 	        
-			if (dataShareResponse.getBiometrics() != null) {
+			if (dataShareResponse.getBiometrics() != null && includeBiometrics) {
 				Map<String, Object> attributes = new HashMap<String, Object>();
 				CbeffToBiometricUtil util = new CbeffToBiometricUtil();
 				List<String> subtype = new ArrayList<>();
@@ -529,7 +530,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 				}
 			}
 			
-			if (dataShareResponse.getDocuments() != null) {
+			if (dataShareResponse.getDocuments() != null && includeDocuments) {
 				Map<String, Object> documents = new HashMap<>();
 				dataShareResponse.getDocuments().forEach((key, value) -> {
 					documents.put(key, CryptoUtil.decodeURLSafeBase64(value));
@@ -645,10 +646,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 		}
 	}
 	
-	private void sendNotification(MVSApplication application, String subject, String content) {
-		ApplicationDetailsResponse appResponse = getApplicationDetails(application);
-        String email = getDemoValue(appResponse.getDemographics().get("email"));
-        String phone = getDemoValue(appResponse.getDemographics().get("phone"));
+	private void sendNotification(MVSApplication application, String subject, String content, ApplicationDetailsResponse appResponse) {
+        String email = appResponse.getDemographics().get("email");
+        String phone = appResponse.getDemographics().get("phone");
         
 		if (email != null) {
 			sendEmail(email, subject, content);
@@ -941,7 +941,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 	    }
 	}
 	
-	private void scheduleInterview(MVSApplication application, String district) {
+	private void scheduleInterview(MVSApplication application, String district, ApplicationDetailsResponse appResponse) {
 		UpdateStatusRequest updateRequest = new UpdateStatusRequest();
 		updateRequest.setComment("Interview required for further clarifications");
 
@@ -949,7 +949,6 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 		if(officerRole.equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE)) {
 			if (district == null) {
-				ApplicationDetailsResponse appResponse = getApplicationDetails(application);
 				district = getDemoValue(appResponse.getDemographics().get("applicantPlaceOfResidenceDistrict"));
 			}
 
