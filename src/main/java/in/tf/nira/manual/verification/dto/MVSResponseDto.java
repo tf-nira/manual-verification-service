@@ -9,4 +9,5 @@ public class MVSResponseDto {
 	private String regId;
 	private String responsetime ;
 	private String status;
+	private String comment;
 }

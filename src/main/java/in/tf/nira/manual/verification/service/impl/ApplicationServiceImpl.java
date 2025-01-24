@@ -5,6 +5,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.time.LocalDateTime;
@@ -15,10 +16,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.time.LocalDate;
 
 import javax.annotation.PostConstruct;
 import javax.imageio.ImageIO;
 
+import org.apache.commons.io.IOUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.simple.JSONArray;
@@ -84,6 +87,7 @@ import in.tf.nira.manual.verification.service.ApplicationService;
 import in.tf.nira.manual.verification.util.CbeffToBiometricUtil;
 import in.tf.nira.manual.verification.util.CryptoCoreUtil;
 import in.tf.nira.manual.verification.util.PageUtils;
+import in.tf.nira.manual.verification.util.TemplateGenerator;
 import in.tf.nira.manual.verification.util.UserDetailUtil;
 import io.mosip.kernel.core.http.RequestWrapper;
 import io.mosip.kernel.core.http.ResponseWrapper;
@@ -103,6 +107,7 @@ public class ApplicationServiceImpl implements ApplicationService {
     private static final String RESPONSE = "response";
     private static final String SCHEMA_JSON = "schemaJson";
     private static final String SYSTEM = "System";
+    private static final String ENCODING = "UTF-8";
     
 	@Value("${manual.verification.user.details.url}")
     private String userDetailsUrl;
@@ -136,6 +141,15 @@ public class ApplicationServiceImpl implements ApplicationService {
 	
 	@Value("${manual.verification.default.source:REGISTRATION_CLIENT}")
 	private String defaultSource;
+	
+	@Value("${manual.verification.email.template.code}")
+	private String emailTemplateTypeCode;
+	
+	@Value("${manual.verification.sms.template.code}")
+	private String smsTemplateTypeCode;
+	
+	@Value("${manual.verification.interview.valid.days}")
+	private int interviewValidDays;
 	
 	private Map<String, List<OfficerDetailDTO>> officerDetailMap = new HashMap<>();
 	
@@ -176,6 +190,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 	
 	@Autowired
 	private PageUtils pageUtils;
+	
+	@Autowired
+	private TemplateGenerator templateGenerator;
 	
 	@PostConstruct
     public void runAtStartup() {
@@ -292,14 +309,6 @@ public class ApplicationServiceImpl implements ApplicationService {
 					escalateApplication(application, CommonConstants.MVS_LEGAL_OFFICER_ROLE,
 							StageCode.ASSIGNED_TO_LEGAL_OFFICER.getStage(), request, null);
 				}
-//				else if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_SUPERVISOR_ROLE) ||
-//						(request.getInsufficientDocuments() != null && request.getInsufficientDocuments())) {
-//					ApplicationDetailsResponse appResponse = getApplicationDetails(application);
-//					String district = getDemoValue(appResponse.getDemographics().get("applicantPlaceOfResidenceDistrict"));
-//
-//					escalateApplication(application, CommonConstants.MVS_DISTRICT_OFFICER_ROLE,
-//							StageCode.ASSIGNED_TO_DISTRICT_OFFICER.getStage(), request, district);
-//				}
 				else if(request.getSelectedOfficerLevel() != null && request.getSelectedOfficerLevel().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE) ||
 						(request.getInsufficientDocuments() != null && request.getInsufficientDocuments())) {
 					ApplicationDetailsResponse appResponse = getApplicationDetails(application, false, false);
@@ -346,7 +355,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 				application.getAssignedOfficerRole().equals(CommonConstants.MVS_LEGAL_OFFICER_ROLE) ||
 				application.getAssignedOfficerRole().equals(CommonConstants.MVS_EXECUTIVE_DIRECTOR)) {
 			ApplicationDetailsResponse appResponse = getApplicationDetails(application, false, false);
-			sendNotification(application, schInterviewDTO.getSubject(), schInterviewDTO.getContent(), appResponse);
+			sendNotification(application, schInterviewDTO, appResponse);
 			scheduleInterview(application, schInterviewDTO.getDistrict(), appResponse);
 		}
 		else {
@@ -616,6 +625,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 			MVSResponseDto response = new MVSResponseDto();
 			response.setRegId(application.getRegId());
 			response.setStatus(StageCode.APPROVED.getStage());
+			response.setComment(comment);
 			ResponseEntity<Object> responseEntity = new ResponseEntity<>(response, HttpStatus.OK);
 			listener.sendToQueue(responseEntity, 1);
 		} catch (JsonProcessingException | UnsupportedEncodingException e) {
@@ -639,6 +649,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 			MVSResponseDto response = new MVSResponseDto();
 			response.setRegId(application.getRegId());
 			response.setStatus(StageCode.REJECTED.getStage());
+			response.setComment(comment);
 			ResponseEntity<Object> responseEntity = new ResponseEntity<>(response, HttpStatus.OK);
 			listener.sendToQueue(responseEntity, 1);
 		} catch (JsonProcessingException | UnsupportedEncodingException e) {
@@ -646,29 +657,44 @@ public class ApplicationServiceImpl implements ApplicationService {
 		}
 	}
 	
-	private void sendNotification(MVSApplication application, String subject, String content, ApplicationDetailsResponse appResponse) {
+	private void sendNotification(MVSApplication application, SchInterviewDTO schInterviewDTO, ApplicationDetailsResponse appResponse) {
         String email = appResponse.getDemographics().get("email");
         String phone = appResponse.getDemographics().get("phone");
+        String district = schInterviewDTO.getDistrict() == null ? 
+        		getDemoValue(appResponse.getDemographics().get("applicantPlaceOfResidenceDistrict")) : schInterviewDTO.getDistrict();
+        
+        Map<String, Object> attributes = new HashMap<>();
+		attributes.put("APPLICATION_ID", application.getRegId());
+		attributes.put("MVS_CR_DATE", application.getCrDTimes().toLocalDate());
+		attributes.put("DISTRICT", district);
+		attributes.put("INTERVIEW_EXPIRY_DATE", LocalDate.now().plusDays(interviewValidDays));
+		attributes.put("REVIEW_CONTENT", schInterviewDTO.getContent());
         
 		if (email != null) {
-			sendEmail(email, subject, content);
+			sendEmail(email, schInterviewDTO.getSubject(), attributes);
 		} else {
 			logger.warn("Email Id not available for the application");
 		}
 		
 		if (phone != null) {
-			sendSMS(phone, content);
+			sendSMS(phone, attributes);
 		} else {
 			logger.warn("Phone number not available for the application");
 		}
 	}
 	
-	private void sendEmail(String mailTo, String subjectArtifact, String artifact) {
+	private void sendEmail(String mailTo, String subject, Map<String, Object> attributes) {
 		logger.info("Sending email notification");
 		try {
+			InputStream stream = templateGenerator.getTemplate(emailTemplateTypeCode, attributes, "eng");
+			String artifact = IOUtils.toString(stream, ENCODING);
+
+			//InputStream subStream = templateGenerator.getTemplate(subjectCode, attributes, "eng");
+			//String subjectArtifact = IOUtils.toString(subStream, ENCODING);
+			
 	        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(emailNotificationUrl)
 	                .queryParam("mailTo", mailTo)
-	                .queryParam("mailSubject", subjectArtifact)
+	                .queryParam("mailSubject", subject)
 	                .queryParam("mailContent", artifact);
 
 	        LinkedMultiValueMap<String, Object> params = new LinkedMultiValueMap<>();
@@ -894,12 +920,15 @@ public class ApplicationServiceImpl implements ApplicationService {
 	}
 	
 	
-	private void sendSMS(String phone, String message) {
+	private void sendSMS(String phone, Map<String, Object> attributes) {
 		logger.info("Sending SMS notification");
 		
 		try {
+			InputStream stream = templateGenerator.getTemplate(smsTemplateTypeCode, attributes, "eng");
+			String artifact = IOUtils.toString(stream, ENCODING);
+			
 			SMSRequestDTO smsRequestDTO = new SMSRequestDTO();
-			smsRequestDTO.setMessage(message);
+			smsRequestDTO.setMessage(artifact);
 			smsRequestDTO.setNumber(phone);
 			RequestWrapper<SMSRequestDTO> req = new RequestWrapper<>();
 			req.setRequest(smsRequestDTO);
