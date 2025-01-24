@@ -32,6 +32,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.core.env.Environment;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -194,6 +195,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 	@Autowired
 	private TemplateGenerator templateGenerator;
 	
+	@Autowired
+	private Environment env;
+	
 	@PostConstruct
     public void runAtStartup() {
         fetchUsers();
@@ -221,8 +225,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 			logger.info("Assigning application to officer: " + selectedOfficer.getUserId());
 			MVSApplication mVSApplication = new MVSApplication();
 			mVSApplication.setRegId(verifyRequest.getRegId());
-			mVSApplication.setService(verifyRequest.getService());
-			mVSApplication.setServiceType(verifyRequest.getServiceType());
+			mVSApplication.setService(env.getProperty(verifyRequest.getService().replaceAll(" ", "_")));
+			mVSApplication.setServiceType(env.getProperty(verifyRequest.getServiceType().replaceAll(" ", "_")));
 			mVSApplication.setReferenceURL(verifyRequest.getReferenceURL());
 			mVSApplication.setSource(verifyRequest.getSource() != null ? verifyRequest.getSource() : defaultSource);
 			mVSApplication.setRefId(verifyRequest.getRefId());
