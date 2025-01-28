@@ -84,4 +84,7 @@ public class MVSApplication {
 	
 	@Column(name = "del_dtimes")
 	private LocalDateTime deletedTimes;
+	
+	@Column(name = "status_comment")
+	private String statusComment;
 }

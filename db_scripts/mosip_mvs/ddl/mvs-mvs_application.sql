@@ -26,5 +26,6 @@ CREATE TABLE mvs.mvs_application (
     upd_by character varying(255),
     upd_dtimes TIMESTAMP,
     is_deleted BOOLEAN,
-    del_dtimes TIMESTAMP
+    del_dtimes TIMESTAMP,
+    status_comment character varying(255)
 );

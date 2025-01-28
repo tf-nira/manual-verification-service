@@ -17,4 +17,5 @@ public class CreateAppRequestDTO {
 	private String source;
 	private String refId;
 	private String schemaVersion;
+	private String statusComment;
 }

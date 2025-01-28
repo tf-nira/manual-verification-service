@@ -60,4 +60,7 @@ public class MVSApplicationHistory {
 	@NotNull
 	@Column(name = "cr_dtimes")
 	private LocalDateTime crDTimes;
+	
+	@Column(name = "status_comment")
+	private String statusComment;
 }

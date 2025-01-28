@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -237,6 +238,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 			mVSApplication.setStage(StageCode.ASSIGNED_TO_OFFICER.getStage());
 			mVSApplication.setCreatedBy(SYSTEM);
 			mVSApplication.setCrDTimes(LocalDateTime.now());
+			mVSApplication.setStatusComment(verifyRequest.getStatusComment());
 			
 			mVSApplicationRepo.save(mVSApplication);
 			
@@ -482,6 +484,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 	    userApp.setServiceType(app.getServiceType());
 	    userApp.setStatus(app.getStage());
 	    userApp.setCrDTimes(app.getCrDTimes());
+	    userApp.setStatusComment(app.getStatusComment());
 	    
 	    if (app.getEscalationDetails() != null) {
 	        app.getEscalationDetails().forEach(esc -> {
@@ -555,6 +558,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 		    applicationDetailsResponse.setApplicationId(application.getRegId());
 		    applicationDetailsResponse.setService(application.getService());
 		    applicationDetailsResponse.setServiceType(application.getServiceType());
+		    applicationDetailsResponse.setStatusComment(application.getStatusComment());
 		    applicationDetailsResponse.setDemographics(dataShareResponse.getIdentity());
 		    
 		    logger.info("Successfully fetched application details for ID: {}", application.getRegId());
@@ -662,14 +666,15 @@ public class ApplicationServiceImpl implements ApplicationService {
 	}
 	
 	private void sendNotification(MVSApplication application, SchInterviewDTO schInterviewDTO, ApplicationDetailsResponse appResponse) {
-        String email = appResponse.getDemographics().get("email");
+		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+		String email = appResponse.getDemographics().get("email");
         String phone = appResponse.getDemographics().get("phone");
         String district = schInterviewDTO.getDistrict() == null ? 
         		getDemoValue(appResponse.getDemographics().get("applicantPlaceOfResidenceDistrict")) : schInterviewDTO.getDistrict();
         
         Map<String, Object> attributes = new HashMap<>();
 		attributes.put("APPLICATION_ID", application.getRegId());
-		attributes.put("MVS_CR_DATE", application.getCrDTimes().toLocalDate());
+		attributes.put("MVS_CR_DATE", application.getCrDTimes().toLocalDate().format(formatter));
 		attributes.put("DISTRICT", district);
 		attributes.put("INTERVIEW_EXPIRY_DATE", LocalDate.now().plusDays(interviewValidDays));
 		attributes.put("REVIEW_CONTENT", schInterviewDTO.getContent());
@@ -822,6 +827,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 		
 		appHistory.setCreatedBy(application.getCreatedBy());
 		appHistory.setCrDTimes(LocalDateTime.now());
+		appHistory.setStatusComment(application.getStatusComment());
 		return appHistory;
 	}
 	
