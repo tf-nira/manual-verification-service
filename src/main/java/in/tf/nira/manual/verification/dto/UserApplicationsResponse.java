@@ -14,4 +14,5 @@ public class UserApplicationsResponse {
 	private EscalationDetailsDTO officerEscDetails;
 	private EscalationDetailsDTO supervisorEscDetails;
 	private EscalationDetailsDTO legalEscDetails;
+	private String statusComment;
 }

@@ -19,5 +19,6 @@ CREATE TABLE mvs.mvs_application_h (
 	escalation_details character varying,
     cr_by character varying(255) NOT NULL,
     cr_dtimes TIMESTAMP NOT NULL,
+    status_comment character varying(255),
     PRIMARY KEY (reg_id, verified_officer_role)
 );
