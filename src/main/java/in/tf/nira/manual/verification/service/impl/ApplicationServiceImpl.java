@@ -62,6 +62,7 @@ import in.tf.nira.manual.verification.dto.CreateAppRequestDTO;
 import in.tf.nira.manual.verification.dto.DataShareResponseDto;
 import in.tf.nira.manual.verification.dto.DemograhicValue;
 import in.tf.nira.manual.verification.dto.DemographicDetailsDTO;
+import in.tf.nira.manual.verification.dto.DemographicDetailsDTO.Document;
 import in.tf.nira.manual.verification.dto.DocumentDTO;
 import in.tf.nira.manual.verification.dto.EscalationDetailsDTO;
 import in.tf.nira.manual.verification.dto.MVSResponseDto;
@@ -1122,6 +1123,13 @@ public class ApplicationServiceImpl implements ApplicationService {
 	            throw new RequestException(ErrorCode.INVALID_IDREPO_RESPONSE.getErrorCode(),
 						ErrorCode.INVALID_IDREPO_RESPONSE.getErrorMessage() + "with error: " + responseWrapper.getErrors().get(0));
 	        }
+	        
+	        List<Document> docs = responseWrapper.getResponse().getDocuments();
+	        docs.forEach(doc -> {
+	            if (!doc.getCategory().equals("individualBiometrics")) {
+		            doc.setValue(CryptoUtil.decodeURLSafeBase64(doc.getValue().toString()));
+	            }
+	        });
 	        
 	        return responseWrapper.getResponse();
 		} catch (RestClientException e) {

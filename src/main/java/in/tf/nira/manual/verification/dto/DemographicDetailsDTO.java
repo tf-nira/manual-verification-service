@@ -16,7 +16,7 @@ public class DemographicDetailsDTO {
 
 	private String status;
     private Identity identity;
-    private List<Object> documents;
+    private List<Document> documents;
     private List<Object> verifiedAttributes;
     private String dateOfIssuance;
     private String dateOfExpiry;
@@ -261,5 +261,13 @@ public class DemographicDetailsDTO {
         private String format;
         private int version;
         private String value;
+    }
+    
+    @Data
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class Document {
+    	private String category;
+    	private Object value;
     }
 }
