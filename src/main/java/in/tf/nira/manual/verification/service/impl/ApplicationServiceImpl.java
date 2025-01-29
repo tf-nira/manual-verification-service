@@ -679,7 +679,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 		attributes.put("APPLICATION_ID", application.getRegId());
 		attributes.put("MVS_CR_DATE", application.getCrDTimes().toLocalDate().format(formatter));
 		attributes.put("DISTRICT", district);
-		attributes.put("INTERVIEW_EXPIRY_DATE", LocalDate.now().plusDays(interviewValidDays));
+		attributes.put("INTERVIEW_EXPIRY_DATE", LocalDate.now().plusDays(interviewValidDays).format(formatter));
 		attributes.put("REVIEW_CONTENT", schInterviewDTO.getContent());
         
 		if (email != null) {
