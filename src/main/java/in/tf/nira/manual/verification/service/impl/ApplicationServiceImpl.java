@@ -651,6 +651,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 		application.setUpdatedTimes(LocalDateTime.now());
 		mVSApplicationRepo.save(application);
 		
+		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 		//send back to mvs stage
 		logger.info("Notifying mvs stage for rejection");
 		try {
@@ -658,6 +659,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 			response.setRegId(application.getRegId());
 			response.setStatus(StageCode.REJECTED.getStage());
 			response.setComment(comment);
+			response.setCategory(rejectionCategory);
+			response.setActionDate(application.getCrDTimes().toLocalDate().format(formatter));
 			ResponseEntity<Object> responseEntity = new ResponseEntity<>(response, HttpStatus.OK);
 			listener.sendToQueue(responseEntity, 1);
 		} catch (JsonProcessingException | UnsupportedEncodingException e) {

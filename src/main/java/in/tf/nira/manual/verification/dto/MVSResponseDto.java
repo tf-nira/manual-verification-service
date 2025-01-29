@@ -10,4 +10,6 @@ public class MVSResponseDto {
 	private String responsetime ;
 	private String status;
 	private String comment;
+	private String category;
+	private String actionDate;
 }
