@@ -386,7 +386,6 @@ public class ApplicationServiceImpl implements ApplicationService {
 		
 		if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE)) {
 			uploadToPacketManager(application, documentDTO);
-			approveApplication(application, "Documents uploaded");
 		}
 		else {
 			logger.error("{} not allowed to upload documents", application.getAssignedOfficerRole());
