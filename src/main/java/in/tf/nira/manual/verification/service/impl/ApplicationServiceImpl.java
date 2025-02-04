@@ -233,6 +233,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 			mVSApplication.setSource(verifyRequest.getSource() != null ? verifyRequest.getSource() : defaultSource);
 			mVSApplication.setRefId(verifyRequest.getRefId());
 			mVSApplication.setSchemaVersion(verifyRequest.getSchemaVersion());
+			mVSApplication.setFoundLink(verifyRequest.getFoundLink());
+			mVSApplication.setAgeGroup(verifyRequest.getAgeGroup());;
 			mVSApplication.setAssignedOfficerId(selectedOfficer.getUserId());
 			mVSApplication.setAssignedOfficerName(selectedOfficer.getUserName());
 			mVSApplication.setAssignedOfficerRole(selectedOfficer.getUserRole());
@@ -486,6 +488,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 	    userApp.setStatus(app.getStage());
 	    userApp.setCrDTimes(app.getCrDTimes());
 	    userApp.setStatusComment(app.getStatusComment());
+	    userApp.setFoundLink(app.getFoundLink());
+	    userApp.setAgeGroup(app.getAgeGroup());;
 	    
 	    if (app.getEscalationDetails() != null) {
 	        app.getEscalationDetails().forEach(esc -> {
@@ -560,6 +564,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 		    applicationDetailsResponse.setService(application.getService());
 		    applicationDetailsResponse.setServiceType(application.getServiceType());
 		    applicationDetailsResponse.setStatusComment(application.getStatusComment());
+		    applicationDetailsResponse.setFoundLink(application.getFoundLink());
+		    applicationDetailsResponse.setAgeGroup(application.getAgeGroup());
 		    applicationDetailsResponse.setDemographics(dataShareResponse.getIdentity());
 		    
 		    logger.info("Successfully fetched application details for ID: {}", application.getRegId());
@@ -661,7 +667,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 			response.setStatus(StageCode.REJECTED.getStage());
 			response.setComment(comment);
 			response.setCategory(rejectionCategory);
-			response.setActionDate(application.getCrDTimes().toLocalDate().format(formatter));
+			response.setActionDate(LocalDate.now().format(formatter));
 			ResponseEntity<Object> responseEntity = new ResponseEntity<>(response, HttpStatus.OK);
 			listener.sendToQueue(responseEntity, 1);
 		} catch (JsonProcessingException | UnsupportedEncodingException e) {

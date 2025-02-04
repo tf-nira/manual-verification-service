@@ -10,6 +10,8 @@ public class ApplicationDetailsResponse {
 	private String service;
 	private String serviceType;
 	private String statusComment;
+	private String foundLink;
+	private String ageGroup;
 	private Map<String, String> demographics;
 	private Map<String, Object> documents;
 	private Map<String, Object> biometricAttributes;

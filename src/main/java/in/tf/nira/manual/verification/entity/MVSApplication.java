@@ -43,6 +43,12 @@ public class MVSApplication {
 	@Column(name = "schema_version")
 	private String schemaVersion;
 	
+	@Column(name = "foundlink")
+	private String foundLink;
+	
+	@Column(name = "age_group")
+	private String ageGroup;
+	
 	@Column(name = "assigned_officer_id")
 	private String assignedOfficerId;
 	

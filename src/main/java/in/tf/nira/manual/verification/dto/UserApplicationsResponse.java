@@ -15,4 +15,6 @@ public class UserApplicationsResponse {
 	private EscalationDetailsDTO supervisorEscDetails;
 	private EscalationDetailsDTO legalEscDetails;
 	private String statusComment;
+	private String foundLink;
+	private String ageGroup;
 }
