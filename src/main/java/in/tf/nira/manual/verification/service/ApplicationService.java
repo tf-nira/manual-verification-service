@@ -2,8 +2,6 @@ package in.tf.nira.manual.verification.service;
 
 import java.util.List;
 
-import org.springframework.http.ResponseEntity;
-
 import in.tf.nira.manual.verification.dto.ApplicationDetailsResponse;
 import in.tf.nira.manual.verification.dto.CreateAppRequestDTO;
 import in.tf.nira.manual.verification.dto.DemographicDetailsDTO;
@@ -18,6 +16,7 @@ import in.tf.nira.manual.verification.dto.UserApplicationsResponse;
 public interface ApplicationService {
 
 	StatusResponseDTO createApplication(CreateAppRequestDTO verifyRequest);
+	String getOfficerRoleBasedOnUpdateService(CreateAppRequestDTO verifyRequest);
     List<UserApplicationsResponse> getApplicationsForUser(String userId);
 	ApplicationDetailsResponse getApplicationDetails(String applicationId);
 	StatusResponseDTO updateApplicationStatus(String applicationId, UpdateStatusRequest request);

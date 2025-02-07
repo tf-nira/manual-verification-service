@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.time.LocalDateTime;
+import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -123,7 +124,10 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 	@Value("#{'${manual.verification.officerAssignment.serviceTypesForLegalOfficer}'.split(',')}")
 	private List<String> serviceTypesForLegalOfficer;
-	
+
+	@Value("${manual.verification.officerAssignment.updateDOBServiceType}")
+	private String updateDOBServiceType;
+
 	@Value("${manual.verification.data.share.encryption:false}")
 	private boolean encryption;
 	
@@ -211,8 +215,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 		String officerRole = "";
 
-		if (verifyRequest.getService().equals("COP") && serviceTypesForLegalOfficer.contains(verifyRequest.getServiceType())) {
-			officerRole = CommonConstants.MVS_LEGAL_OFFICER_ROLE;
+		if (verifyRequest.getService().equals(CommonConstants.UPDATE)) {
+			officerRole = getOfficerRoleBasedOnUpdateService(verifyRequest);
 		} else {
 			officerRole = CommonConstants.MVS_OFFICER_ROLE;
 		}
@@ -262,7 +266,73 @@ public class ApplicationServiceImpl implements ApplicationService {
 		response.setStatus("Success");
 		return response;
 	}
-	
+
+	@Override
+	public String getOfficerRoleBasedOnUpdateService(CreateAppRequestDTO verifyRequest) {
+		try {
+			// get demographics from dataShareURL
+			ResponseEntity<String> responseEn = restTemplate.exchange(verifyRequest.getReferenceURL(), HttpMethod.GET, null, String.class);
+			String response = responseEn.getBody();
+
+			if (response == null) {
+				throw new RequestException(ErrorCode.DATA_SHARE_FETCH_FAILED.getErrorCode(),
+						ErrorCode.DATA_SHARE_FETCH_FAILED.getErrorMessage() + " with status code: " + responseEn.getStatusCodeValue());
+			}
+
+			handleResponseErrors(response);
+
+			if (encryption) {
+				logger.info("Decrypting response from data share");
+				response = cryptoUtil.decrypt(response);
+			}
+
+			DataShareResponseDto dataShareResponse = objectMapper.readValue(response, DataShareResponseDto.class);
+			Map<String, String> demographics = dataShareResponse.getIdentity();
+
+			// if change of date of birth -> fetch prev DOB
+			if (demographics.get(updateDOBServiceType) != null  && demographics.get(updateDOBServiceType).equals("Y")) {
+				DemographicDetailsDTO previousDemographics = getDemographicDetails(demographics.get("NIN"));
+				String currentDOB = demographics.get("dateOfBirth");
+				String previousDOB = previousDemographics.getIdentity().getDateOfBirth();
+
+				if (!currentDOB.isEmpty() && !previousDOB.isEmpty()) {
+					DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+					LocalDate currentDate = LocalDate.parse(currentDOB, formatter);
+					LocalDate previousDate = LocalDate.parse(previousDOB, formatter);
+
+					int yearsDifference = Period.between(previousDate, currentDate).getYears();
+
+					if (yearsDifference > 4) return CommonConstants.MVS_LEGAL_OFFICER_ROLE;
+				}
+			}
+
+			// check for serviceTypesForLegalOfficer
+			for (String serviceType: serviceTypesForLegalOfficer) {
+				if (demographics.get(serviceType) != null && demographics.get(serviceType).equals("Y")) {
+					return CommonConstants.MVS_LEGAL_OFFICER_ROLE;
+				}
+			}
+
+			return CommonConstants.MVS_OFFICER_ROLE;
+
+		} catch (HttpClientErrorException ex) {
+			logger.error("Invalid data share url: {}", ex.getLocalizedMessage(), ex);
+			throw new RequestException(ErrorCode.DATA_SHARE_FETCH_FAILED.getErrorCode(), ErrorCode.DATA_SHARE_FETCH_FAILED.getErrorMessage());
+		} catch (URISyntaxException | IllegalArgumentException ex) {
+			logger.error("Invalid data share url syntax: {}", ex.getLocalizedMessage(), ex);
+			throw new RequestException(ErrorCode.DATA_SHARE_FETCH_FAILED.getErrorCode(), ErrorCode.DATA_SHARE_FETCH_FAILED.getErrorMessage());
+		} catch (Exception ex) {
+			if (ex instanceof RequestException) {
+				throw new RequestException(((RequestException) ex).getErrors());
+			} else {
+				logger.error("Unexpected error occurred: {}", ex.getLocalizedMessage(), ex);
+				throw new RequestException(ErrorCode.DATA_SHARE_FETCH_FAILED.getErrorCode(), ErrorCode.DATA_SHARE_FETCH_FAILED.getErrorMessage());
+			}
+		}
+	}
+
+
 	@Override
 	public List<UserApplicationsResponse> getApplicationsForUser(String userId) {
 		logger.info("Fetching applications for user: " + userId);
