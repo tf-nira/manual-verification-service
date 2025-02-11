@@ -140,6 +140,7 @@ public class Listener {
 
 				@Override
 				public void setListener(javax.jms.Message message) {
+					logger.info(String.format("Message Data %s" , message));
 					consumeLogic(message, verificationResponseAddress);
 
 				}
