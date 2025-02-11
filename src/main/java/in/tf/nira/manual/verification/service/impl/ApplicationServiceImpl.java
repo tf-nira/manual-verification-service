@@ -9,8 +9,8 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.time.LocalDateTime;
-import java.time.Period;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -301,9 +301,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 					LocalDate currentDate = LocalDate.parse(currentDOB, formatter);
 					LocalDate previousDate = LocalDate.parse(previousDOB, formatter);
 
-					int yearsDifference = Period.between(previousDate, currentDate).getYears();
+					long daysDifference = ChronoUnit.DAYS.between(previousDate, currentDate);
 
-					if (yearsDifference > 4) return CommonConstants.MVS_LEGAL_OFFICER_ROLE;
+					if (daysDifference > (4 * 365)) return CommonConstants.MVS_LEGAL_OFFICER_ROLE;
 				}
 			}
 
