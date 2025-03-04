@@ -392,7 +392,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 						(request.getInsufficientDocuments() != null && request.getInsufficientDocuments())) {
 					ApplicationDetailsResponse appResponse = getApplicationDetails(application, false, false);
 					String district = getDemoValue(appResponse.getDemographics().get("applicantPlaceOfResidenceDistrict"));
-					String nin = getDemoValue(appResponse.getDemographics().get("NIN"));
+					String nin = appResponse.getDemographics().get("NIN");
 
 					logger.info("Application ID {}, district {}, nin {} ", applicationId, district, nin);
 
