@@ -301,7 +301,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 					LocalDate currentDate = LocalDate.parse(currentDOB, formatter);
 					LocalDate previousDate = LocalDate.parse(previousDOB, formatter);
 
-					long daysDifference = ChronoUnit.DAYS.between(previousDate, currentDate);
+					long daysDifference = Math.abs(ChronoUnit.DAYS.between(previousDate, currentDate));
 
 					if (daysDifference > (4 * 365)) return CommonConstants.MVS_LEGAL_OFFICER_ROLE;
 				}
