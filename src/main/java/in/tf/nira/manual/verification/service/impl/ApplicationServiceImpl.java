@@ -394,9 +394,12 @@ public class ApplicationServiceImpl implements ApplicationService {
 					String district = getDemoValue(appResponse.getDemographics().get("applicantPlaceOfResidenceDistrict"));
 					String nin = getDemoValue(appResponse.getDemographics().get("NIN"));
 
+					logger.info("Application ID {}, district {}, nin {} ", applicationId, district, nin);
+
 					if(district == null && nin != null) {
 						DemographicDetailsDTO demographicDetailsDTO = getDemographicDetails(nin);
 						district = demographicDetailsDTO.getIdentity().getApplicantPlaceOfResidenceDistrict().get(0).getValue();
+						logger.info("Application ID {}, demographics {}", applicationId, demographicDetailsDTO.toString());
 					}
 
 					logger.info("Application ID {} escalating to {} district", applicationId, district);
