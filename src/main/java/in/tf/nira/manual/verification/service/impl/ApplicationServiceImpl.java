@@ -392,6 +392,14 @@ public class ApplicationServiceImpl implements ApplicationService {
 						(request.getInsufficientDocuments() != null && request.getInsufficientDocuments())) {
 					ApplicationDetailsResponse appResponse = getApplicationDetails(application, false, false);
 					String district = getDemoValue(appResponse.getDemographics().get("applicantPlaceOfResidenceDistrict"));
+					String nin = getDemoValue(appResponse.getDemographics().get("NIN"));
+
+					if(district == null && nin != null) {
+						DemographicDetailsDTO demographicDetailsDTO = getDemographicDetails(nin);
+						district = demographicDetailsDTO.getIdentity().getApplicantPlaceOfResidenceDistrict().get(0).getValue();
+					}
+
+					logger.info("Application ID {} escalating to {} district", applicationId, district);
 
 					escalateApplication(application, CommonConstants.MVS_DISTRICT_OFFICER_ROLE,
 							StageCode.ASSIGNED_TO_DISTRICT_OFFICER.getStage(), request, district);
