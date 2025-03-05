@@ -237,7 +237,7 @@ public class DemographicDetailsDTO {
         private String applicantUnabletoSign;
         private String email;
 
-        @JsonFormat(pattern = "yyyy/MM/dd")
+        @JsonFormat(pattern = "dd/mm/yyyy")
         private LocalDate ninExpiryDate;
 
         private String signature;
