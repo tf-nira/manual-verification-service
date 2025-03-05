@@ -7,6 +7,7 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Field;
 import java.net.URISyntaxException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -64,6 +65,7 @@ import in.tf.nira.manual.verification.dto.DataShareResponseDto;
 import in.tf.nira.manual.verification.dto.DemograhicValue;
 import in.tf.nira.manual.verification.dto.DemographicDetailsDTO;
 import in.tf.nira.manual.verification.dto.DemographicDetailsDTO.Document;
+import in.tf.nira.manual.verification.dto.DemographicDetailsDTO.ProofDocument;
 import in.tf.nira.manual.verification.dto.DocumentDTO;
 import in.tf.nira.manual.verification.dto.EscalationDetailsDTO;
 import in.tf.nira.manual.verification.dto.MVSResponseDto;
@@ -1181,47 +1183,88 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 		String handle = nin.toLowerCase() + "@nin";
 		String url = idRepoUrl + handle;
-		
-		UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(url)
-                .queryParam("type", "all")
-                .queryParam("idType", "handle");
-		
+
+		UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(url).queryParam("type", "all")
+				.queryParam("idType", "handle");
+
 		HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<String> entity = new HttpEntity<>(null, headers);
-		
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		HttpEntity<String> entity = new HttpEntity<>(null, headers);
+
 		try {
-			ResponseEntity<ResponseWrapper<DemographicDetailsDTO>> responseEntity = restTemplate.exchange(builder.build().toUri(), HttpMethod.GET, entity,
-					new ParameterizedTypeReference<ResponseWrapper<DemographicDetailsDTO>>() {});
-			
+			ResponseEntity<ResponseWrapper<DemographicDetailsDTO>> responseEntity = restTemplate.exchange(
+					builder.build().toUri(), HttpMethod.GET, entity,
+					new ParameterizedTypeReference<ResponseWrapper<DemographicDetailsDTO>>() {
+					});
 			if (responseEntity.getBody() == null) {
-	            logger.error("Failed to get details from idrepo. Status code: " + responseEntity.getStatusCodeValue());
-	            throw new RequestException(ErrorCode.IDREPO_FETCH_FAILED.getErrorCode(),
-						ErrorCode.IDREPO_FETCH_FAILED.getErrorMessage() + "with status code: " + responseEntity.getStatusCodeValue());
-	        }
+				logger.error("Failed to get details from idrepo. Status code: " + responseEntity.getStatusCodeValue());
+				throw new RequestException(ErrorCode.IDREPO_FETCH_FAILED.getErrorCode(),
+						ErrorCode.IDREPO_FETCH_FAILED.getErrorMessage() + "with status code: "
+								+ responseEntity.getStatusCodeValue());
+			}
 
 			ResponseWrapper<DemographicDetailsDTO> responseWrapper = responseEntity.getBody();
 
-	        if (responseWrapper.getErrors() != null && !responseWrapper.getErrors().isEmpty()) {
-	        	logger.error("IdRepo fetch failed: {}", responseWrapper.getErrors().get(0));
-	            throw new RequestException(ErrorCode.INVALID_IDREPO_RESPONSE.getErrorCode(),
-						ErrorCode.INVALID_IDREPO_RESPONSE.getErrorMessage() + "with error: " + responseWrapper.getErrors().get(0));
-	        }
-	        
-	        List<Document> docs = responseWrapper.getResponse().getDocuments();
-	        docs.forEach(doc -> {
-	            if (!doc.getCategory().equals("individualBiometrics")) {
-		            doc.setValue(CryptoUtil.decodeURLSafeBase64(doc.getValue().toString()));
-	            }
-	        });
-	        
-	        return responseWrapper.getResponse();
+			if (responseWrapper.getErrors() != null && !responseWrapper.getErrors().isEmpty()) {
+				logger.error("IdRepo fetch failed: {}", responseWrapper.getErrors().get(0));
+				throw new RequestException(ErrorCode.INVALID_IDREPO_RESPONSE.getErrorCode(),
+						ErrorCode.INVALID_IDREPO_RESPONSE.getErrorMessage() + "with error: "
+								+ responseWrapper.getErrors().get(0));
+			}
+
+			List<Document> docs = responseWrapper.getResponse().getDocuments();
+			System.out.println("Doc List : "+docs);
+			if (docs != null && responseWrapper.getResponse().getIdentity() != null) {
+				Map<String, ProofDocument> proofDocMap = new HashMap<>();
+				// get all ProofDocument fields
+				Field[] fields = DemographicDetailsDTO.Identity.class.getDeclaredFields();
+				for (Field field : fields) {
+					// Check if the field is a ProofDocument
+					if (field.getType() == DemographicDetailsDTO.ProofDocument.class) {
+						try {
+							field.setAccessible(true);
+							ProofDocument proofDoc = (ProofDocument) field
+									.get(responseWrapper.getResponse().getIdentity());
+
+							// If the ProofDocument exists, add it to the map using its field name
+							if (proofDoc != null) {
+								String fieldName = field.getName();
+								proofDocMap.put(fieldName, proofDoc);
+								System.out.println("Added to map: " + fieldName + " -> " + proofDoc);
+							}
+						} catch (IllegalAccessException e) {
+							logger.warn("Could not access field: " + field.getName(), e);
+						}
+					}
+				}
+
+				docs.forEach(doc -> {
+					if (!doc.getCategory().equals("individualBiometrics")) {
+						System.out.println("Doc  : " + doc);
+						doc.setValue(CryptoUtil.decodeURLSafeBase64(doc.getValue().toString()));
+						String category = doc.getCategory();
+						ProofDocument proofDoc = proofDocMap.get(category);
+
+						if (proofDoc != null && proofDoc.getFormat() != null) {
+							doc.setFormat(proofDoc.getFormat());
+							System.out.println("Set format for " + category + " to " + proofDoc.getFormat());
+						} else {
+							System.out.println("No matching proof document found for category: " + category);
+						}
+
+					}
+				});
+
+			}
+
+			return responseWrapper.getResponse();
 		} catch (RestClientException e) {
 			logger.error("Failed to get details from idrepo, {}", e);
-        	throw new RequestException(ErrorCode.IDREPO_FETCH_FAILED.getErrorCode(),
+			throw new RequestException(ErrorCode.IDREPO_FETCH_FAILED.getErrorCode(),
 					ErrorCode.IDREPO_FETCH_FAILED.getErrorMessage() + "with error: " + e.getMessage());
 		}
 	}
+	
 	
 	private byte[] extractFaceImageData(byte[] decodedBioValue) {
 

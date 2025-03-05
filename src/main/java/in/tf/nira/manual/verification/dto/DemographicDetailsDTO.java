@@ -244,6 +244,50 @@ public class DemographicDetailsDTO {
 
         @JsonProperty("applicantForeignResidenceAddress")
         private List<LanguageValue> applicantForeignResidenceAddress;
+
+        //all the document categories as mentioned in prereg ui spec
+        
+        @JsonProperty("proofOfCitizenship")
+        private ProofDocument proofOfCitizenship;
+        
+        @JsonProperty("proofOfPhysicalApplicationForm")
+        private ProofDocument proofOfPhysicalApplicationForm;
+        
+        @JsonProperty("proofOfAbandonment")
+        private ProofDocument proofOfAbandonment;
+        
+        @JsonProperty("proofOfDeclarant")
+        private ProofDocument proofOfDeclarant;
+        
+        @JsonProperty("proofOfAdoption")
+        private ProofDocument proofOfAdoption;
+        
+        @JsonProperty("proofOfIdentity")
+        private ProofDocument proofOfIdentity;
+        
+        @JsonProperty("proofOfAddress")
+        private ProofDocument proofOfAddress;
+        
+        @JsonProperty("proofOfBirth")
+        private ProofDocument proofOfBirth;
+        
+        @JsonProperty("proofOfRegistration")
+        private ProofDocument proofOfRegistration;
+        
+        @JsonProperty("proofOfOtherSupportingdocumentIssuedbyGovt")
+        private ProofDocument proofOfOtherSupportingdocumentIssuedbyGovt;
+        
+        @JsonProperty("proofOfOtherSupportingDocuments")
+        private ProofDocument proofOfOtherSupportingDocuments;
+        
+        @JsonProperty("proofOfLegalStatutoryDeclaration")
+        private ProofDocument proofOfLegalStatutoryDeclaration;
+        
+        @JsonProperty("proofOfModificationConsent")
+        private ProofDocument proofOfModificationConsent;
+        
+        @JsonProperty("proofOfLoss")
+        private ProofDocument proofOfLoss;
     }
 
     @Data
@@ -269,5 +313,16 @@ public class DemographicDetailsDTO {
     public static class Document {
     	private String category;
     	private Object value;
+        private String format;
+    }
+    
+    @Data
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class ProofDocument {
+        private String refNumber;
+        private String format;
+        private String type;
+        private String value;
     }
 }
