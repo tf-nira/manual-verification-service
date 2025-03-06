@@ -624,13 +624,16 @@ public class ApplicationServiceImpl implements ApplicationService {
 				CbeffToBiometricUtil util = new CbeffToBiometricUtil();
 				List<String> subtype = new ArrayList<>();
 				byte[] photoByte = util.getImageBytes(dataShareResponse.getBiometrics(), FACE, subtype);
-				
+
 				if (photoByte != null) {
 					byte[] pngBytes = convertJP2ToPNG(extractFaceImageData(photoByte));
 					String data = java.util.Base64.getEncoder().encodeToString(pngBytes);
 					attributes.put(APPLICANT_PHOTO, "data:image/png;base64," + data);
 					applicationDetailsResponse.setBiometricAttributes(attributes);
 				}
+
+				Map<String, List<String>> bioInfo = util.getBiometricsInfo(dataShareResponse.getBiometrics());
+				applicationDetailsResponse.setBiometricInfo(bioInfo);
 			}
 			
 			if (dataShareResponse.getDocuments() != null && includeDocuments) {

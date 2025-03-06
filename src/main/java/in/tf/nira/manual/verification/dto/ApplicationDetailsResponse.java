@@ -1,5 +1,6 @@
 package in.tf.nira.manual.verification.dto;
 
+import java.util.List;
 import java.util.Map;
 
 import lombok.Data;
@@ -15,4 +16,5 @@ public class ApplicationDetailsResponse {
 	private Map<String, String> demographics;
 	private Map<String, Object> documents;
 	private Map<String, Object> biometricAttributes;
+	private Map<String, List<String>> biometricInfo;
 }

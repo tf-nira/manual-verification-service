@@ -1,6 +1,7 @@
 package in.tf.nira.manual.verification.util;
 
-import java.util.List;
+import java.util.*;
+
 import io.mosip.kernel.biometrics.commons.CbeffValidator;
 import io.mosip.kernel.biometrics.constant.BiometricType;
 import io.mosip.kernel.biometrics.entities.BIR;
@@ -78,6 +79,34 @@ public class CbeffToBiometricUtil {
 	 */
 	private boolean isSubType(List<String> subType, List<String> subTypeList) {
 		return subTypeList.equals(subType) ? Boolean.TRUE : Boolean.FALSE;
+	}
+
+	public Map<String, List<String>> getBiometricsInfo(String cbeffFileString) throws Exception {
+		Map<String, List<String>> bioInfo = new HashMap<>();
+		bioInfo.put("Finger", new ArrayList<>());
+		bioInfo.put("Iris", new ArrayList<>());
+
+		if (cbeffFileString != null) {
+			BIR birType = CbeffValidator.getBIRFromXML(Base64.decodeBase64(cbeffFileString));
+			List<BIR> bIRTypeList = birType.getBirs();
+
+			for(BIR bir : bIRTypeList) {
+				if (bir.getBdb() != null && !Objects.equals(bir.getBdbInfo().getType().get(0).value(), "Face")) {
+					String type = bir.getBdbInfo().getType().get(0).value();
+
+					String subType;
+					if (type.equalsIgnoreCase("finger")) {
+						subType = bir.getBdbInfo().getSubtype().get(0) + " " + bir.getBdbInfo().getSubtype().get(1);
+					} else {
+						subType = bir.getBdbInfo().getSubtype().get(0);
+					}
+
+					bioInfo.get(type).add(subType);
+				}
+			}
+		}
+
+		return bioInfo;
 	}
 
 }
