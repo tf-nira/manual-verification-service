@@ -12,12 +12,7 @@ import java.net.URISyntaxException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.time.LocalDate;
 
@@ -336,9 +331,16 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 
 	@Override
-	public List<UserApplicationsResponse> getApplicationsForUser(String userId) {
+	public List<UserApplicationsResponse> getApplicationsForUser(String userId, Boolean rejectFlag) {
 		logger.info("Fetching applications for user: " + userId);
-		List<MVSApplication> applications = mVSApplicationRepo.findByAssignedOfficerId(userId);
+
+		List<MVSApplication> applications;
+
+		if(rejectFlag) {
+			applications = mVSApplicationRepo.getAllRejectedApplications();
+		} else {
+			applications = mVSApplicationRepo.findByAssignedOfficerId(userId);
+		}
 		
 		if (applications == null || applications.isEmpty()) {
 			logger.error("No applications available for the user: " + userId);

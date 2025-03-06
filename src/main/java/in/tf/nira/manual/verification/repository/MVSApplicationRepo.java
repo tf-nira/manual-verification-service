@@ -14,4 +14,8 @@ public interface MVSApplicationRepo extends JpaRepository<MVSApplication, String
 	
 	@Query("SELECT COUNT(a) FROM mvs_application a WHERE a.assignedOfficerId = :userId")
 	int countByAssignedOfficerId(@Param("userId") String userId);
+
+	@Query(value = "SELECT * FROM mvs_application a WHERE a.stage = 'REJECTED'", nativeQuery = true)
+	List<MVSApplication> getAllRejectedApplications();
+
 }

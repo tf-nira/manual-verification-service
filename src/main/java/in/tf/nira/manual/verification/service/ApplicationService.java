@@ -17,7 +17,7 @@ public interface ApplicationService {
 
 	StatusResponseDTO createApplication(CreateAppRequestDTO verifyRequest);
 	String getOfficerRoleBasedOnUpdateService(CreateAppRequestDTO verifyRequest);
-    List<UserApplicationsResponse> getApplicationsForUser(String userId);
+    List<UserApplicationsResponse> getApplicationsForUser(String userId, Boolean rejectFlag);
 	ApplicationDetailsResponse getApplicationDetails(String applicationId);
 	StatusResponseDTO updateApplicationStatus(String applicationId, UpdateStatusRequest request);
 	StatusResponseDTO scheduleInterview(String applicationId, SchInterviewDTO request);

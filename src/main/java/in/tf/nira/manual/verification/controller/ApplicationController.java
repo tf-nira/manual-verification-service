@@ -6,13 +6,7 @@ import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import in.tf.nira.manual.verification.constant.CommonConstants;
 import in.tf.nira.manual.verification.constant.ErrorCode;
@@ -65,18 +59,18 @@ public class ApplicationController {
     }
 
     @PreAuthorize("hasAnyRole(@authorizedRoles.getGetApplicationsForUser())")
-    @GetMapping("/user/{userId}")
+    @GetMapping("/user/{userId}/{rejectFlag}")
     @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "OK"),
             @ApiResponse(responseCode = "201", description = "Created", content = @Content(schema = @Schema(hidden = true))),
             @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(hidden = true))),
             @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(hidden = true))),
             @ApiResponse(responseCode = "404", description = "Not Found", content = @Content(schema = @Schema(hidden = true))) })
-    public ResponseWrapper<List<UserApplicationsResponse>> getApplicationsForUser(@PathVariable String userId) {
+    public ResponseWrapper<List<UserApplicationsResponse>> getApplicationsForUser(@PathVariable String userId, @PathVariable Boolean rejectFlag) {
     	ResponseWrapper<List<UserApplicationsResponse>> responseWrapper = new ResponseWrapper<>();
 		responseWrapper.setId(CommonConstants.GET_USER_APP_ID);
 		responseWrapper.setVersion(CommonConstants.VERSION);
 		try {
-			responseWrapper.setResponse(applicationService.getApplicationsForUser(userId));
+			responseWrapper.setResponse(applicationService.getApplicationsForUser(userId, rejectFlag));
 		} catch (RequestException e) {
 			throw e;
 		} catch (Exception exc) {
