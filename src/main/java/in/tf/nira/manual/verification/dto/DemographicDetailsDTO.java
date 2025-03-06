@@ -237,7 +237,7 @@ public class DemographicDetailsDTO {
         private String applicantUnabletoSign;
         private String email;
 	
-        private LocalDate ninExpiryDate;
+        private String ninExpiryDate;
 
         private String signature;
 
