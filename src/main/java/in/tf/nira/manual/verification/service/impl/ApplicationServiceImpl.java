@@ -19,6 +19,8 @@ import java.time.LocalDate;
 import javax.annotation.PostConstruct;
 import javax.imageio.ImageIO;
 
+import in.tf.nira.manual.verification.dto.*;
+import org.apache.catalina.User;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -54,26 +56,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import in.tf.nira.manual.verification.constant.CommonConstants;
 import in.tf.nira.manual.verification.constant.ErrorCode;
 import in.tf.nira.manual.verification.constant.StageCode;
-import in.tf.nira.manual.verification.dto.ApplicationDetailsResponse;
-import in.tf.nira.manual.verification.dto.CreateAppRequestDTO;
-import in.tf.nira.manual.verification.dto.DataShareResponseDto;
-import in.tf.nira.manual.verification.dto.DemograhicValue;
-import in.tf.nira.manual.verification.dto.DemographicDetailsDTO;
 import in.tf.nira.manual.verification.dto.DemographicDetailsDTO.Document;
 import in.tf.nira.manual.verification.dto.DemographicDetailsDTO.ProofDocument;
-import in.tf.nira.manual.verification.dto.DocumentDTO;
-import in.tf.nira.manual.verification.dto.EscalationDetailsDTO;
-import in.tf.nira.manual.verification.dto.MVSResponseDto;
-import in.tf.nira.manual.verification.dto.OfficerDetailDTO;
-import in.tf.nira.manual.verification.dto.PacketDto;
-import in.tf.nira.manual.verification.dto.PacketInfo;
-import in.tf.nira.manual.verification.dto.PageResponseDto;
-import in.tf.nira.manual.verification.dto.SMSRequestDTO;
-import in.tf.nira.manual.verification.dto.SchInterviewDTO;
-import in.tf.nira.manual.verification.dto.SearchDto;
-import in.tf.nira.manual.verification.dto.StatusResponseDTO;
-import in.tf.nira.manual.verification.dto.UpdateStatusRequest;
-import in.tf.nira.manual.verification.dto.UserApplicationsResponse;
 import in.tf.nira.manual.verification.entity.MVSApplication;
 import in.tf.nira.manual.verification.entity.MVSApplicationHistory;
 import in.tf.nira.manual.verification.entity.OfficerAssignment;
@@ -350,6 +334,46 @@ public class ApplicationServiceImpl implements ApplicationService {
 		
 		return buildUserApplicationsResponse(applications);
 	}
+
+	@Override
+	public RejectedApplicationResponse getRejectedApplication(String applicationId) {
+		logger.info("Fetching rejected application for ID: {}", applicationId);
+
+		MVSApplication application = mVSApplicationRepo.getRejectedApplicationById(applicationId);
+
+		if (application == null) {
+			logger.error("No application available for the application id: {}", applicationId);
+			throw new RequestException(ErrorCode.INVALID_APP_ID.getErrorCode(),
+					ErrorCode.INVALID_APP_ID.getErrorMessage());
+		}
+
+		RejectedApplicationResponse response = new RejectedApplicationResponse();
+		response.setApplicationId(application.getRegId());
+		response.setService(application.getService());
+		response.setServiceType(application.getServiceType());
+		response.setStatus(application.getStage());
+		response.setCrDTimes(application.getCrDTimes());
+		response.setRejectionCategory(application.getRejectionCategory());
+		response.setRejectionComment(application.getComments());
+		response.setStatusComment(application.getStatusComment());
+		response.setFoundLink(application.getFoundLink());
+		response.setAgeGroup(application.getAgeGroup());
+
+		if (application.getEscalationDetails() != null) {
+			application.getEscalationDetails().forEach(esc -> {
+				if (CommonConstants.MVS_OFFICER_ROLE.equals(esc.getLevel())) {
+					response.setOfficerEscDetails(esc);
+				} else if (CommonConstants.MVS_SUPERVISOR_ROLE.equals(esc.getLevel())) {
+					response.setSupervisorEscDetails(esc);
+				} else if (CommonConstants.MVS_LEGAL_OFFICER_ROLE.equals(esc.getLevel())) {
+					response.setLegalEscDetails(esc);
+				}
+			});
+		}
+
+		return response;
+	}
+
 	
 	@Override
 	public PageResponseDto<UserApplicationsResponse> searchApplications(SearchDto dto) {

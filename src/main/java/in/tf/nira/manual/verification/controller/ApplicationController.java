@@ -4,22 +4,13 @@ import java.util.List;
 
 import javax.validation.Valid;
 
+import in.tf.nira.manual.verification.dto.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import in.tf.nira.manual.verification.constant.CommonConstants;
 import in.tf.nira.manual.verification.constant.ErrorCode;
-import in.tf.nira.manual.verification.dto.ApplicationDetailsResponse;
-import in.tf.nira.manual.verification.dto.CreateAppRequestDTO;
-import in.tf.nira.manual.verification.dto.DemographicDetailsDTO;
-import in.tf.nira.manual.verification.dto.DocumentDTO;
-import in.tf.nira.manual.verification.dto.PageResponseDto;
-import in.tf.nira.manual.verification.dto.SchInterviewDTO;
-import in.tf.nira.manual.verification.dto.SearchDto;
-import in.tf.nira.manual.verification.dto.StatusResponseDTO;
-import in.tf.nira.manual.verification.dto.UpdateStatusRequest;
-import in.tf.nira.manual.verification.dto.UserApplicationsResponse;
 import in.tf.nira.manual.verification.exception.RequestException;
 import in.tf.nira.manual.verification.service.ApplicationService;
 import io.mosip.kernel.core.http.RequestWrapper;
@@ -80,6 +71,29 @@ public class ApplicationController {
 		
         return responseWrapper;
     }
+
+	@PreAuthorize("hasAnyRole(@authorizedRoles.getGetRejectedApplication())")
+	@GetMapping("/reject/{rejectedAppId}")
+	@ApiResponses(value = { @ApiResponse(responseCode = "200", description = "OK"),
+			@ApiResponse(responseCode = "201", description = "Created", content = @Content(schema = @Schema(hidden = true))),
+			@ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(hidden = true))),
+			@ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(hidden = true))),
+			@ApiResponse(responseCode = "404", description = "Not Found", content = @Content(schema = @Schema(hidden = true))) })
+	public ResponseWrapper<RejectedApplicationResponse> getRejectedApplicationById(@PathVariable String rejectedAppId) {
+		ResponseWrapper<RejectedApplicationResponse> responseWrapper = new ResponseWrapper<>();
+		responseWrapper.setId(CommonConstants.GET_USER_APP_ID);
+		responseWrapper.setVersion(CommonConstants.VERSION);
+		try {
+			responseWrapper.setResponse(applicationService.getRejectedApplication(rejectedAppId));
+		} catch (RequestException e) {
+			throw e;
+		} catch (Exception exc) {
+			throw new RequestException(ErrorCode.UNKNOWN_ERROR.getErrorCode(),
+					String.format(exc.getMessage(), exc.getLocalizedMessage()));
+		}
+
+		return responseWrapper;
+	}
     
 	@PostMapping("/search")
 	@PreAuthorize("hasAnyRole(@authorizedRoles.getSearchApplications())")
