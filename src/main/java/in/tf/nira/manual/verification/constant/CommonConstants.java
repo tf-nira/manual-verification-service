@@ -7,6 +7,7 @@ public class CommonConstants {
 	public static final String MVS_DISTRICT_OFFICER_ROLE = "MVS_DISTRICT_OFFICER";
 	public static final String MVS_LEGAL_OFFICER_ROLE = "MVS_LEGAL_OFFICER";
 	public static final String MVS_EXECUTIVE_DIRECTOR = "MVS_EXECUTIVE_DIRECTOR";
+	public static final String MVS_SENIOR_REGISTRATION_OFFICER = "MVS_SENIOR_REGISTRATION_OFFICER";
 	
 	//status
 	public static final String APPROVE_STATUS = "APPROVE";
@@ -14,6 +15,8 @@ public class CommonConstants {
 	public static final String ESCALATE_STATUS = "ESCALATE";
 	public static final String SCHEDULE_INTERVIEW_STATUS = "SCHEDULE_INTERVIEW";
 	public static final String UPLOAD_DOCUMENTS_STATUS = "UPLOAD_DOCUMENTS";
+	public static final String RECOMMEND_FOR_REJECTION_STATUS = "RECOMMEND_FOR_REJECTION";
+	
 	
 	public static final String VERSION = "0.1";
 	public static final String CREATE_APP_ID = "tf.nira.app.create";

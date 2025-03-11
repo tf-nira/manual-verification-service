@@ -446,6 +446,10 @@ public class ApplicationServiceImpl implements ApplicationService {
 							ErrorCode.ESCALATION_NOT_ALLOWED.getErrorMessage());
 				}
 				break;
+			case CommonConstants.RECOMMEND_FOR_REJECTION_STATUS:
+				escalateApplication(application, CommonConstants.MVS_SENIOR_REGISTRATION_OFFICER,
+						StageCode.ASSIGNED_TO_MVS_SENIOR_REGISTRATION_OFFICER.getStage(), request, null);
+				break;
 			default:
 				throw new RequestException(
 	                    ErrorCode.INVALID_STATUS_VALUE.getErrorCode(),
