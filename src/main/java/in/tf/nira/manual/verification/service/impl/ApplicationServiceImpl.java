@@ -613,11 +613,22 @@ public class ApplicationServiceImpl implements ApplicationService {
 	}
 	
 	private MVSApplication getApplicationById(String applicationId) {
-		return mVSApplicationRepo.findById(applicationId).orElseThrow(() -> {
-			logger.error("Invalid application ID: {}", applicationId);
-			return new RequestException(ErrorCode.INVALID_APP_ID.getErrorCode(),
-					ErrorCode.INVALID_APP_ID.getErrorMessage());
-		});
+	    try {
+	        return mVSApplicationRepo.findById(applicationId)
+	            .orElseThrow(() -> {
+	                logger.error("Invalid application ID: {}", applicationId);
+	                return new RequestException(ErrorCode.INVALID_APP_ID.getErrorCode(),
+	                        ErrorCode.INVALID_APP_ID.getErrorMessage());
+	            });
+	    } catch (RequestException e) {
+	    	System.out.println("inside getting data for rejected ");
+	            MVSApplication app = mVSApplicationRepo.getRejectedApplicationById(applicationId);
+	            if (app != null) {
+	                return app;
+	            }
+	        
+	        throw e;
+	    }
 	}
 	
 	private ApplicationDetailsResponse getApplicationDetails(MVSApplication application, boolean includeBiometrics, boolean includeDocuments) {
