@@ -1123,6 +1123,12 @@ public class ApplicationServiceImpl implements ApplicationService {
 		if(officerRole.equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE)) {
 			if (district == null) {
 				district = getDemoValue(appResponse.getDemographics().get("applicantPlaceOfResidenceDistrict"));
+				String nin = appResponse.getDemographics().get("NIN");
+
+				if(district == null && nin != null) {
+					DemographicDetailsDTO demographicDetailsDTO = getDemographicDetails(nin);
+					district = demographicDetailsDTO.getIdentity().getApplicantPlaceOfResidenceDistrict().get(0).getValue();
+				}
 			}
 
 			escalateApplication(application, CommonConstants.MVS_DISTRICT_OFFICER_ROLE,
