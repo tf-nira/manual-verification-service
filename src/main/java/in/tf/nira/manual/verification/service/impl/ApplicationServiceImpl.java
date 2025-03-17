@@ -220,6 +220,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 			mVSApplication.setSchemaVersion(verifyRequest.getSchemaVersion());
 			mVSApplication.setFoundLink(verifyRequest.getFoundLink());
 			mVSApplication.setAgeGroup(verifyRequest.getAgeGroup());;
+			mVSApplication.setResDistrict(verifyRequest.getApplicantPlaceOfResidenceDistrict());
 			mVSApplication.setAssignedOfficerId(selectedOfficer.getUserId());
 			mVSApplication.setAssignedOfficerName(selectedOfficer.getUserName());
 			mVSApplication.setAssignedOfficerRole(selectedOfficer.getUserRole());
@@ -425,6 +426,10 @@ public class ApplicationServiceImpl implements ApplicationService {
 					if(district == null && nin != null) {
 						DemographicDetailsDTO demographicDetailsDTO = getDemographicDetails(nin);
 						district = demographicDetailsDTO.getIdentity().getApplicantPlaceOfResidenceDistrict().get(0).getValue();
+					}
+
+					if(district == null && application.getResDistrict() != null) {
+						district = application.getResDistrict();
 					}
 
 					logger.info("Application ID {} escalating to {} district", applicationId, district);
@@ -1128,6 +1133,10 @@ public class ApplicationServiceImpl implements ApplicationService {
 				if(district == null && nin != null) {
 					DemographicDetailsDTO demographicDetailsDTO = getDemographicDetails(nin);
 					district = demographicDetailsDTO.getIdentity().getApplicantPlaceOfResidenceDistrict().get(0).getValue();
+				}
+
+				if(district == null && application.getResDistrict() != null) {
+					district = application.getResDistrict();
 				}
 			}
 

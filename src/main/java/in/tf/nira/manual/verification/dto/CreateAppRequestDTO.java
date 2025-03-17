@@ -20,4 +20,5 @@ public class CreateAppRequestDTO {
 	private String statusComment;
 	private String foundLink;
 	private String ageGroup;
+	private String applicantPlaceOfResidenceDistrict;
 }
