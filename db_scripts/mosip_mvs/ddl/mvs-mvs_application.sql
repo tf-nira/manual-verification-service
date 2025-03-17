@@ -16,6 +16,7 @@ CREATE TABLE mvs.mvs_application (
 	schema_version character varying(255),
 	foundlink character varying(255),
 	age_group character varying(255),
+	res_district character varying(255),
     assigned_officer_id character varying(255),
     assigned_officer_name character varying(255),
     assigned_officer_role character varying(255),

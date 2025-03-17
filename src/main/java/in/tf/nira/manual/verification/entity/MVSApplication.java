@@ -48,6 +48,9 @@ public class MVSApplication {
 	
 	@Column(name = "age_group")
 	private String ageGroup;
+
+	@Column(name = "res_district")
+	private String resDistrict;
 	
 	@Column(name = "assigned_officer_id")
 	private String assignedOfficerId;
