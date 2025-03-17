@@ -41,7 +41,8 @@ public enum ErrorCode {
 	IDREPO_FETCH_FAILED("MVS-039", "Failed to fetch details from idrepo "),
 	INVALID_IDREPO_RESPONSE("MVS-040", "Received response from IDREPO "),
 	GET_TEMPLATE_FAILED("MVS-041", "Failed to get notification template "),
-	FAILED_GET_TEMPLATE_RESPONSE("MVS-042", "Received error response for get template ");
+	FAILED_GET_TEMPLATE_RESPONSE("MVS-042", "Received error response for get template "),
+	DOCUMENT_FETCH_ERROR("MVS-APP-008", "Error occurred while fetching document");
      
 	/**
 	 * The error code.

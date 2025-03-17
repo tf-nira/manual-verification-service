@@ -29,4 +29,9 @@ public class CommonConstants {
 
 	//service
 	public static final String UPDATE = "UPDATE";
+	
+	//Packet-Manager
+	public static final String PACKET_MANAGER_REQUEST_ID = "mosip.registration.packet.reader";
+	public static final String PACKET_MANAGER_REQUEST_VERSION = "v1";
+
 }
