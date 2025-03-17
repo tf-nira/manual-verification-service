@@ -15,12 +15,9 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.time.LocalDate;
-
 import javax.annotation.PostConstruct;
 import javax.imageio.ImageIO;
-
 import in.tf.nira.manual.verification.dto.*;
-import org.apache.catalina.User;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -47,12 +44,10 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import in.tf.nira.manual.verification.constant.CommonConstants;
 import in.tf.nira.manual.verification.constant.ErrorCode;
 import in.tf.nira.manual.verification.constant.StageCode;
@@ -74,10 +69,12 @@ import in.tf.nira.manual.verification.util.CryptoCoreUtil;
 import in.tf.nira.manual.verification.util.PageUtils;
 import in.tf.nira.manual.verification.util.TemplateGenerator;
 import in.tf.nira.manual.verification.util.UserDetailUtil;
+import io.mosip.kernel.core.exception.ServiceError;
 import io.mosip.kernel.core.http.RequestWrapper;
 import io.mosip.kernel.core.http.ResponseWrapper;
 import io.mosip.kernel.core.util.CryptoUtil;
 import io.mosip.kernel.core.util.DateUtils;
+import io.mosip.kernel.core.util.JsonUtils;
 
 @Service
 public class ApplicationServiceImpl implements ApplicationService {
@@ -138,6 +135,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 	
 	@Value("${manual.verification.interview.valid.days}")
 	private int interviewValidDays;
+	
+	@Value("${packetmanager.document.fetch.url}")
+	private String packetManagerDocumentFetchUrl;
 	
 	private Map<String, List<OfficerDetailDTO>> officerDetailMap = new HashMap<>();
 	
@@ -1388,5 +1388,74 @@ public class ApplicationServiceImpl implements ApplicationService {
 			}
 		}
 	}
+	
+	@Override
+	public DocumentResponseDTO fetchDocument(DocumentRequestDTO documentRequest) {
+	    try {
+	        List<DocumentResponseDTO.DocumentInfo> documentsList = new ArrayList<>();
+	        
+	        // Process each document name in the list
+	        for (String documentName : documentRequest.getDocumentNames()) {
+	            in.tf.nira.manual.verification.dto.Document document = getDocument(
+	                documentRequest.getId(),
+	                documentName,
+	                documentRequest.getSource(),
+	                documentRequest.getProcess()
+	            );
+	            
+	            DocumentResponseDTO.DocumentInfo documentInfo = new DocumentResponseDTO.DocumentInfo();
+	            documentInfo.setDocumentName(documentName);
+	            documentInfo.setDocument(document.getDocument());
+	            documentInfo.setValue(document.getValue());
+	            documentInfo.setType(document.getType());
+	            documentInfo.setFormat(document.getFormat());
+	            
+	            documentsList.add(documentInfo);
+	        }
+	        
+	        DocumentResponseDTO response = new DocumentResponseDTO();
+	        response.setDocuments(documentsList);
+	        
+	        return response;
+	    } catch (Exception e) {
+	        throw new RequestException(ErrorCode.DOCUMENT_FETCH_ERROR.getErrorCode(),
+	                String.format("Error fetching document: %s", e.getMessage()));
+	    }
+	}
 
+	protected in.tf.nira.manual.verification.dto.Document getDocument(String id, String documentName, String source, String process) 
+	        throws JsonProcessingException, IOException, io.mosip.kernel.core.util.exception.JsonProcessingException {
+	    PacketDocumentRequestDto fieldDto = new PacketDocumentRequestDto(id, documentName, source, process);
+
+	    RequestWrapper<PacketDocumentRequestDto> request = new RequestWrapper<>();
+	    request.setId(CommonConstants.PACKET_MANAGER_REQUEST_VERSION); 
+	    request.setVersion(CommonConstants.PACKET_MANAGER_REQUEST_VERSION);
+	    request.setRequesttime(DateUtils.getUTCCurrentDateTime());
+	    request.setRequest(fieldDto);
+
+	    HttpHeaders headers = new HttpHeaders();
+	    headers.setContentType(MediaType.APPLICATION_JSON);
+	    HttpEntity<RequestWrapper<PacketDocumentRequestDto>> httpEntity = new HttpEntity<>(request, headers);
+
+	    ResponseEntity<ResponseWrapper> responseEntity = restTemplate.exchange(
+	    	packetManagerDocumentFetchUrl,
+	        HttpMethod.POST,
+	        httpEntity,
+	        ResponseWrapper.class
+	    );
+
+	    ResponseWrapper<in.tf.nira.manual.verification.dto.Document> response = responseEntity.getBody();
+
+	    if (response.getErrors() != null && response.getErrors().size() > 0) {
+	        ServiceError errorDTO = response.getErrors().iterator().next();
+	        logger.error("Service error occurred: {}", errorDTO);
+	        for (ServiceError error : response.getErrors()) {
+	            logger.error("Error details: {}", error);
+	        }
+	    }
+
+	    in.tf.nira.manual.verification.dto.Document document = objectMapper.readValue(JsonUtils.javaObjectToJsonString(response.getResponse()), in.tf.nira.manual.verification.dto.Document.class);
+
+	    return document;
+	}
 }
