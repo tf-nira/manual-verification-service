@@ -31,6 +31,7 @@ public class CommonConstants {
 	public static final String UPDATE = "UPDATE";
 	
 	//Packet-Manager
+	public static final String FETCH_DOCUMENT_ID = "mosip.manual.verification.fetch.document";
 	public static final String PACKET_MANAGER_REQUEST_ID = "mosip.registration.packet.reader";
 	public static final String PACKET_MANAGER_REQUEST_VERSION = "v1";
 
