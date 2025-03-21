@@ -499,6 +499,20 @@ public class ApplicationServiceImpl implements ApplicationService {
 		if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE)) {
 			uploadToPacketManager(application, documentDTO);
 			// approveApplication(application, "Documents uploaded");
+			 if (documentDTO.getDocuments() != null && !documentDTO.getDocuments().isEmpty()) {
+		            // Get all document keys
+		            List<String> documentKeys = new ArrayList<>(documentDTO.getDocuments().keySet());
+		            
+		            // Update the entity with document keys
+		            application.setUploadDocList(documentKeys);
+		            
+		            // Save the updated application
+		            application.setUpdatedBy(UserDetailUtil.getLoggedInUserId());
+		            application.setUpdatedTimes(LocalDateTime.now());
+		            mVSApplicationRepo.save(application);
+		            
+		            logger.info("Updated uploadDocList with {} document keys", documentKeys.size());
+		        }
 		}
 		else {
 			logger.error("{} not allowed to upload documents", application.getAssignedOfficerRole());

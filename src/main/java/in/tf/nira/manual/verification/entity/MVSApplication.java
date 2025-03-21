@@ -14,6 +14,7 @@ import org.hibernate.annotations.Where;
 
 import in.tf.nira.manual.verification.dto.EscalationDetailsDTO;
 import in.tf.nira.manual.verification.util.EscalationDetailsConverter;
+import in.tf.nira.manual.verification.util.StringListConverter;
 import lombok.Data;
 
 @Entity(name = "mvs_application")
@@ -93,4 +94,8 @@ public class MVSApplication {
 	
 	@Column(name = "status_comment")
 	private String statusComment;
+	
+	@Convert(converter = StringListConverter.class)
+	@Column(name = "upload_doc_list")
+	private List<String> uploadDocList;
 }
