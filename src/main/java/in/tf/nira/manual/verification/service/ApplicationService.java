@@ -16,4 +16,5 @@ public interface ApplicationService {
 	StatusResponseDTO uploadDocuments(String applicationId, DocumentDTO documentDTO);
 	PageResponseDto<UserApplicationsResponse> searchApplications(SearchDto request);
 	DemographicDetailsDTO getDemographicDetails(String registrationId);
+	DocumentResponseDTO fetchDocument(DocumentRequestDTO documentRequest);
 }

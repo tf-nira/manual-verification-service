@@ -8,7 +8,6 @@ import in.tf.nira.manual.verification.dto.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
 import in.tf.nira.manual.verification.constant.CommonConstants;
 import in.tf.nira.manual.verification.constant.ErrorCode;
 import in.tf.nira.manual.verification.exception.RequestException;
@@ -26,7 +25,7 @@ public class ApplicationController {
 
     @Autowired
     ApplicationService applicationService;
-
+    
     @PostMapping
     @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "OK"),
             @ApiResponse(responseCode = "201", description = "Created", content = @Content(schema = @Schema(hidden = true))),
@@ -228,8 +227,29 @@ public class ApplicationController {
 			throw new RequestException(ErrorCode.UNKNOWN_ERROR.getErrorCode(),
 					String.format(exc.getMessage(), exc.getLocalizedMessage()));
 		}
-    	
     	return responseWrapper;
     }
     
+    @PreAuthorize("hasAnyRole(@authorizedRoles.fetchUploadedDocForSRO())")
+    @PostMapping("/fetch/document")
+    @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "OK"),
+            @ApiResponse(responseCode = "201", description = "Created", content = @Content(schema = @Schema(hidden = true))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(hidden = true))),
+            @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(hidden = true))),
+            @ApiResponse(responseCode = "404", description = "Not Found", content = @Content(schema = @Schema(hidden = true))) })
+    public ResponseWrapper<DocumentResponseDTO> fetchDocument(@Valid @RequestBody RequestWrapper<DocumentRequestDTO> request) {
+        ResponseWrapper<DocumentResponseDTO> responseWrapper = new ResponseWrapper<>();
+        responseWrapper.setId(CommonConstants.FETCH_DOCUMENT_ID);
+        responseWrapper.setVersion(CommonConstants.VERSION);
+        try {
+            responseWrapper.setResponse(applicationService.fetchDocument(request.getRequest()));
+        } catch (RequestException e) {
+            throw e;
+        } catch (Exception exc) {
+            throw new RequestException(ErrorCode.UNKNOWN_ERROR.getErrorCode(),
+                    String.format(exc.getMessage(), exc.getLocalizedMessage()));
+        }
+        
+        return responseWrapper;
+    }
 }

@@ -22,4 +22,5 @@ public class AuthorizedRolesDto {
 	private List<String> searchApplications;
 	private List<String> fetchDemographicDetails;
 	private List<String> getRejectedApplication;
+	private List<String> fetchUploadedDocForSRO;
 }
