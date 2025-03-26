@@ -65,6 +65,7 @@ import in.tf.nira.manual.verification.repository.MVSApplicationRepo;
 import in.tf.nira.manual.verification.repository.OfficerAssignmentRepo;
 import in.tf.nira.manual.verification.service.ApplicationService;
 import in.tf.nira.manual.verification.util.CbeffToBiometricUtil;
+import in.tf.nira.manual.verification.util.CountryRegionMapping;
 import in.tf.nira.manual.verification.util.CryptoCoreUtil;
 import in.tf.nira.manual.verification.util.PageUtils;
 import in.tf.nira.manual.verification.util.TemplateGenerator;
@@ -146,6 +147,14 @@ public class ApplicationServiceImpl implements ApplicationService {
 	private Map<String, List<OfficerDetailDTO>> districtOfficerMap = new HashMap<>();
 
 	private Map<String, String> districtOfficerAssignment = new HashMap<>();
+	
+	private Map<String, List<OfficerDetailDTO>> internationalOfficerMap = new HashMap<>();
+
+	private Map<String, String> internationalOfficerAssignment = new HashMap<>();
+	
+	private Map<String, List<OfficerDetailDTO>> seniorRegistrationOfficerMap = new HashMap<>();
+
+	private Map<String, String> seniorRegistrationOfficerAssignment = new HashMap<>();
 
 	@Autowired(required = true)
 	@Qualifier("selfTokenRestTemplate")
@@ -185,6 +194,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 	@Autowired
 	private Environment env;
 	
+	@Autowired
+	private CountryRegionMapping countryRegionMapping;
+	
 	@PostConstruct
     public void runAtStartup() {
         fetchUsers();
@@ -206,7 +218,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 		if(officerAssignment == null) {
 			officerAssignment = new OfficerAssignment();
 		}
-		OfficerDetailDTO selectedOfficer = fetchOfficerForAssignment(officerRole, officerAssignment, null);
+		OfficerDetailDTO selectedOfficer = fetchOfficerForAssignment(officerRole, officerAssignment, null, null);
 		
 		if(selectedOfficer != null) {
 			logger.info("Assigning application to officer: " + selectedOfficer.getUserId());
@@ -414,7 +426,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 			case CommonConstants.ESCALATE_STATUS:
 				if (request.getSelectedOfficerLevel() != null && request.getSelectedOfficerLevel().equals(CommonConstants.MVS_LEGAL_OFFICER_ROLE)) {
 					escalateApplication(application, CommonConstants.MVS_LEGAL_OFFICER_ROLE,
-							StageCode.ASSIGNED_TO_LEGAL_OFFICER.getStage(), request, null);
+							StageCode.ASSIGNED_TO_LEGAL_OFFICER.getStage(), request, null, null);
 				}
 				else if(request.getSelectedOfficerLevel() != null && request.getSelectedOfficerLevel().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE) ||
 						(request.getInsufficientDocuments() != null && request.getInsufficientDocuments())) {
@@ -430,15 +442,26 @@ public class ApplicationServiceImpl implements ApplicationService {
 					logger.info("Application ID {} escalating to {} district", applicationId, district);
 
 					escalateApplication(application, CommonConstants.MVS_DISTRICT_OFFICER_ROLE,
-							StageCode.ASSIGNED_TO_DISTRICT_OFFICER.getStage(), request, district);
+							StageCode.ASSIGNED_TO_DISTRICT_OFFICER.getStage(), request, district, null);
 				}
 				else if(request.getSelectedOfficerLevel() != null && request.getSelectedOfficerLevel().equals(CommonConstants.MVS_SUPERVISOR_ROLE)) {
 					escalateApplication(application, CommonConstants.MVS_SUPERVISOR_ROLE,
-							StageCode.ASSIGNED_TO_SUPERVISOR.getStage(), request, null);
+							StageCode.ASSIGNED_TO_SUPERVISOR.getStage(), request, null, null);
 				}
 				else if(request.getSelectedOfficerLevel() != null && request.getSelectedOfficerLevel().equals(CommonConstants.MVS_EXECUTIVE_DIRECTOR)) {
 					escalateApplication(application, CommonConstants.MVS_EXECUTIVE_DIRECTOR,
-							StageCode.ASSIGNED_TO_EXECUTIVE_DIRECTOR.getStage(), request, null);
+							StageCode.ASSIGNED_TO_EXECUTIVE_DIRECTOR.getStage(), request, null, null);
+				}
+				else if(request.getSelectedOfficerLevel() != null && request.getSelectedOfficerLevel().equals(CommonConstants.MVS_INTERNATIONAL_OFFICER)) {
+					ApplicationDetailsResponse appResponse = getApplicationDetails(application, false, false);
+					String foreignCountry = getDemoValue(appResponse.getDemographics().get("applicantForeignResidenceCountry"));
+					// Determine the region for this country
+				    String region = countryRegionMapping.getRegionForCountry(foreignCountry);
+				    
+				    logger.info("Application ID {} escalating to international officer for country: {} (region: {})", 
+				            applicationId, foreignCountry, region);
+					escalateApplication(application, CommonConstants.MVS_INTERNATIONAL_OFFICER,
+							StageCode.ASSIGNED_TO_MVS_INTERNATIONAL_OFFICER.getStage(), request, null, region);
 				}
 				else {
 					logger.error("Application already escalated to highest level");
@@ -447,8 +470,19 @@ public class ApplicationServiceImpl implements ApplicationService {
 				}
 				break;
 			case CommonConstants.RECOMMEND_FOR_APPROVAL_STATUS:
+				ApplicationDetailsResponse appResponse = getApplicationDetails(application, false, false);
+				String district = getDemoValue(appResponse.getDemographics().get("applicantPlaceOfResidenceDistrict"));
+				String nin = appResponse.getDemographics().get("NIN");
+
+				if(district == null && nin != null) {
+					DemographicDetailsDTO demographicDetailsDTO = getDemographicDetails(nin);
+					district = demographicDetailsDTO.getIdentity().getApplicantPlaceOfResidenceDistrict().get(0).getValue();
+				}
+
+				logger.info("Application ID {} escalating to {} sro", applicationId, district);
+
 				escalateApplication(application, CommonConstants.MVS_SENIOR_REGISTRATION_OFFICER,
-						StageCode.ASSIGNED_TO_MVS_SENIOR_REGISTRATION_OFFICER.getStage(), request, null);
+						StageCode.ASSIGNED_TO_MVS_SENIOR_REGISTRATION_OFFICER.getStage(), request, district, null);
 				break;
 			default:
 				throw new RequestException(
@@ -527,7 +561,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 		return response;
 	}
 	
-	private OfficerDetailDTO fetchOfficerForAssignment(String role, OfficerAssignment officerAssignment, String district) {
+	private OfficerDetailDTO fetchOfficerForAssignment(String role, OfficerAssignment officerAssignment, String district, String region) {
 		if (officerDetailMap == null || officerDetailMap.isEmpty()) {
 			fetchUsers();
 		}
@@ -565,6 +599,66 @@ public class ApplicationServiceImpl implements ApplicationService {
 				} else {
 					throw new RequestException(ErrorCode.NO_OFFICER_FOR_DISTRICT.getErrorCode(),
 							String.format(ErrorCode.NO_OFFICER_FOR_DISTRICT.getErrorMessage(), district));
+				}
+			} else {
+				throw new RequestException(ErrorCode.DISTRICT_NOT_PRESENT.getErrorCode(),
+						ErrorCode.DISTRICT_NOT_PRESENT.getErrorMessage());
+			}
+		}
+		
+		if (CommonConstants.MVS_SENIOR_REGISTRATION_OFFICER.equals(role)) {
+			//fetch officer by district
+			if (district != null) {
+				List<OfficerDetailDTO> seniorRegistrationOfficers = seniorRegistrationOfficerMap.get(district);
+				
+				if (seniorRegistrationOfficers != null && !seniorRegistrationOfficers.isEmpty()) {
+
+					String nextOfficerId = seniorRegistrationOfficerAssignment.get(district);
+
+					OfficerDetailDTO assignedOfficer = seniorRegistrationOfficers.stream()
+							.filter(o -> o.getUserId().equals(nextOfficerId))
+							.findFirst()
+							.orElse(seniorRegistrationOfficers.get(0));
+
+					int currentIndex = seniorRegistrationOfficers.indexOf(assignedOfficer);
+					int newNextOfficerIndex = (currentIndex + 1) % seniorRegistrationOfficers.size();
+					seniorRegistrationOfficerAssignment.put(district, seniorRegistrationOfficers.get(newNextOfficerIndex).getUserId());
+
+					return assignedOfficer;
+
+				} else {
+					throw new RequestException(ErrorCode.NO_OFFICER_FOR_DISTRICT.getErrorCode(),
+							String.format(ErrorCode.NO_OFFICER_FOR_DISTRICT.getErrorMessage(), district));
+				}
+			} else {
+				throw new RequestException(ErrorCode.DISTRICT_NOT_PRESENT.getErrorCode(),
+						ErrorCode.DISTRICT_NOT_PRESENT.getErrorMessage());
+			}
+		}
+		
+		if(CommonConstants.MVS_INTERNATIONAL_OFFICER.equals(role)) {
+			//fetch officer by region
+			if (region != null) {
+				List<OfficerDetailDTO> internationalOfficers = internationalOfficerMap.get(region);
+				
+				if (internationalOfficers != null && !internationalOfficers.isEmpty()) {
+
+					String nextOfficerId = internationalOfficerAssignment.get(region);
+
+					OfficerDetailDTO assignedOfficer = internationalOfficers.stream()
+							.filter(o -> o.getUserId().equals(nextOfficerId))
+							.findFirst()
+							.orElse(internationalOfficers.get(0));
+
+					int currentIndex = internationalOfficers.indexOf(assignedOfficer);
+					int newNextOfficerIndex = (currentIndex + 1) % internationalOfficers.size();
+					internationalOfficerAssignment.put(region, internationalOfficers.get(newNextOfficerIndex).getUserId());
+
+					return assignedOfficer;
+
+				} else {
+					throw new RequestException(ErrorCode.NO_OFFICER_FOR_REGION.getErrorCode(),
+							String.format(ErrorCode.NO_OFFICER_FOR_REGION.getErrorMessage(), region));
 				}
 			} else {
 				throw new RequestException(ErrorCode.DISTRICT_NOT_PRESENT.getErrorCode(),
@@ -705,6 +799,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 		    applicationDetailsResponse.setFoundLink(application.getFoundLink());
 		    applicationDetailsResponse.setAgeGroup(application.getAgeGroup());
 		    applicationDetailsResponse.setDemographics(dataShareResponse.getIdentity());
+		    applicationDetailsResponse.setUploadDocList(application.getUploadDocList());
 		    
 		    logger.info("Successfully fetched application details for ID: {}", application.getRegId());
 		    return applicationDetailsResponse;
@@ -895,11 +990,12 @@ public class ApplicationServiceImpl implements ApplicationService {
 	}
 	
 	private void escalateApplication(MVSApplication application, String roleToAssign, String stage,
-			UpdateStatusRequest request, String district) {
+			UpdateStatusRequest request, String district, String region) {
 		logger.info("Escalating application to next level");
 		
 		OfficerAssignment officerAssignment = null;
-		if (!CommonConstants.MVS_DISTRICT_OFFICER_ROLE.equals(roleToAssign)) {
+		if (!CommonConstants.MVS_DISTRICT_OFFICER_ROLE.equals(roleToAssign) && !CommonConstants.MVS_SENIOR_REGISTRATION_OFFICER.equals(roleToAssign)
+				&& !CommonConstants.MVS_INTERNATIONAL_OFFICER.equals(roleToAssign)) {
 			officerAssignment = officerAssignmentRepo.findByUserRole(roleToAssign);
 		}
 		
@@ -907,7 +1003,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 			officerAssignment = new OfficerAssignment();
 		}
 		
-		OfficerDetailDTO selectedOfficer = fetchOfficerForAssignment(roleToAssign, officerAssignment, district);
+		OfficerDetailDTO selectedOfficer = fetchOfficerForAssignment(roleToAssign, officerAssignment, district, region);
 		
 		if(selectedOfficer != null) {
 			String assignedRole = application.getAssignedOfficerRole();
@@ -938,7 +1034,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 			
 			mVSApplicationRepo.save(application);
 			
-			if (!CommonConstants.MVS_DISTRICT_OFFICER_ROLE.equals(roleToAssign)) {
+			if (!CommonConstants.MVS_DISTRICT_OFFICER_ROLE.equals(roleToAssign) && !CommonConstants.MVS_SENIOR_REGISTRATION_OFFICER.equals(roleToAssign)
+					&& !CommonConstants.MVS_INTERNATIONAL_OFFICER.equals(roleToAssign)) {
 				if (officerAssignment.getCrDTimes() == null) {
 					officerAssignment.setCreatedBy(SYSTEM);
 					officerAssignment.setCrDTimes(LocalDateTime.now());
@@ -1140,7 +1237,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 			}
 
 			escalateApplication(application, CommonConstants.MVS_DISTRICT_OFFICER_ROLE,
-					StageCode.INTERVIEW_SCHEDULED.getStage(), updateRequest, district);
+					StageCode.INTERVIEW_SCHEDULED.getStage(), updateRequest, district, null);
 		}
 		else {
 			application.setStage(StageCode.INTERVIEW_SCHEDULED.getStage());
@@ -1183,6 +1280,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 		});
 
 		populateMapsForDisOfficers();
+		populateMapsForInternationalOfficers();
+		populateMapsForSeniorRegistrationOfficers();
 	}
 	
 	private List<OfficerDetailDTO> mapUsersToUserDetailDto(JsonNode node, String roleName) {
@@ -1234,6 +1333,47 @@ public class ApplicationServiceImpl implements ApplicationService {
                 logger.error("District not available for the user: {}", u.getUserId());
 			}
 		});
+	}
+	
+	private void populateMapsForInternationalOfficers() {
+		List<OfficerDetailDTO> userDetails = officerDetailMap.get(CommonConstants.MVS_INTERNATIONAL_OFFICER);
+
+		userDetails.forEach(u -> {
+			Map<String, String> attributes = u.getAttributes();
+			String region = attributes.get("region");
+
+			if (region != null) {
+				internationalOfficerMap.computeIfAbsent(region, k -> new ArrayList<>()).add(u);
+				internationalOfficerAssignment.putIfAbsent(region, u.getUserId());
+			}
+			else {
+                logger.error("Region not available for the user: {}", u.getUserId());
+			}
+		});
+	}
+	
+	private void populateMapsForSeniorRegistrationOfficers() {
+	    List<OfficerDetailDTO> userDetails = officerDetailMap.get(CommonConstants.MVS_SENIOR_REGISTRATION_OFFICER);
+	    
+	    if (userDetails == null || userDetails.isEmpty()) {
+	        logger.warn("No Senior Registration Officers found");
+	        return;
+	    }
+	    
+	    logger.info("Found {} Senior Registration Officers", userDetails.size());
+	    
+	    userDetails.forEach(u -> {
+	        Map<String, String> attributes = u.getAttributes();
+	        String district = attributes.get("district");
+	        
+	        if (district != null) {
+	            seniorRegistrationOfficerMap.computeIfAbsent(district, k -> new ArrayList<>()).add(u);
+	            seniorRegistrationOfficerAssignment.putIfAbsent(district, u.getUserId());
+	            logger.info("Added Senior Registration Officer {} for district {}", u.getUserId(), district);
+	        } else {
+	            logger.error("District not available for the Senior Registration Officer: {}", u.getUserId());
+	        }
+	    });
 	}
 	
 	public DemographicDetailsDTO getDemographicDetails(String nin) {
