@@ -1,5 +1,6 @@
 package in.tf.nira.manual.verification.repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -20,5 +21,11 @@ public interface MVSApplicationRepo extends JpaRepository<MVSApplication, String
 
 	@Query(value = "SELECT * FROM mvs_application a WHERE a.reg_id = :applicationId", nativeQuery = true)
 	MVSApplication getRejectedApplicationById(@Param("applicationId") String applicationId);
+
+	@Query("SELECT e FROM mvs_application e " +
+			"WHERE e.assignedOfficerRole = 'MVS_OFFICER' " +
+			"AND ((e.updatedTimes IS NOT NULL AND e.updatedTimes < :dateThreshold) " +
+			"OR (e.updatedTimes IS NULL AND e.crDTimes < :dateThreshold))")
+	List<MVSApplication> findRecordsOlderThanXDays(@Param("dateThreshold") LocalDateTime dateThreshold);
 
 }
