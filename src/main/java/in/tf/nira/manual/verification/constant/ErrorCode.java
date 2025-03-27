@@ -42,8 +42,12 @@ public enum ErrorCode {
 	INVALID_IDREPO_RESPONSE("MVS-040", "Received response from IDREPO "),
 	GET_TEMPLATE_FAILED("MVS-041", "Failed to get notification template "),
 	FAILED_GET_TEMPLATE_RESPONSE("MVS-042", "Received error response for get template "),
-	DOCUMENT_FETCH_ERROR("MVS-APP-008", "Error occurred while fetching document");
-     
+	DOCUMENT_FETCH_ERROR("MVS-APP-008", "Error occurred while fetching document"),
+	NO_OFFICER_FOR_REGION("MVS-043", "No Officer available for region: %s"),
+	INVALID_COUNTRY_NAME("MVS-ERR-301", "Country name cannot be empty or null"),
+    REGION_NOT_FOUND("MVS-ERR-302", "No region mapping found for country: %s"),
+    REGION_LOOKUP_ERROR("MVS-ERR-303", "Error occurred while looking up region for country");
+    
 	/**
 	 * The error code.
 	 */

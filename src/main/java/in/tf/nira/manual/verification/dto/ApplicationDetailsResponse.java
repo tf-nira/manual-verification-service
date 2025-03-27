@@ -17,4 +17,5 @@ public class ApplicationDetailsResponse {
 	private Map<String, Object> documents;
 	private Map<String, Object> biometricAttributes;
 	private Map<String, List<String>> biometricInfo;
+	private List<String> uploadDocList;
 }
