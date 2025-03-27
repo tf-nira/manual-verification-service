@@ -8,6 +8,7 @@ public class CommonConstants {
 	public static final String MVS_LEGAL_OFFICER_ROLE = "MVS_LEGAL_OFFICER";
 	public static final String MVS_EXECUTIVE_DIRECTOR = "MVS_EXECUTIVE_DIRECTOR";
 	public static final String MVS_SENIOR_REGISTRATION_OFFICER = "MVS_SENIOR_REGISTRATION_OFFICER";
+	public static final String MVS_INTERNATIONAL_OFFICER = "MVS_INTERNATIONAL_OFFICER";
 	
 	//status
 	public static final String APPROVE_STATUS = "APPROVE";
@@ -15,7 +16,7 @@ public class CommonConstants {
 	public static final String ESCALATE_STATUS = "ESCALATE";
 	public static final String SCHEDULE_INTERVIEW_STATUS = "SCHEDULE_INTERVIEW";
 	public static final String UPLOAD_DOCUMENTS_STATUS = "UPLOAD_DOCUMENTS";
-	public static final String RECOMMEND_FOR_REJECTION_STATUS = "RECOMMEND_FOR_REJECTION";
+	public static final String RECOMMEND_FOR_APPROVAL_STATUS = "RECOMMEND_FOR_APPROVAL";
 	
 	
 	public static final String VERSION = "0.1";
