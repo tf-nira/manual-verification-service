@@ -230,7 +230,7 @@ public class ApplicationController {
     	return responseWrapper;
     }
     
-    @PreAuthorize("hasAnyRole(@authorizedRoles.fetchUploadedDocForSRO())")
+    @PreAuthorize("hasAnyRole(@authorizedRoles.getFetchUploadedDocForSRO())")
     @PostMapping("/fetch/document")
     @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "OK"),
             @ApiResponse(responseCode = "201", description = "Created", content = @Content(schema = @Schema(hidden = true))),
