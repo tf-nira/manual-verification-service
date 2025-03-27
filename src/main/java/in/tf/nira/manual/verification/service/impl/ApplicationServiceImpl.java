@@ -139,6 +139,15 @@ public class ApplicationServiceImpl implements ApplicationService {
 	
 	@Value("${packetmanager.document.fetch.url}")
 	private String packetManagerDocumentFetchUrl;
+
+	@Value("${manual.verification.reassignment.days}")
+	private int reassignmentDays;
+
+	@Value("${manual-verification.prev.officer.email.template.code}")
+	private String prevOfficerEmailTemplateTypeCode;
+
+	@Value("${manual-verification.new.officer.email.template.code}")
+	private String newOfficerEmailTemplateTypeCode;
 	
 	private Map<String, List<OfficerDetailDTO>> officerDetailMap = new HashMap<>();
 	
@@ -928,7 +937,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 		attributes.put("REVIEW_CONTENT", schInterviewDTO.getContent());
         
 		if (email != null) {
-			sendEmail(email, schInterviewDTO.getSubject(), attributes);
+			sendEmail(email, schInterviewDTO.getSubject(), attributes, emailTemplateTypeCode);
 		} else {
 			logger.warn("Email Id not available for the application");
 		}
@@ -940,7 +949,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 		}
 	}
 	
-	private void sendEmail(String mailTo, String subject, Map<String, Object> attributes) {
+	private void sendEmail(String mailTo, String subject, Map<String, Object> attributes, String emailTemplateTypeCode) {
 		logger.info("Sending email notification");
 		try {
 			InputStream stream = templateGenerator.getTemplate(emailTemplateTypeCode, attributes, "eng");
@@ -1612,4 +1621,90 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 	    return document;
 	}
+
+	@Scheduled(cron = "${manual.verification.officer.reassignment.cron.expression:0 0 0 * * ?}")
+	public void officerReassignment() {
+		logger.info("Checking applications for re-assignment");
+
+		LocalDateTime dateThreshold = LocalDateTime.now().minusDays(reassignmentDays);
+		List<OfficerDetailDTO> officers = officerDetailMap.get(CommonConstants.MVS_OFFICER_ROLE);
+		List<MVSApplication> applications = mVSApplicationRepo.findRecordsOlderThanXDays(dateThreshold);
+
+		Map<OfficerDetailDTO, Integer> prevOfficerInfo = new HashMap<>();
+		Set<OfficerDetailDTO> newOfficerInfo = new HashSet<>();
+
+		applications.forEach(application -> {
+			logger.info("Re-assigning application {}", application.getRegId());
+
+			MVSApplicationHistory appHistory = getAppHistoryEntity(application);
+			mVSApplicationHistoryRepo.save(appHistory);
+
+			OfficerDetailDTO prevOfficer = officers.stream()
+											.filter(officer -> officer.getUserId().equals(application.getAssignedOfficerId()))
+											.findFirst()
+											.orElse(null);
+			prevOfficerInfo.merge(prevOfficer, 1, Integer::sum);
+
+			OfficerAssignment officerAssignment = officerAssignmentRepo.findByUserRole(CommonConstants.MVS_OFFICER_ROLE);
+			OfficerDetailDTO selectedOfficer = fetchOfficerForAssignment(CommonConstants.MVS_OFFICER_ROLE, officerAssignment, null, null);
+
+			if (selectedOfficer.getUserId().equals(application.getAssignedOfficerId())) {
+				int currentIndex = officers.indexOf(selectedOfficer);
+				selectedOfficer = officers.get((currentIndex + 1) % officers.size());
+			}
+
+			application.setAssignedOfficerId(selectedOfficer.getUserId());
+			application.setAssignedOfficerName(selectedOfficer.getUserName());
+			application.setAssignedOfficerRole(selectedOfficer.getUserRole());
+			application.setUpdatedBy(SYSTEM);
+			application.setUpdatedTimes(LocalDateTime.now());
+
+			if(officerAssignment.getCrDTimes() == null) {
+				officerAssignment.setCreatedBy(SYSTEM);
+				officerAssignment.setCrDTimes(LocalDateTime.now());
+			}
+			else {
+				officerAssignment.setUpdatedBy(SYSTEM);
+				officerAssignment.setUpdatedTimes(LocalDateTime.now());
+			}
+			officerAssignmentRepo.save(officerAssignment);
+			mVSApplicationRepo.save(application);
+
+			newOfficerInfo.add(selectedOfficer);
+
+			logger.info("Application {} re-assigned to {}", application.getRegId(), application.getAssignedOfficerId());
+		});
+
+		prevOfficerInfo.forEach(this::sendNotificationToPrevAssignedOfficer);
+		newOfficerInfo.forEach(this::sendNotificationToNewAssignedOfficer);
+	}
+
+	private void sendNotificationToPrevAssignedOfficer(OfficerDetailDTO officer, Integer count) {
+		String email = officer.getEmail();
+
+		Map<String, Object> attributes = new HashMap<>();
+		attributes.put("PREV_OFFICER_NAME", officer.getUserName());
+		attributes.put("APPLICATIONS_COUNT", count);
+		attributes.put("TIME_PERIOD", reassignmentDays);
+
+		if (email != null) {
+			sendEmail(email, "Application Reassignment Notification", attributes, prevOfficerEmailTemplateTypeCode);
+		} else {
+			logger.warn("Email Id not available for the previous officer of reassignment");
+		}
+	}
+
+	private void sendNotificationToNewAssignedOfficer(OfficerDetailDTO officer) {
+		String email = officer.getEmail();
+
+		Map<String, Object> attributes = new HashMap<>();
+		attributes.put("NEW_OFFICER_NAME", officer.getUserName());
+
+		if (email != null) {
+			sendEmail(email, "Urgent: Application Reassigned to You", attributes, newOfficerEmailTemplateTypeCode);
+		} else {
+			logger.warn("Email Id not available for the new officer of reassignment");
+		}
+	}
+
 }
