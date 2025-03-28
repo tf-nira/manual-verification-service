@@ -493,6 +493,10 @@ public class ApplicationServiceImpl implements ApplicationService {
 					district = demographicDetailsDTO.getIdentity().getApplicantPlaceOfResidenceDistrict().get(0).getValue();
 				}
 
+				if(district == null && application.getResDistrict() != null) {
+					district = application.getResDistrict();
+				}
+				
 				logger.info("Application ID {} escalating to {} sro", applicationId, district);
 
 				escalateApplication(application, CommonConstants.MVS_SENIOR_REGISTRATION_OFFICER,
@@ -520,7 +524,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 		
 		if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE) ||
 				application.getAssignedOfficerRole().equals(CommonConstants.MVS_LEGAL_OFFICER_ROLE) ||
-				application.getAssignedOfficerRole().equals(CommonConstants.MVS_EXECUTIVE_DIRECTOR)) {
+				application.getAssignedOfficerRole().equals(CommonConstants.MVS_EXECUTIVE_DIRECTOR) ||
+				application.getAssignedOfficerRole().equals(CommonConstants.MVS_INTERNATIONAL_OFFICER)) {
 			ApplicationDetailsResponse appResponse = getApplicationDetails(application, false, false);
 			sendNotification(application, schInterviewDTO, appResponse);
 			scheduleInterview(application, schInterviewDTO.getDistrict(), appResponse);
