@@ -1651,6 +1651,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 			if (selectedOfficer.getUserId().equals(application.getAssignedOfficerId())) {
 				int currentIndex = officers.indexOf(selectedOfficer);
 				selectedOfficer = officers.get((currentIndex + 1) % officers.size());
+				officerAssignment.setUserId(selectedOfficer.getUserId());
 			}
 
 			application.setAssignedOfficerId(selectedOfficer.getUserId());
