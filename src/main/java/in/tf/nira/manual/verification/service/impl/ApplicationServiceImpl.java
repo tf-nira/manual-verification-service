@@ -1277,7 +1277,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 		}
 	}
 	 
-	@Scheduled(cron = "${manual.verification.cron.expression:0 0 0/8 * * * ?}")
+	@Scheduled(cron = "${manual.verification.cron.expression:0 0 0/8 * * ?}")
 	public void fetchUsers() {
 		logger.info("Fetching user details for assignment");
         HttpHeaders headers = new HttpHeaders();
