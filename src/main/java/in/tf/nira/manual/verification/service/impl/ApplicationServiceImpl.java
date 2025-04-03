@@ -549,7 +549,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 		
 		MVSApplication application = getApplicationById(applicationId);
 		
-		if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE)) {
+		if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE)
+				|| application.getAssignedOfficerRole().equals(CommonConstants.MVS_INTERNATIONAL_OFFICER)) {
 			uploadToPacketManager(application, documentDTO);
 			// approveApplication(application, "Documents uploaded");
 			 if (documentDTO.getDocuments() != null && !documentDTO.getDocuments().isEmpty()) {
