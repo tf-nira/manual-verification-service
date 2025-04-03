@@ -35,5 +35,8 @@ public class CommonConstants {
 	public static final String FETCH_DOCUMENT_ID = "mosip.manual.verification.fetch.document";
 	public static final String PACKET_MANAGER_REQUEST_ID = "mosip.registration.packet.reader";
 	public static final String PACKET_MANAGER_REQUEST_VERSION = "v1";
+	
+	public static final String OUTSIDE_UGANDA="Outside Uganda";
+	public static final String INTERNATIONAL_ADDRESS ="international";
 
 }

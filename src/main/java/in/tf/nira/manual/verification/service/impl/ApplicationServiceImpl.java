@@ -497,6 +497,10 @@ public class ApplicationServiceImpl implements ApplicationService {
 					district = application.getResDistrict();
 				}
 				
+				if((getDemoValue(appResponse.getDemographics().get("residenceStatus")).equalsIgnoreCase(CommonConstants.OUTSIDE_UGANDA))) {
+					district = CommonConstants.INTERNATIONAL_ADDRESS;
+				}
+				
 				logger.info("Application ID {} escalating to {} sro", applicationId, district);
 
 				escalateApplication(application, CommonConstants.MVS_SENIOR_REGISTRATION_OFFICER,
