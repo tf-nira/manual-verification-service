@@ -19,7 +19,7 @@ public interface MVSApplicationRepo extends JpaRepository<MVSApplication, String
 	@Query(value = "SELECT * FROM mvs_application a WHERE a.stage = 'REJECTED'", nativeQuery = true)
 	List<MVSApplication> getAllRejectedApplications();
 
-	@Query(value = "SELECT * FROM mvs_application a WHERE a.reg_id = :applicationId", nativeQuery = true)
+	@Query(value = "SELECT * FROM mvs_application a WHERE a.reg_id = :applicationId AND a.stage = 'REJECTED'", nativeQuery = true)
 	MVSApplication getRejectedApplicationById(@Param("applicationId") String applicationId);
 
 	@Query("SELECT e FROM mvs_application e " +
