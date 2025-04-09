@@ -27,5 +27,9 @@ public interface MVSApplicationRepo extends JpaRepository<MVSApplication, String
 			"AND ((e.updatedTimes IS NOT NULL AND e.updatedTimes < :dateThreshold) " +
 			"OR (e.updatedTimes IS NULL AND e.crDTimes < :dateThreshold))")
 	List<MVSApplication> findRecordsOlderThanXDays(@Param("dateThreshold") LocalDateTime dateThreshold);
+	
+	@Query("SELECT m FROM mvs_application m WHERE m.stage = :stage AND m.updatedTimes < :dateThreshold")
+	List<MVSApplication> findInterviewExpiredApplications(@Param("stage") String stage, @Param("dateThreshold") LocalDateTime dateThreshold);
+	
 
 }
