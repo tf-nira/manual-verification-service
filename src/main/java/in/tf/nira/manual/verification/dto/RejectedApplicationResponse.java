@@ -16,6 +16,9 @@ public class RejectedApplicationResponse {
     private EscalationDetailsDTO legalEscDetails;
     private String rejectionCategory;
     private String rejectionComment;
+    private String lastAssignedOfficerRole;
+    private String lastAssignedOfficerId;
+    private LocalDateTime lastUpdatedTimes;
     private String statusComment;
     private String foundLink;
     private String ageGroup;

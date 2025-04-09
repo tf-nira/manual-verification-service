@@ -377,6 +377,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 		response.setCrDTimes(application.getCrDTimes());
 		response.setRejectionCategory(application.getRejectionCategory());
 		response.setRejectionComment(application.getComments());
+		response.setLastAssignedOfficerRole(application.getAssignedOfficerRole());
+		response.setLastAssignedOfficerId(application.getAssignedOfficerId());
+		response.setLastUpdatedTimes(application.getUpdatedTimes());
 		response.setStatusComment(application.getStatusComment());
 		response.setFoundLink(application.getFoundLink());
 		response.setAgeGroup(application.getAgeGroup());
@@ -1634,7 +1637,27 @@ public class ApplicationServiceImpl implements ApplicationService {
 	}
 
 	@Scheduled(cron = "${manual.verification.officer.reassignment.cron.expression:0 0 0 * * ?}")
-	public void officerReassignment() {
+	public void executeScheduledJobs() {
+		logger.info("Started scheduled jobs");
+		
+		//job1 the officer reassignment job
+		try {
+			officerReassignment();
+		} catch (Exception e) {
+			logger.error("Error in officer reassignment job: {}", e.getMessage(), e);
+		}
+		
+		//job2 expired interview date job
+		try {
+			dropExpiredInterviewApplications();
+		} catch (Exception e) {
+			logger.error("Error in expired interview applicaions job: {}", e.getMessage(), e);
+		}
+		
+		logger.info("Completed all scheduled jobs");
+	}
+	
+	private void officerReassignment() {
 		logger.info("Checking applications for re-assignment");
 
 		LocalDateTime dateThreshold = LocalDateTime.now().minusDays(reassignmentDays);
@@ -1717,6 +1740,30 @@ public class ApplicationServiceImpl implements ApplicationService {
 		} else {
 			logger.warn("Email Id not available for the new officer of reassignment");
 		}
+	}
+	
+	public void dropExpiredInterviewApplications() {
+		logger.info("Checking for expired interview applications");
+		
+		LocalDateTime expiryThreshold = LocalDateTime.now().minusDays(interviewValidDays);
+		
+		List<MVSApplication> expiredApplications = mVSApplicationRepo.findInterviewExpiredApplications(StageCode.INTERVIEW_SCHEDULED.getStage(), expiryThreshold);
+		
+		logger.info("Found {} applications with expired interview dates", expiredApplications.size());
+		
+		for(MVSApplication application : expiredApplications) {
+			logger.info("Processing expired interview application: {}", application.getRegId());
+			
+			MVSApplicationHistory applicationHistory = getAppHistoryEntity(application);
+			mVSApplicationHistoryRepo.save(applicationHistory);
+			
+			rejectApplication(application, "Application rejected due to expired interview date", "EXPIRED_INTERVIEW");
+			
+			logger.info("Application {} rejected due to expired interview date", application.getRegId());
+			
+		}
+		
+		logger.info("Completed processing applications with expired interview dates");;
 	}
 
 }
