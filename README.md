@@ -1,4 +1,4 @@
-# manual-verification-service
+# Manual-Verification-Service
 
 This repository contains the source code and design documents for NIRA Manual Verification Server. For an overview refer here. The modules exposes API endpoints. For a reference front-end UI implementation refer to Manual Verification UI github repo
 
