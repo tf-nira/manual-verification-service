@@ -5,8 +5,7 @@ This repository contains the source code and design documents for NIRA Manual Ve
 The Manual Verification Serice Module consists of only one service (Manula Verification Service)
 Manual Verification Service is a spring boot housed service designed to assign applications to officers based on the role mapping of the officer.
 
-DB: mosip_mvs
-Tables:
+DB: mosip_mvs  Tables:  
 mvs_application
 mvs_application_h
 officer_assignment
