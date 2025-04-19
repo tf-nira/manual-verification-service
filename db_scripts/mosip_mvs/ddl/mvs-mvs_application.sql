@@ -30,5 +30,7 @@ CREATE TABLE mvs.mvs_application (
     upd_dtimes TIMESTAMP,
     is_deleted BOOLEAN,
     del_dtimes TIMESTAMP,
-    status_comment character varying(255)
+    status_comment character varying(255),
+    upload_doc_list text
+
 );
