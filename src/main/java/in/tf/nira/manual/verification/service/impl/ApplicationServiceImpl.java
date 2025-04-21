@@ -1645,7 +1645,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 	    return document;
 	}
 
-	@Scheduled(cron = "${manual.verification.officer.reassignment.cron.expression:0 */15 * * * ?}")
+	@Scheduled(cron = "${manual.verification.officer.reassignment.cron.expression:0 0 0 * * ?}")
 	public void executeScheduledJobs() {
 		logger.info("Started scheduled jobs");
 		
