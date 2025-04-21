@@ -1101,6 +1101,15 @@ public class ApplicationServiceImpl implements ApplicationService {
 		appHistory.setCreatedBy(application.getCreatedBy());
 		appHistory.setCrDTimes(LocalDateTime.now());
 		appHistory.setStatusComment(application.getStatusComment());
+		appHistory.setReferenceURL(application.getReferenceURL());
+		appHistory.setIsDeleted(application.getIsDeleted());
+		appHistory.setSource(application.getSource());
+		appHistory.setRefId(application.getRefId());
+		appHistory.setSchemaVersion(application.getSchemaVersion());
+		appHistory.setFoundLink(application.getFoundLink());
+		appHistory.setAgeGroup(application.getAgeGroup());
+		appHistory.setResDistrict(application.getResDistrict());
+		appHistory.setUploadDocList(application.getUploadDocList());
 		return appHistory;
 	}
 	
@@ -1636,7 +1645,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 	    return document;
 	}
 
-	@Scheduled(cron = "${manual.verification.officer.reassignment.cron.expression:0 */15 * * * ?}")
+	@Scheduled(cron = "${manual.verification.officer.reassignment.cron.expression:0 0 0 * * ?}")
 	public void executeScheduledJobs() {
 		logger.info("Started scheduled jobs");
 		
