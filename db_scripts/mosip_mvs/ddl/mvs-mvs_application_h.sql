@@ -20,5 +20,14 @@ CREATE TABLE mvs.mvs_application_h (
     cr_by character varying(255) NOT NULL,
     cr_dtimes TIMESTAMP NOT NULL,
     status_comment character varying(255),
+    reference_url character varying,
+    is_deleted BOOLEAN,
+    source character varying(255),
+    ref_id character varying(255),
+    schema_version character varying(255),
+    foundlink character varying(255),
+    age_group character varying(255),
+    res_district character varying(255),
+    upload_doc_list text,
     PRIMARY KEY (reg_id, verified_officer_role)
 );
