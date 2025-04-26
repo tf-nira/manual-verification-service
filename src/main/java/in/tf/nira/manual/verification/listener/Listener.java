@@ -119,8 +119,16 @@ public class Listener {
 		if(connection == null || ((ActiveMQConnection) connection).isClosed()) {
 			logger.info("Connection is null.");
 		}
-		if(session == null) {
+		if(!(connection == null || ((ActiveMQConnection) connection).isClosed()) && session == null) {
+			logger.info("Connection is not null.");
 			logger.info("Session is null.");
+			logger.info("Starting new Session.");
+			try {
+				connection.start();
+				this.session = this.connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+			} catch (JMSException e) {
+				e.printStackTrace();
+			}
 		}
 		try {
 			if (connection == null || ((ActiveMQConnection) connection).isClosed()) {
@@ -180,6 +188,9 @@ public class Listener {
 		}
 		MessageConsumer consumer;
 		try {
+			if(session == null) {
+				setup();
+			}
 			destination = session.createQueue(address);
 			consumer = session.createConsumer(destination);
 			consumer.setMessageListener(getListener(object));
