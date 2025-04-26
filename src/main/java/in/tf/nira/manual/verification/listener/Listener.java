@@ -116,6 +116,12 @@ public class Listener {
 
 	public void setup() {
 		logger.info("Inside setup.");
+		if(connection == null || ((ActiveMQConnection) connection).isClosed()) {
+			logger.info("Connection is null.");
+		}
+		if(session == null) {
+			logger.info("Session is null.");
+		}
 		try {
 			if (connection == null || ((ActiveMQConnection) connection).isClosed()) {
 				logger.info("Creating new connection.");
@@ -233,16 +239,42 @@ public class Listener {
 
 		try {
 			initialSetup();
+			logger.info("Post initial setup");
+			
+			if(address == null) {
+				logger.info("Address is null. Cannot create destination.");
+				return false;
+			}
+			logger.info("Address: {}", address);
+			if(session == null) {
+				logger.info("Session is null. Cannot create destination.");
+				return false;
+			}
+			
 			destination = session.createQueue(address);
+			if(destination == null) {
+				logger.info("Destination is null. Cannot create Message Producer.");
+				return false;
+			}
+			logger.info("destination: {}", destination );
+			
 			MessageProducer messageProducer = session.createProducer(destination);
+			if(messageProducer == null) {
+				logger.info("Message Producer is null. Cannot send message.");
+				return false;
+			}
+			logger.info("messageProducer: {}", messageProducer);
+			
 			messageProducer.send(session.createTextMessage(message));
+			logger.info("Post Message Producer send method call");
 
 			flag = true;
 		} catch (JMSException e) {
 			logger.error(e.getMessage());
 			e.printStackTrace();
 		} catch (Exception e) {
-			logger.error(e.getMessage());
+			logger.error("Exception occurred", e);
+//			logger.error(e.getMessage());
 			e.printStackTrace();
 		}
 		return flag;
