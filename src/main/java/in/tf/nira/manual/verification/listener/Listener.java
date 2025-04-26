@@ -120,6 +120,7 @@ public class Listener {
 			logger.info("Connection is null.");
 		}
 		if(!(connection == null || ((ActiveMQConnection) connection).isClosed()) && session == null) {
+			logger.info("Connection is not null.");
 			logger.info("Session is null.");
 			logger.info("Starting new Session.");
 			try {
@@ -187,6 +188,9 @@ public class Listener {
 		}
 		MessageConsumer consumer;
 		try {
+			if(session == null) {
+				setup();
+			}
 			destination = session.createQueue(address);
 			consumer = session.createConsumer(destination);
 			consumer.setMessageListener(getListener(object));
