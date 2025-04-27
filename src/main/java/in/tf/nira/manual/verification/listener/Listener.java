@@ -126,7 +126,9 @@ public class Listener {
 			try {
 				connection.start();
 				this.session = this.connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+				logger.info("Started new Session.");
 			} catch (JMSException e) {
+				logger.error("Error occured while creating a new session: "+ e.getMessage());
 				e.printStackTrace();
 			}
 		}
@@ -139,9 +141,11 @@ public class Listener {
 					logger.info("Starting new Session.");
 					connection.start();
 					this.session = this.connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+					logger.info("Started new Session.");
 				}
 			}
 		} catch (JMSException e) {
+			logger.error("Error occured while creating a new session: "+ e.getMessage());
 			logger.error(ExceptionUtils.getStackTrace(e));
 			e.printStackTrace();
 		}
