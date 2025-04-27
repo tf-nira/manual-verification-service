@@ -127,10 +127,10 @@ public class Listener {
 				connection.start();
 				this.session = this.connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 				logger.info("Started new Session.");
-			} catch (JMSException e) {
+			} catch (Exception e) {
 				logger.error("Error occured while creating a new session: "+ e.getMessage());
 				e.printStackTrace();
-			}
+			} 
 		}
 		try {
 			if (connection == null || ((ActiveMQConnection) connection).isClosed()) {
@@ -144,7 +144,7 @@ public class Listener {
 					logger.info("Started new Session.");
 				}
 			}
-		} catch (JMSException e) {
+		} catch (Exception e) {
 			logger.error("Error occured while creating a new session: "+ e.getMessage());
 			logger.error(ExceptionUtils.getStackTrace(e));
 			e.printStackTrace();
