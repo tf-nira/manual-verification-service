@@ -1,17 +1,18 @@
 package in.tf.nira.manual.verification.listener;
 
 import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ConcurrentHashMap;
 
-import javax.jms.BytesMessage;
 import javax.jms.Connection;
 import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageConsumer;
 import javax.jms.MessageListener;
-import javax.jms.MessageProducer;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 
@@ -35,6 +36,11 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 
 import in.tf.nira.manual.verification.dto.CreateAppRequestDTO;
 import in.tf.nira.manual.verification.service.ApplicationService;
+import io.mosip.registration.processor.core.queue.factory.MosipQueue;
+import io.mosip.registration.processor.core.spi.queue.MosipQueueConnectionFactory;
+import io.mosip.registration.processor.core.spi.queue.MosipQueueManager;
+import io.mosip.registration.processor.core.queue.factory.QueueListener;
+
 
 @Component
 public class Listener {
@@ -81,17 +87,38 @@ public class Listener {
 
 	private Timer timer = new Timer();
 
+	@Autowired
+	private MosipQueueManager<MosipQueue, byte[]> mosipQueueManager;
+
+	@Autowired
+	private MosipQueueConnectionFactory<MosipQueue> mosipConnectionFactory;
+
+	private MosipQueue queue;
+	
+	private Map<String, Integer> messageTypeMap = new ConcurrentHashMap<>();
+	
+	public Integer getMessageType(String applicationId) {
+	    Integer type = messageTypeMap.get(applicationId);
+	    return (type == null || type == 0) ? 1 : type; // Default to 1 if not found
+	}
+
+	public void setMessageType(String applicationId, Integer textType) {
+	    messageTypeMap.put(applicationId, textType);
+	}
+
 	public boolean consumeLogic(javax.jms.Message message, String mvAddress) {
 		boolean isrequestAddedtoQueue = false;
 		Integer textType = 0;
 		String messageData = null;
 		try {
 			if (message instanceof TextMessage || message instanceof ActiveMQTextMessage) {
+				logger.info("Received message is text");
 				textType = 1;
 				TextMessage textMessage = (TextMessage) message;
 				messageData = textMessage.getText();
 
 			} else if (message instanceof ActiveMQBytesMessage) {
+				logger.info("Received message is byte");
 				textType = 2;
 				messageData = new String(((ActiveMQBytesMessage) message).getContent().data);
 
@@ -106,6 +133,8 @@ public class Listener {
 			mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
 			CreateAppRequestDTO verifyRequestDTO = mapper.readValue(messageData, CreateAppRequestDTO.class);
 			
+			setMessageType(verifyRequestDTO.getRegId(), textType);
+			
 			verificationService.createApplication(verifyRequestDTO);
 		} catch (Exception e) {
 			logger.error("Could not process mv request", ExceptionUtils.getStackTrace(e));
@@ -114,6 +143,13 @@ public class Listener {
 		return isrequestAddedtoQueue;
 	}
 
+	private MosipQueue getQueueConnection() {
+	    String failOverBrokerUrl = FAIL_OVER + vbrokerUrl + "," + vbrokerUrl + RANDOMIZE_FALSE;
+	    logger.info("Inside getQueueConnection()");
+	    return mosipConnectionFactory.createConnection("ACTIVEMQ", vusername, vpassword, failOverBrokerUrl,
+	            Arrays.asList("io.mosip", "in.tf.nira", "org.apache.activemq.command"));
+	}
+	
 	public void setup() {
 		logger.info("Inside setup.");
 		if(connection == null || ((ActiveMQConnection) connection).isClosed()) {
@@ -153,23 +189,26 @@ public class Listener {
 	}
 
 	public void runVerificationQueue() {
-		try {
-			QueueListener listener = new QueueListener() {
-
-				@Override
-				public void setListener(javax.jms.Message message) {
-					logger.info(String.format("Message Data %s" , message));
-					consumeLogic(message, verificationResponseAddress);
-
-				}
-			};
-			consume(verificationRequestAddress, listener, vbrokerUrl, vusername, vpassword);
-
-		} catch (Exception e) {
-			logger.error(e.getMessage());
-			e.printStackTrace();
-		}
-
+	    try {
+	    	logger.info("Inside runVerificationQueue()");
+	        queue = getQueueConnection();
+	        if (queue != null) {
+	        	logger.info("Queue is not null");
+	            QueueListener listener = new QueueListener() {
+	                @Override
+	                public void setListener(Message message) {
+	                    consumeLogic(message, verificationResponseAddress);
+	                }
+	            };
+	            
+	            mosipQueueManager.consume(queue, verificationRequestAddress, listener);
+	        } else {
+	            logger.error("Queue connection not found");
+	            throw new RuntimeException("Queue connection not found");
+	        }
+	    } catch (Exception e) {
+	        logger.error("Error in queue setup: " + e.getMessage(), e);
+	    }
 	}
 
 	public byte[] consume(String address, QueueListener object, String brokerUrl, String username, String password) throws Exception {
@@ -216,91 +255,50 @@ public class Listener {
 	}
 	
 	public void sendToQueue(ResponseEntity<Object> obj, Integer textType)
-			throws JsonProcessingException, UnsupportedEncodingException {
-		final ObjectMapper mapper = new ObjectMapper();
-		mapper.findAndRegisterModules();
-		mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
-		logger.info("Response: ", obj.getBody().toString());
-		if (textType == 2) {
-			send(mapper.writeValueAsString(obj.getBody()).getBytes("UTF-8"), verificationResponseAddress);
-		} else if (textType == 1) {
-			send(mapper.writeValueAsString(obj.getBody()), verificationResponseAddress);
-		}
-	}
-
-	public Boolean send(byte[] message, String address) {
-		boolean flag = false;
-
-		try {
-			initialSetup();
-			destination = session.createQueue(address);
-			MessageProducer messageProducer = session.createProducer(destination);
-			BytesMessage byteMessage = session.createBytesMessage();
-			byteMessage.writeObject(message);
-			messageProducer.send(byteMessage);
-			flag = true;
-		} catch (JMSException e) {
-			logger.error(e.getMessage());
-			e.printStackTrace();
-		} catch (Exception e) {
-			logger.error(e.getMessage());
-			e.printStackTrace();
-		}
-		return flag;
+	        throws JsonProcessingException, UnsupportedEncodingException {
+	    final ObjectMapper mapper = new ObjectMapper();
+	    mapper.findAndRegisterModules();
+	    mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+	    logger.info("Response: {}", obj.getBody().toString());
+	    if (textType == 2) {
+	        send(mapper.writeValueAsString(obj.getBody()).getBytes("UTF-8"), verificationResponseAddress);
+	    } else if (textType == 1) {
+	        send(mapper.writeValueAsString(obj.getBody()), verificationResponseAddress);
+	    }
 	}
 
 	public Boolean send(String message, String address) {
-		boolean flag = false;
-
-		try {
-			initialSetup();
-			logger.info("Post initial setup");
-			
-			if(address == null) {
-				logger.info("Address is null. Cannot create destination.");
-				return false;
-			}
-			logger.info("Address: {}", address);
-			if(session == null) {
-				logger.info("Session is null. Cannot create destination.");
-				return false;
-			}
-			
-			destination = session.createQueue(address);
-			if(destination == null) {
-				logger.info("Destination is null. Cannot create Message Producer.");
-				return false;
-			}
-			logger.info("destination: {}", destination );
-			
-			MessageProducer messageProducer = session.createProducer(destination);
-			if(messageProducer == null) {
-				logger.info("Message Producer is null. Cannot send message.");
-				return false;
-			}
-			logger.info("messageProducer: {}", messageProducer);
-			
-			messageProducer.send(session.createTextMessage(message));
-			logger.info("Post Message Producer send method call");
-
-			flag = true;
-		} catch (JMSException e) {
-			logger.error(e.getMessage());
-			e.printStackTrace();
-		} catch (Exception e) {
-			logger.error("Exception occurred", e);
-//			logger.error(e.getMessage());
-			e.printStackTrace();
-		}
-		return flag;
+	    boolean flag = false;
+	    
+	    try {
+	        if (queue == null) {
+	            queue = getQueueConnection();
+	        }
+	        
+	        flag = mosipQueueManager.send(queue, message, address);
+	        logger.info("Message sent to queue: {}, success: {}", address, flag);
+	    } catch (Exception e) {
+	        logger.error("Error sending message to queue: " + e.getMessage(), e);
+	    }
+	    
+	    return flag;
 	}
 
-	private void initialSetup() throws Exception {
-		if (this.activeMQConnectionFactory == null) {
-			logger.error("Inside initialSetup method. Invalid connection.");
-			throw new Exception("Invalid Connection Exception");
-		}
-		setup();
+	public Boolean send(byte[] message, String address) {
+	    boolean flag = false;
+	    
+	    try {
+	        if (queue == null) {
+	            queue = getQueueConnection();
+	        }
+	        
+	        flag = mosipQueueManager.send(queue, message, address);
+	        logger.info("Byte message sent to queue: {}, success: {}", address, flag);
+	    } catch (Exception e) {
+	        logger.error("Error sending byte message to queue: " + e.getMessage(), e);
+	    }
+	    
+	    return flag;
 	}
 
 	public static ObjectMapper objectMapper() {

@@ -903,7 +903,13 @@ public class ApplicationServiceImpl implements ApplicationService {
 			response.setStatus(StageCode.APPROVED.getStage());
 			response.setComment(comment);
 			ResponseEntity<Object> responseEntity = new ResponseEntity<>(response, HttpStatus.OK);
-			listener.sendToQueue(responseEntity, 1);
+			
+			Integer textType = listener.getMessageType(application.getRegId());
+			
+			logger.info("Sending response to queue for application ID: {}, with textType: {}", 
+                    application.getRegId(), textType);
+			
+			listener.sendToQueue(responseEntity, textType);
 		} catch (JsonProcessingException | UnsupportedEncodingException e) {
 			logger.error("Unable to send response to mvs stage, {}", e);
 		}
@@ -930,7 +936,13 @@ public class ApplicationServiceImpl implements ApplicationService {
 			response.setCategory(rejectionCategory);
 			response.setActionDate(LocalDate.now().format(formatter));
 			ResponseEntity<Object> responseEntity = new ResponseEntity<>(response, HttpStatus.OK);
-			listener.sendToQueue(responseEntity, 1);
+
+			Integer textType = listener.getMessageType(application.getRegId());
+			
+			logger.info("Sending response to queue for application ID: {}, with textType: {}", 
+                    application.getRegId(), textType);
+			
+			listener.sendToQueue(responseEntity, textType);
 		} catch (JsonProcessingException | UnsupportedEncodingException e) {
 			logger.error("Unable to send response to mvs stage, {}", e);
 		}
