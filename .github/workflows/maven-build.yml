@@ -105,7 +105,7 @@ jobs:
         mkdir -p lib
         # Install registration-processor-core.jar
         mvn install:install-file \
-          -Dfile=lib/registration-processor-core.jar \
+          -Dfile=lib/registration-processor-core-1.2.0.1-SNAPSHOT.jar \
           -DgroupId=io.mosip.registrationprocessor \
           -DartifactId=registration-processor-core \
           -Dversion=1.2.0.1-SNAPSHOT \
@@ -113,7 +113,7 @@ jobs:
           
         # Install registration-processor-rest-client.jar
         mvn install:install-file \
-          -Dfile=lib/registration-processor-rest-client.jar \
+          -Dfile=lib/registration-processor-rest-client-1.2.0.1-SNAPSHOT.jar \
           -DgroupId=io.mosip.registrationprocessor \
           -DartifactId=registration-processor-rest-client \
           -Dversion=1.2.0.1-SNAPSHOT \
