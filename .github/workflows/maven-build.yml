@@ -102,7 +102,7 @@ jobs:
         done
     - name: Install missing dependency JARs
       run: |
-        mkdir -p libs
+        mkdir -p lib
         # Install registration-processor-core.jar
         mvn install:install-file \
           -Dfile=lib/registration-processor-core.jar \
