@@ -152,8 +152,8 @@ jobs:
 
     - name: Include custom lib JARs in the release artifact
       run: |
-        zip -r ${{ inputs.BUILD_ARTIFACT }}.zip lib/registration-processor-core.jar
-        zip -r ${{ inputs.BUILD_ARTIFACT }}.zip lib/registration-processor-rest-client.jar
+        zip -r ${{ inputs.BUILD_ARTIFACT }}.zip lib/registration-processor-core-1.2.0.1-SNAPSHOT.jar
+        zip -r ${{ inputs.BUILD_ARTIFACT }}.zip lib/registration-processor-rest-client-1.2.0.1-SNAPSHOT.jar
 
     - uses: 8398a7/action-slack@v3
       with:
