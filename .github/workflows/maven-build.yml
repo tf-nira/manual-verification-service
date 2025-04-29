@@ -150,6 +150,11 @@ jobs:
         name: ${{ inputs.BUILD_ARTIFACT }}
         path: ./${{ inputs.BUILD_ARTIFACT }}.zip
 
+    - name: Include custom lib JARs in the release artifact
+      run: |
+        zip -r ${{ inputs.BUILD_ARTIFACT }}.zip lib/registration-processor-core.jar
+        zip -r ${{ inputs.BUILD_ARTIFACT }}.zip lib/registration-processor-rest-client.jar
+
     - uses: 8398a7/action-slack@v3
       with:
         status: ${{ job.status }}
