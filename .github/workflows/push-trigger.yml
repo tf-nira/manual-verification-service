@@ -25,7 +25,7 @@ on:
 
 jobs:
   build-maven-manual-verification-service:
-    uses: tf-nira/manual-verification-service/.github/workflows/maven-build.yml@master
+    uses: tf-nira/manual-verification-service/.github/workflows/maven-build.yml@feature2
     with:
       SERVICE_LOCATION: .
       BUILD_ARTIFACT: manual-verification-service
