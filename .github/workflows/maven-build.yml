@@ -100,7 +100,26 @@ jobs:
           echo "Pom file : $F"
           xmllint --xpath '/*[local-name()="project"]/*[local-name()="version"]' $F
         done
-
+    - name: Install missing dependency JARs
+      run: |
+        mkdir -p libs
+        # Install registration-processor-core.jar
+        mvn install:install-file \
+          -Dfile=lib/registration-processor-core.jar \
+          -DgroupId=io.mosip.registrationprocessor \
+          -DartifactId=registration-processor-core \
+          -Dversion=1.2.0.1-SNAPSHOT \
+          -Dpackaging=jar
+          
+        # Install registration-processor-rest-client.jar
+        mvn install:install-file \
+          -Dfile=lib/registration-processor-rest-client.jar \
+          -DgroupId=io.mosip.registrationprocessor \
+          -DartifactId=registration-processor-rest-client \
+          -Dversion=1.2.0.1-SNAPSHOT \
+          -Dpackaging=jar
+      
+    
     - name: Build with Maven
       run: cd ${{ inputs.SERVICE_LOCATION }} && mvn -U -B package -Dmaven.wagon.http.retryHandler.count=2 --file pom.xml -s $GITHUB_WORKSPACE/settings.xml
 
