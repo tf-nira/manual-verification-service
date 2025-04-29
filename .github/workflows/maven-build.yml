@@ -142,19 +142,19 @@ jobs:
               echo "Warning: ARTIFACT $ARTIFACT not found"
             fi
           done
-     
+          
+    - name: Include custom lib JARs in the release artifact
+      run: |
+        zip -r ${{ inputs.BUILD_ARTIFACT }}.zip lib/registration-processor-core-1.2.0.1-SNAPSHOT.jar
+        zip -r ${{ inputs.BUILD_ARTIFACT }}.zip lib/registration-processor-rest-client-1.2.0.1-SNAPSHOT.jar
+ 
     - name: Upload the springboot jars
       if: ${{ !contains(github.ref, 'master') || !contains(github.ref, 'main') }}
       uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.BUILD_ARTIFACT }}
         path: ./${{ inputs.BUILD_ARTIFACT }}.zip
-
-    - name: Include custom lib JARs in the release artifact
-      run: |
-        zip -r ${{ inputs.BUILD_ARTIFACT }}.zip lib/registration-processor-core-1.2.0.1-SNAPSHOT.jar
-        zip -r ${{ inputs.BUILD_ARTIFACT }}.zip lib/registration-processor-rest-client-1.2.0.1-SNAPSHOT.jar
-
+    
     - uses: 8398a7/action-slack@v3
       with:
         status: ${{ job.status }}
