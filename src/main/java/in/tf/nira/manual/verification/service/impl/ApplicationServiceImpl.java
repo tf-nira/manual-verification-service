@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -790,6 +791,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 	            response = cryptoUtil.decrypt(response);
 	        }
 	        
+	        response = new String(response.getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8);
 	        DataShareResponseDto dataShareResponse = objectMapper.readValue(response, DataShareResponseDto.class);
 
 	        ApplicationDetailsResponse applicationDetailsResponse = new ApplicationDetailsResponse();
