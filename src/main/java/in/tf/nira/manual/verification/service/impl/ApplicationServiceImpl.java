@@ -53,6 +53,7 @@ import in.tf.nira.manual.verification.constant.CommonConstants;
 import in.tf.nira.manual.verification.constant.ErrorCode;
 import in.tf.nira.manual.verification.constant.StageCode;
 import in.tf.nira.manual.verification.dto.DemographicDetailsDTO.Document;
+import in.tf.nira.manual.verification.dto.DemographicDetailsDTO.LanguageValue;
 import in.tf.nira.manual.verification.dto.DemographicDetailsDTO.ProofDocument;
 import in.tf.nira.manual.verification.entity.MVSApplication;
 import in.tf.nira.manual.verification.entity.MVSApplicationHistory;
@@ -793,7 +794,56 @@ public class ApplicationServiceImpl implements ApplicationService {
 	        
 	        response = new String(response.getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8);
 	        DataShareResponseDto dataShareResponse = objectMapper.readValue(response, DataShareResponseDto.class);
-
+	        
+	        Map<String, String> demographicsMap = new HashMap<>(dataShareResponse.getIdentity());
+	        
+	        String lostCardService = env.getProperty("LOST");
+	        logger.info("Retrieved LOST card service value from properties: {}", lostCardService);
+	        logger.info("Current application service: {}", application.getService());
+	        
+	        if(application.getService().equalsIgnoreCase(lostCardService)) {
+	        	logger.info("Processing Lost/Replacement of card application with ID: {}", application.getRegId());
+	        	
+	        	String nin = demographicsMap.get(CommonConstants.NIN);
+	        	logger.info("Retrieved NIN from demographics: {}", nin);
+	        	
+	        	if(nin != null) {
+	        		try {
+	        			logger.info("Fetching previous demographic details from ID repository for NIN");
+	        			DemographicDetailsDTO previousDemographics = getDemographicDetails(nin);
+	        			
+	        			List<LanguageValue> surname = previousDemographics.getIdentity().getSurname();
+	        			logger.info("Retrieved surname from ID repository: {}",surname);
+	        			
+	    	        	List<LanguageValue> givenName = previousDemographics.getIdentity().getGivenName();
+	    	        	logger.info("Retrieved givenname from ID repository: {}",surname);
+	    	        	
+	    	        	if(surname != null && !surname.isEmpty()) {
+	    	        		String surnameJson = objectMapper.writeValueAsString(surname);
+	    	        		demographicsMap.put(CommonConstants.SURNAME, surnameJson);
+	    	        	} else {
+	    	        		logger.info("Surname is null thus not adding to demographics map");
+	    	        	}
+	    	        	
+	    	        	if(givenName != null && !givenName.isEmpty()) {
+	    	        		String givenNameJson = objectMapper.writeValueAsString(givenName);
+	    	        		demographicsMap.put(CommonConstants.GIVEN_NAME, givenNameJson);
+	    	        	} else {
+	    	        		logger.info("Given name is null thus not adding to demographics map");
+	    	        	}
+	    	        	
+	    	        	logger.info("Successfully added surname and given name to demographics for Lost/Replacement card application: {}",
+	    	        			application.getRegId());
+	    	        	
+	        		}catch (Exception e) {
+	        			logger.error("Error fetching surname and given name from idrepo: {}", e.getMessage());
+	        		}
+	        	} else {
+	        		logger.info("NIN is null for Lost/Replacement card application {}, cannot fetch previous demographics",
+	        				application.getRegId());
+	        	}
+	        }
+	        
 	        ApplicationDetailsResponse applicationDetailsResponse = new ApplicationDetailsResponse();
 	        
 			if (dataShareResponse.getBiometrics() != null && includeBiometrics) {
@@ -828,7 +878,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 		    applicationDetailsResponse.setStatusComment(application.getStatusComment());
 		    applicationDetailsResponse.setFoundLink(application.getFoundLink());
 		    applicationDetailsResponse.setAgeGroup(application.getAgeGroup());
-		    applicationDetailsResponse.setDemographics(dataShareResponse.getIdentity());
+		    applicationDetailsResponse.setDemographics(demographicsMap);
 		    applicationDetailsResponse.setUploadDocList(application.getUploadDocList());
 		    
 		    logger.info("Successfully fetched application details for ID: {}", application.getRegId());

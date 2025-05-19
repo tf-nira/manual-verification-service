@@ -38,5 +38,11 @@ public class CommonConstants {
 	
 	public static final String OUTSIDE_UGANDA="Outside Uganda";
 	public static final String INTERNATIONAL_ADDRESS ="international";
+	
+	//id-repo
+	
+	public static final String NIN = "NIN";
+	public static final String GIVEN_NAME = "givenName";
+	public static final String SURNAME = "surname";
 
 }
