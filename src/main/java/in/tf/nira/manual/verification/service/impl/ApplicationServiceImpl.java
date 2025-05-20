@@ -1417,30 +1417,61 @@ public class ApplicationServiceImpl implements ApplicationService {
 		return officerDetailDTOs;
 	}
 	
-	private void populateMapsForDisOfficers() {
-		List<OfficerDetailDTO> userDetails = officerDetailMap.get(CommonConstants.MVS_DISTRICT_OFFICER_ROLE);
-
-		userDetails.forEach(u -> {
-			Map<String, String> attributes = u.getAttributes();
-			String district = attributes.get("district");
-
-			if (district != null) {
-				districtOfficerMap.computeIfAbsent(district, k -> new ArrayList<>()).add(u);
-				districtOfficerAssignment.putIfAbsent(district, u.getUserId());
-			}
-			else {
-                logger.error("District not available for the user: {}", u.getUserId());
-			}
-		});
-	}
+		private void populateMapsForDisOfficers() {
+			List<OfficerDetailDTO> userDetails = officerDetailMap.get(CommonConstants.MVS_DISTRICT_OFFICER_ROLE);
+			
+			if (userDetails == null || userDetails.isEmpty()) {
+		        logger.warn("No District Officers found");
+		        return;
+		    }
+		    
+		    logger.info("Found {} District Officers", userDetails.size());
+			
+			userDetails.forEach(u -> {
+				Map<String, String> attributes = u.getAttributes();
+				if(attributes == null) {
+					logger.info("attributes map is null for user: {}", u.getUserId());
+					return;
+				}
+				
+				logger.info("User attributes for {}: {}",u.getUserId(), attributes);
+				
+				String district = attributes.get("district");
+				logger.info("District value for user {}: {}",u.getUserId(), district);
+				
+				if (district != null) {
+					districtOfficerMap.computeIfAbsent(district, k -> new ArrayList<>()).add(u);
+					districtOfficerAssignment.putIfAbsent(district, u.getUserId());
+				}
+				else {
+	                logger.error("District not available for the user: {}", u.getUserId());
+				}
+			});
+		}
 	
 	private void populateMapsForInternationalOfficers() {
 		List<OfficerDetailDTO> userDetails = officerDetailMap.get(CommonConstants.MVS_INTERNATIONAL_OFFICER);
-
+		
+		if (userDetails == null || userDetails.isEmpty()) {
+	        logger.warn("No International Officers found");
+	        return;
+	    }
+	    
+	    logger.info("Found {} International Officers", userDetails.size());
+		
 		userDetails.forEach(u -> {
 			Map<String, String> attributes = u.getAttributes();
+			
+			if(attributes == null) {
+				logger.info("attributes map is null for user: {}", u.getUserId());
+				return;
+			}
+			
+			logger.info("User attributes for {}: {}",u.getUserId(), attributes);
+			
 			String region = attributes.get("region");
-
+			logger.info("Region value for user {}: {}",u.getUserId(), region);
+			
 			if (region != null) {
 				internationalOfficerMap.computeIfAbsent(region, k -> new ArrayList<>()).add(u);
 				internationalOfficerAssignment.putIfAbsent(region, u.getUserId());
@@ -1463,7 +1494,16 @@ public class ApplicationServiceImpl implements ApplicationService {
 	    
 	    userDetails.forEach(u -> {
 	        Map<String, String> attributes = u.getAttributes();
+	        
+	        if(attributes == null) {
+				logger.info("attributes map is null for user: {}", u.getUserId());
+				return;
+			}
+			
+			logger.info("User attributes for {}: {}",u.getUserId(), attributes);
+	        
 	        String district = attributes.get("district");
+	        logger.info("District value for user {}: {}",u.getUserId(), district);
 	        
 	        if (district != null) {
 	            seniorRegistrationOfficerMap.computeIfAbsent(district, k -> new ArrayList<>()).add(u);
