@@ -92,4 +92,8 @@ public class MVSApplicationHistory {
 	@Convert(converter = StringListConverter.class)
 	@Column(name = "upload_doc_list")
 	private List<String> uploadDocList;
+	
+	@Column(name = "assigned_date")
+	private LocalDateTime assignedDate;
+	
 }

@@ -252,6 +252,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 			mVSApplication.setCrDTimes(LocalDateTime.now());
 			mVSApplication.setStatusComment(verifyRequest.getStatusComment());
 			
+			//set assignedDate
+			mVSApplication.setAssignedDate(LocalDateTime.now());
+			
 			mVSApplicationRepo.save(mVSApplication);
 			
 			if(officerAssignment.getCrDTimes() == null) {
@@ -1112,6 +1115,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 			application.setUpdatedBy(UserDetailUtil.getLoggedInUserId());
 			application.setUpdatedTimes(LocalDateTime.now());
 			
+			//set assignedDate
+			application.setAssignedDate(LocalDateTime.now());
+			
 			mVSApplicationRepo.save(application);
 			
 			if (!CommonConstants.MVS_DISTRICT_OFFICER_ROLE.equals(roleToAssign) && !CommonConstants.MVS_SENIOR_REGISTRATION_OFFICER.equals(roleToAssign)
@@ -1149,6 +1155,16 @@ public class ApplicationServiceImpl implements ApplicationService {
 						.map(escDetail -> new EscalationDetailsDTO(escDetail))
 						.collect(Collectors.toList()) : null; 
 		appHistory.setEscalationDetails(escalationDetailsCopy);
+		
+		//setting the assign date for escalation
+		
+		if (escalationDetailsCopy != null && !escalationDetailsCopy.isEmpty()) {
+		    EscalationDetailsDTO latestEscalation = escalationDetailsCopy.get(escalationDetailsCopy.size() - 1);
+		    appHistory.setAssignedDate(latestEscalation.getEscDTimes());
+		}else {
+		    // If no escalation details -- mvs_officer
+		    appHistory.setAssignedDate(application.getCrDTimes());
+		}
 		
 		appHistory.setCreatedBy(application.getCreatedBy());
 		appHistory.setCrDTimes(LocalDateTime.now());
