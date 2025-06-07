@@ -83,9 +83,6 @@ public class MVSApplicationHistory {
 	@Column(name = "foundlink")
 	private String foundLink;
 	
-	@Column(name = "age_group")
-	private String ageGroup;
-	
 	@Column(name = "res_district")
 	private String resDistrict;
 	

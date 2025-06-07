@@ -1109,7 +1109,6 @@ public class ApplicationServiceImpl implements ApplicationService {
 		appHistory.setRefId(application.getRefId());
 		appHistory.setSchemaVersion(application.getSchemaVersion());
 		appHistory.setFoundLink(application.getFoundLink());
-		appHistory.setAgeGroup(application.getAgeGroup());
 		appHistory.setResDistrict(application.getResDistrict());
 		appHistory.setUploadDocList(application.getUploadDocList());
 		return appHistory;
