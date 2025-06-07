@@ -65,28 +65,4 @@ public class MVSApplicationHistory {
 	@Column(name = "status_comment")
 	private String statusComment;
 	
-	@Column(name = "reference_url")
-	private String referenceURL;
-	
-	@Column(name = "is_deleted")
-	private Boolean isDeleted;
-	
-	@Column(name = "source")
-	private String source;
-	
-	@Column(name = "ref_id")
-	private String refId;
-	
-	@Column(name = "schema_version")
-	private String schemaVersion;
-	
-	@Column(name = "foundlink")
-	private String foundLink;
-	
-	@Column(name = "res_district")
-	private String resDistrict;
-	
-	@Convert(converter = StringListConverter.class)
-	@Column(name = "upload_doc_list")
-	private List<String> uploadDocList;
 }
