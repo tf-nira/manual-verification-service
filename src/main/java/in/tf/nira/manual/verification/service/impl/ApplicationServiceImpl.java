@@ -599,6 +599,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 		
 		List<OfficerDetailDTO> officers = officerDetailMap.get(role);
 		
+		logger.info("Fetched officer with role: {} for assignment: {}", role, 
+				officers.stream().map(OfficerDetailDTO::getUserId).collect(Collectors.toList()));
+		
 		if (officers == null || officers.isEmpty()) {
 			logger.error("No Officer available for assignment, for role: " + role);
 			throw new RequestException(ErrorCode.OFFICER_FOR_ROLE_NOT_AVAILABLE.getErrorCode(),
@@ -696,22 +699,71 @@ public class ApplicationServiceImpl implements ApplicationService {
 		}
 		
 		Optional<OfficerDetailDTO> optionalOff;
+		logger.info("Starting officer assignment process for role: {}", role);
+		
+		logger.info("Officer assignment record - userId: {}, id: {}, role: {}", 
+		    officerAssignment.getUserId(), officerAssignment.getId(), officerAssignment.getUserRole());
+		
+		logger.info("Available officers count: {}", officers.size());
+		
+		logger.info("Available officer IDs: {}", 
+			    officers.stream().map(OfficerDetailDTO::getUserId).collect(Collectors.toList()));
+
 		if (officerAssignment.getUserId() == null) {
+			logger.info("No previous assignment found (userId is null). Selecting first officer for role: {}", role);
+	
 			optionalOff = officers.stream().findFirst();
 			officerAssignment.setId(UUID.randomUUID().toString());
 			officerAssignment.setUserRole(role);
 		}
 		else {
 			String userId = officerAssignment.getUserId();
+			logger.info("Previous assignment found. Looking for stored userId: {} in officers list for role: {}", userId, role);
+		    
 			optionalOff = officers.stream().filter(officer -> officer.getUserId().equals(userId)).findFirst();
+			
+			if (optionalOff.isPresent()) {
+		        logger.info("Found stored officer: {} in current officers list", userId);
+		    } 
+			
+			 // If the assigned officer is not found, reset and pick the first available officer
+		    if (!optionalOff.isPresent()) {
+		    	
+		        logger.info("Assigned officer with userId {} not found in officers list for role {}. Resetting assignment.", userId, role);
+		        logger.info("Falling back to first available officer");
+		        
+		        optionalOff = officers.stream().findFirst();
+		        
+		        if (optionalOff.isPresent()) {
+		            logger.info("Fallback successful - selected first officer: {}", optionalOff.get().getUserId());
+		        } else {
+		            logger.error("Fallback failed - no officers available in stream.findFirst()");
+		            logger.error("Officers list size: {}, Officers list: {}", officers.size(), officers);
+		        }
+		        officerAssignment.setUserId(null);
+		        
+		        logger.info("Reset officerAssignment.userId to null for fresh start");
+		    }
 		}
 		
 		if (optionalOff.isPresent()) {
 			OfficerDetailDTO selectedOfficer = optionalOff.get();
-			int currentIndex = officers.indexOf(selectedOfficer);
+			logger.info("Officer selected for current assignment: {} ({})", 
+			        selectedOfficer.getUserId(), selectedOfficer.getUserName());
 			
+			int currentIndex = officers.indexOf(selectedOfficer);
+			logger.info("Selected officer is at index: {} in officers list", currentIndex);
+			    
 			OfficerDetailDTO nextOfficer = officers.get((currentIndex + 1) % officers.size());
+			logger.info("Next officer calculated - userId: {}, userName: {}", 
+			         nextOfficer.getUserId(), nextOfficer.getUserName());
+			
 			officerAssignment.setUserId(nextOfficer.getUserId());
+			logger.info("Stored next officer {} for future assignments", nextOfficer.getUserId());
+		    
+			logger.info("Assignment completed successfully - Current: {}, Next stored: {}", 
+			        selectedOfficer.getUserId(), nextOfficer.getUserId());
+			
 			return selectedOfficer;
 		}
 		else {
