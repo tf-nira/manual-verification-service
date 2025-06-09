@@ -801,11 +801,14 @@ public class ApplicationServiceImpl implements ApplicationService {
 	        Map<String, String> demographicsMap = new HashMap<>(dataShareResponse.getIdentity());
 	        
 	        String lostCardService = env.getProperty("LOST");
+	        String COPService = env.getProperty("UPDATE");
 	        logger.info("Retrieved LOST card service value from properties: {}", lostCardService);
+	        logger.info("Retrieved COP card service value from properties: {}", COPService);
 	        logger.info("Current application service: {}", application.getService());
-	        
-	        if(application.getService().equalsIgnoreCase(lostCardService)) {
-	        	logger.info("Processing Lost/Replacement of card application with ID: {}", application.getRegId());
+	        String applicationService = application.getService();
+	        if(applicationService.equalsIgnoreCase(lostCardService) || 
+	        		applicationService.equalsIgnoreCase(COPService) ) {
+	        	logger.info("Processing Lost/Replacement or COP of card application with ID: {}", application.getRegId());
 	        	
 	        	String nin = demographicsMap.get(CommonConstants.NIN);
 	        	logger.info("Retrieved NIN from demographics: {}", nin);
@@ -823,26 +826,34 @@ public class ApplicationServiceImpl implements ApplicationService {
 	    	        	
 	    	        	if(surname != null && !surname.isEmpty()) {
 	    	        		String surnameJson = objectMapper.writeValueAsString(surname);
-	    	        		demographicsMap.put(CommonConstants.SURNAME, surnameJson);
+	    	        		if(applicationService.equalsIgnoreCase(lostCardService)) {
+		    	        		demographicsMap.put(CommonConstants.SURNAME, surnameJson);
+	    	        		} else if(applicationService.equalsIgnoreCase(COPService)) {
+	    	        			demographicsMap.put(CommonConstants.COP_SURNAME_PREVIOUS, surnameJson);
+	    	        		}
 	    	        	} else {
 	    	        		logger.info("Surname is null thus not adding to demographics map");
 	    	        	}
 	    	        	
 	    	        	if(givenName != null && !givenName.isEmpty()) {
 	    	        		String givenNameJson = objectMapper.writeValueAsString(givenName);
-	    	        		demographicsMap.put(CommonConstants.GIVEN_NAME, givenNameJson);
+	    	        		if(applicationService.equalsIgnoreCase(lostCardService)) {
+	    	        			demographicsMap.put(CommonConstants.GIVEN_NAME, givenNameJson);
+	    	        		} else if(applicationService.equalsIgnoreCase(COPService)) {
+	    	        			demographicsMap.put(CommonConstants.COP_GIVEN_NAME_PREVIOUS, givenNameJson);
+	    	        		}
 	    	        	} else {
 	    	        		logger.info("Given name is null thus not adding to demographics map");
 	    	        	}
 	    	        	
-	    	        	logger.info("Successfully added surname and given name to demographics for Lost/Replacement card application: {}",
+	    	        	logger.info("Successfully added surname and given name to demographics for Lost/Replacement or COP card application: {}",
 	    	        			application.getRegId());
 	    	        	
 	        		}catch (Exception e) {
 	        			logger.error("Error fetching surname and given name from idrepo: {}", e.getMessage());
 	        		}
 	        	} else {
-	        		logger.info("NIN is null for Lost/Replacement card application {}, cannot fetch previous demographics",
+	        		logger.info("NIN is null for Lost/Replacement or COP card application {}, cannot fetch previous demographics",
 	        				application.getRegId());
 	        	}
 	        }
