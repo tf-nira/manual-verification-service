@@ -740,7 +740,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 	    userApp.setCrDTimes(app.getCrDTimes());
 	    userApp.setStatusComment(app.getStatusComment());
 	    userApp.setFoundLink(app.getFoundLink());
-	    userApp.setAgeGroup(app.getAgeGroup());;
+	    userApp.setAgeGroup(app.getAgeGroup());
 	    
 	    if (app.getEscalationDetails() != null) {
 	        app.getEscalationDetails().forEach(esc -> {
@@ -750,6 +750,10 @@ public class ApplicationServiceImpl implements ApplicationService {
 	                userApp.setSupervisorEscDetails(esc);
 	            } else if (CommonConstants.MVS_LEGAL_OFFICER_ROLE.equals(esc.getLevel())) {
 					userApp.setLegalEscDetails(esc);
+				} else if (CommonConstants.MVS_DISTRICT_OFFICER_ROLE.equals(esc.getLevel())) {
+					//setting the category as the application is Recommended for approval from
+					esc.setCategory("Additional documents Uploaded");
+					userApp.setDistrictEscDetails(esc);
 				}
 	        });
 	    }
