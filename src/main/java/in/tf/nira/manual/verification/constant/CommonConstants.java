@@ -44,7 +44,13 @@ public class CommonConstants {
 	public static final String NIN = "NIN";
 	public static final String GIVEN_NAME = "givenName";
 	public static final String SURNAME = "surname";
+	
+	//cop
 	public static final String COP_GIVEN_NAME_PREVIOUS = "copGivenNamePrevious";
 	public static final String COP_SURNAME_PREVIOUS = "copSurnamePrevious";
+	public static final String COP_EMAIL_PREVIOUS = "copEmailPrevious";
+	public static final String COP_DATE_OF_BIRTH_PREVIOUS = "copDateOfBirthPrevious";
+	public static final String COP_NIN_PREVIOUS = "copNinPrevious";
+	public static final String COP_PHONE_PREVIOUS = "copPhonePrevious";
 
 }

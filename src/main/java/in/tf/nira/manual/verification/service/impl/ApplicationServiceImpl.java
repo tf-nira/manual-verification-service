@@ -826,7 +826,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 	        			logger.info("Retrieved surname from ID repository: {}",surname);
 	        			
 	    	        	List<LanguageValue> givenName = previousDemographics.getIdentity().getGivenName();
-	    	        	logger.info("Retrieved givenname from ID repository: {}",surname);
+	    	        	logger.info("Retrieved givenname from ID repository: {}",givenName);
 	    	        	
 	    	        	if(surname != null && !surname.isEmpty()) {
 	    	        		String surnameJson = objectMapper.writeValueAsString(surname);
@@ -852,6 +852,45 @@ public class ApplicationServiceImpl implements ApplicationService {
 	    	        	
 	    	        	logger.info("Successfully added surname and given name to demographics for Lost/Replacement or COP card application: {}",
 	    	        			application.getRegId());
+	    	        	
+	    	        	if(applicationService.equalsIgnoreCase(COPService)) {
+	    	        		String email = previousDemographics.getIdentity().getEmail();
+		        			logger.info("Retrieved email from ID repository: {}",email);
+		        			
+		    	        	String dateOfBirth = previousDemographics.getIdentity().getDateOfBirth();
+		    	        	logger.info("Retrieved dateOfBirth from ID repository: {}",dateOfBirth);
+		    	        	
+		    	        	String ninPrevious = previousDemographics.getIdentity().getNin();
+		    	        	logger.info("Retrieved ninPrevious from ID repository: {}",ninPrevious);
+		    	        	
+		    	        	String phone = previousDemographics.getIdentity().getPhone();
+		    	        	logger.info("Retrieved phone from ID repository: {}",phone); 
+		    	        	
+		    	        	if(email != null && !email.isEmpty()) {
+		    	        		demographicsMap.put(CommonConstants.COP_EMAIL_PREVIOUS, email);
+		    	        	} else {
+		    	        		logger.info("Email is null thus not adding to demographics map");
+		    	        	}
+		    	        	
+		    	        	if(dateOfBirth != null && !dateOfBirth.isEmpty()) {
+		    	        		demographicsMap.put(CommonConstants.COP_DATE_OF_BIRTH_PREVIOUS, dateOfBirth);
+		    	        	} else {
+		    	        		logger.info("Date Of Birth is null thus not adding to demographics map");
+		    	        	}
+		    	        	
+		    	        	if(ninPrevious != null && !ninPrevious.isEmpty()) {
+		    	        		demographicsMap.put(CommonConstants.COP_NIN_PREVIOUS, ninPrevious);
+		    	        	} else {
+		    	        		logger.info("NIN is null thus not adding to demographics map");
+		    	        	}
+		    	        	
+		    	        	if(phone != null && !phone.isEmpty()) {
+		    	        		demographicsMap.put(CommonConstants.COP_PHONE_PREVIOUS, phone);
+		    	        	} else {
+		    	        		logger.info("Phone is null thus not adding to demographics map");
+		    	        	}
+		    	        	
+	    	        	}
 	    	        	
 	        		}catch (Exception e) {
 	        			logger.error("Error fetching surname and given name from idrepo: {}", e.getMessage());
