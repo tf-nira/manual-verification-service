@@ -134,7 +134,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 	private String emailTemplateTypeCode;
 	
 	@Value("${manual.verification.sms.template.code}")
-	private String smsTemplateTypeCodeInterview;
+	private String smsTemplateTypeCode;
 	
 	@Value("${manual.verification.interview.valid.days}")
 	private int interviewValidDays;
@@ -150,12 +150,6 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 	@Value("${manual-verification.new.officer.email.template.code}")
 	private String newOfficerEmailTemplateTypeCode;
-	
-	@Value("${manual.verification.sms.template.code.rejection}")
-	private String emailTemplateTypeCodeRejection;
-	
-	@Value("${manual.verification.sms.template.code.rejection}")
-	private String smsTemplateTypeCodeRejection;
 	
 	private Map<String, List<OfficerDetailDTO>> officerDetailMap = new HashMap<>();
 	
@@ -1033,8 +1027,6 @@ public class ApplicationServiceImpl implements ApplicationService {
 		application.setUpdatedBy(UserDetailUtil.getLoggedInUserId());
 		application.setUpdatedTimes(LocalDateTime.now());
 		mVSApplicationRepo.save(application);
-		//sending the notification
-		sendNotificationRejectedApplication(application);
 		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 		//send back to mvs stage
 		logger.info("Notifying mvs stage for rejection");
@@ -1050,9 +1042,6 @@ public class ApplicationServiceImpl implements ApplicationService {
 		} catch (JsonProcessingException | UnsupportedEncodingException e) {
 			logger.error("Unable to send response to mvs stage, {}", e);
 		}
-		
-		
-		
 	}
 	
 	private void sendNotification(MVSApplication application, SchInterviewDTO schInterviewDTO, ApplicationDetailsResponse appResponse) {
@@ -1076,7 +1065,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 		}
 		
 		if (phone != null) {
-			sendSMS(phone, attributes, smsTemplateTypeCodeInterview);
+			sendSMS(phone, attributes);
 		} else {
 			logger.warn("Phone number not available for the application");
 		}
@@ -1344,7 +1333,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 	}
 	
 	
-	private void sendSMS(String phone, Map<String, Object> attributes, String smsTemplateTypeCode) {
+	private void sendSMS(String phone, Map<String, Object> attributes) {
 		logger.info("Sending SMS notification");
 		
 		try {
@@ -1946,30 +1935,4 @@ public class ApplicationServiceImpl implements ApplicationService {
 		
 		logger.info("Completed processing applications with expired interview dates");;
 	}
-	
-	private void sendNotificationRejectedApplication(MVSApplication application) {
-		ApplicationDetailsResponse appResponse = getApplicationDetails(application, false, false);
-		
-		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
-		String email = appResponse.getDemographics().get("email");
-        String phone = appResponse.getDemographics().get("phone");
-
-        Map<String, Object> attributes = new HashMap<>();
-		attributes.put("APPLICATION_ID", application.getRegId());
-		attributes.put("MVS_REJ_DATE", application.getCrDTimes().toLocalDate().format(formatter));
-        attributes.put("REJECTION_CATEGORY", application.getRejectionCategory());
-        attributes.put("REJECTION_COMMENT", application.getComments());
-		if (email != null) {
-			sendEmail(email, "Application rejected from MVS", attributes, emailTemplateTypeCodeRejection);
-		} else {
-			logger.warn("Email Id not available for the new officer of reassignment");
-		}
-		
-		if (phone != null) {
-			sendSMS(phone, attributes, smsTemplateTypeCodeRejection);
-		} else {
-			logger.warn("Phone number not available for the application");
-		}
-	}
-	
 }
