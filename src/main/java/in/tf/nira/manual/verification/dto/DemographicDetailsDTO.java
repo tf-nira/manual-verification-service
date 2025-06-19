@@ -287,6 +287,10 @@ public class DemographicDetailsDTO {
         
         @JsonProperty("proofOfLoss")
         private ProofDocument proofOfLoss;
+        
+        @JsonProperty("proofOfLC1Letter")
+        private ProofDocument proofOfLC1Letter;
+        
     }
 
     @Data

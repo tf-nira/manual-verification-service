@@ -505,7 +505,10 @@ public class ApplicationServiceImpl implements ApplicationService {
 					district = application.getResDistrict();
 				}
 				
-				if((getDemoValue(appResponse.getDemographics().get("residenceStatus")).equalsIgnoreCase(CommonConstants.OUTSIDE_UGANDA))) {
+				if(appResponse.getDemographics() != null &&
+				   appResponse.getDemographics().get("residenceStatus") != null &&
+				   getDemoValue(appResponse.getDemographics().get("residenceStatus")) != null &&
+				   (getDemoValue(appResponse.getDemographics().get("residenceStatus")).equalsIgnoreCase(CommonConstants.OUTSIDE_UGANDA))) {
 					district = CommonConstants.INTERNATIONAL_ADDRESS;
 				}
 				
