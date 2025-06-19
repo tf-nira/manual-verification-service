@@ -813,8 +813,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 	        logger.info("Retrieved COP card service value from properties: {}", COPService);
 	        logger.info("Current application service: {}", application.getService());
 	        String applicationService = application.getService();
-	        if(applicationService.equalsIgnoreCase(lostCardService) || 
-	        		applicationService.equalsIgnoreCase(COPService) ) {
+	        if(applicationService != null && !applicationService.trim().isEmpty() && 
+	        		(applicationService.equalsIgnoreCase(lostCardService) || 
+	        		applicationService.equalsIgnoreCase(COPService)) ) {
 	        	logger.info("Processing Lost/Replacement or COP of card application with ID: {}", application.getRegId());
 	        	
 	        	String nin = demographicsMap.get(CommonConstants.NIN);
