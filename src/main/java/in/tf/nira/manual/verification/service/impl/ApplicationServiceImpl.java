@@ -1063,13 +1063,21 @@ public class ApplicationServiceImpl implements ApplicationService {
 		attributes.put("REVIEW_CONTENT", schInterviewDTO.getContent());
         
 		if (email != null) {
-			sendEmail(email, schInterviewDTO.getSubject(), attributes, emailTemplateTypeCode);
+			try {
+				sendEmail(email, schInterviewDTO.getSubject(), attributes, emailTemplateTypeCode);
+			} catch (Exception ex) {
+				logger.error("Failed to send email notification but continuing with interview scheduling: {}", ex.getMessage());			
+			}
 		} else {
 			logger.warn("Email Id not available for the application");
 		}
 		
 		if (phone != null) {
-			sendSMS(phone, attributes);
+			try {
+				sendSMS(phone, attributes);
+			} catch (Exception ex) {
+				logger.error("Failed to send sms notification but continuing with interview scheduling: {}", ex.getMessage());
+			}
 		} else {
 			logger.warn("Phone number not available for the application");
 		}
