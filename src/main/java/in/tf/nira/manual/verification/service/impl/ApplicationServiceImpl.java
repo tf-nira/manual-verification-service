@@ -870,6 +870,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 		    	        	String phone = previousDemographics.getIdentity().getPhone();
 		    	        	logger.info("Retrieved phone from ID repository: {}",phone); 
 		    	        	
+		    	        	String homePhoneNumber = previousDemographics.getIdentity().getHomePhoneNumber();
+		    	        	logger.info("Retrieved home phone from ID repository: {}",homePhoneNumber); 
+		    	        	
 		    	        	if(email != null && !email.isEmpty()) {
 		    	        		demographicsMap.put(CommonConstants.COP_EMAIL_PREVIOUS, email);
 		    	        	} else {
@@ -892,6 +895,12 @@ public class ApplicationServiceImpl implements ApplicationService {
 		    	        		demographicsMap.put(CommonConstants.COP_PHONE_PREVIOUS, phone);
 		    	        	} else {
 		    	        		logger.info("Phone is null thus not adding to demographics map");
+		    	        	}
+		    	        	
+		    	        	if(homePhoneNumber != null && !homePhoneNumber.isEmpty()) {
+		    	        		demographicsMap.put(CommonConstants.COP_HOME_PHONE_NUMBER_PREVIOUS, homePhoneNumber);
+		    	        	} else {
+		    	        		logger.info("Home phone number is null thus not adding to demographics map");
 		    	        	}
 		    	        	
 	    	        	}

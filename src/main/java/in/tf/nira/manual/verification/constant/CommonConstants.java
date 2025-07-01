@@ -52,5 +52,5 @@ public class CommonConstants {
 	public static final String COP_DATE_OF_BIRTH_PREVIOUS = "copDateOfBirthPrevious";
 	public static final String COP_NIN_PREVIOUS = "copNinPrevious";
 	public static final String COP_PHONE_PREVIOUS = "copPhonePrevious";
-
+	public static final String COP_HOME_PHONE_NUMBER_PREVIOUS = "copHomePhoneNumberPrevious";
 }
