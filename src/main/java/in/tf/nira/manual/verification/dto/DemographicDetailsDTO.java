@@ -137,6 +137,66 @@ public class DemographicDetailsDTO {
 
         @JsonProperty("fatherSurname")
         private List<LanguageValue> fatherSurname;
+        
+        private List<LanguageValue> motherSurname;
+        
+        private List<LanguageValue> motherGivenName;
+        
+        private List<LanguageValue> motherOtherNames;
+        
+        private List<LanguageValue> motherMaidenName;
+        
+        private List<LanguageValue> motherPreviousName;
+        
+        private String motherIDDocumentNo;
+        
+        private List<LanguageValue> motherOccupation;
+        
+        private List<LanguageValue> motherOtherOccupation;
+        
+        private List<LanguageValue> motherForeignResidenceCountry;
+        
+        private List<LanguageValue> motherForeignResidenceAddress;
+        
+        private List<LanguageValue> motherPostalAddress;
+        
+        private List<LanguageValue> motherPlaceOfResidenceDistrict;
+        
+        private List<LanguageValue> motherPlaceOfResidenceCounty;
+        
+        private List<LanguageValue> motherPlaceOfResidenceSubCounty;
+        
+        private List<LanguageValue> motherPlaceOfResidenceParish;
+        
+        private List<LanguageValue> motherPlaceOfResidenceVillage;
+        
+        private List<LanguageValue> motherPlaceOfResidenceStreet;
+        
+        private List<LanguageValue> motherForeignOriginCountry;
+        
+        private List<LanguageValue> motherForeignOriginAddress;
+        
+        private List<LanguageValue> motherPlaceOfOriginDistrict;
+        
+        private List<LanguageValue> motherPlaceOfOriginCounty;
+        
+        private List<LanguageValue> motherPlaceOfOriginSubCounty;
+        
+        private List<LanguageValue> motherPlaceOfOriginParish;
+        
+        private List<LanguageValue> motherPlaceOfOriginVillage;
+        
+        private List<LanguageValue> motherCitizenshipType;
+        
+        private List<LanguageValue> motherIndigenousCommunityTribe;
+        
+        private List<LanguageValue> motherIndigenousCommunityClan;
+        
+        private String motherPlaceOfResidenceHouseNo;
+        
+        private String motherNIN;
+        
+        private String motherCitizenCertificateNumber;
 
         @JsonProperty("gender")
         private List<LanguageValue> gender;
@@ -190,7 +250,211 @@ public class DemographicDetailsDTO {
 
         @JsonProperty("maritalStatus")
         private List<LanguageValue> maritalStatus;
-
+        
+        @JsonProperty("spouseSurname")
+        private List<LanguageValue> spouseSurname;
+        
+        @JsonProperty("spouseGivenName")
+        private List<LanguageValue> spouseGivenName;
+        
+        @JsonProperty("spouseOtherNames")
+        private List<LanguageValue> spouseOtherNames;
+        
+        @JsonProperty("spouseMaidenName")
+        private List<LanguageValue> spouseMaidenName;
+        
+        @JsonProperty("spousePreviousName")
+        private List<LanguageValue> spousePreviousName;
+        
+        @JsonProperty("spouseNIN")
+        private String spouseNIN;
+        
+        @JsonProperty("spouseCitizenshipType")
+        private List<LanguageValue> spouseCitizenshipType;
+        
+        @JsonProperty("spousePlaceOfMarriage")
+        private List<LanguageValue> spousePlaceOfMarriage;
+        
+        @JsonProperty("spouseDateOfMarriage")
+        private String spouseDateOfMarriage;
+        
+        @JsonProperty("spouseTypeOfMarriage")
+        private List<LanguageValue> spouseTypeOfMarriage;
+        
+        @JsonProperty("spouseMarriageCertificateNumber")
+        private String spouseMarriageCertificateNumber;
+        
+        @JsonProperty("spouseTwoSurname")
+        private List<LanguageValue> spouseTwoSurname;
+        
+        @JsonProperty("spouseTwoGivenName")
+        private List<LanguageValue> spouseTwoGivenName;
+        
+        @JsonProperty("spouseTwoOtherNames")
+        private List<LanguageValue> spouseTwoOtherNames;
+        
+        @JsonProperty("spouseTwoMaidenName")
+        private List<LanguageValue> spouseTwoMaidenName;
+        
+        @JsonProperty("spouseTwoPreviousName")
+        private List<LanguageValue> spouseTwoPreviousName;
+        
+        @JsonProperty("spouseTwoNIN")
+        private String spouseTwoNIN;
+        
+        @JsonProperty("spouseTwoCitizenshipType")
+        private List<LanguageValue> spouseTwoCitizenshipType;
+        
+        @JsonProperty("spouseTwoPlaceOfMarriage")
+        private List<LanguageValue> spouseTwoPlaceOfMarriage;
+        
+        @JsonProperty("spouseTwoDateOfMarriage")
+        private String spouseTwoDateOfMarriage;
+        
+        @JsonProperty("spouseTwoTypeOfMarriage")
+        private List<LanguageValue> spouseTwoTypeOfMarriage;
+        
+        @JsonProperty("spouseTwoMarriageCertificateNumber")
+        private String spouseTwoMarriageCertificateNumber;
+        
+        @JsonProperty("spouseThreeSurname")
+        private List<LanguageValue> spouseThreeSurname;
+        
+        @JsonProperty("spouseThreeGivenName")
+        private List<LanguageValue> spouseThreeGivenName;
+        
+        @JsonProperty("spouseThreeOtherNames")
+        private List<LanguageValue> spouseThreeOtherNames;
+        
+        @JsonProperty("spouseThreeMaidenName")
+        private List<LanguageValue> spouseThreeMaidenName;
+        
+        @JsonProperty("spouseThreePreviousName")
+        private List<LanguageValue> spouseThreePreviousName;
+        
+        @JsonProperty("spouseThreeNIN")
+        private String spouseThreeNIN;
+        
+        @JsonProperty("spouseThreeCitizenshipType")
+        private List<LanguageValue> spouseThreeCitizenshipType;
+        
+        @JsonProperty("spouseThreePlaceOfMarriage")
+        private List<LanguageValue> spouseThreePlaceOfMarriage;
+        
+        @JsonProperty("spouseThreeDateOfMarriage")
+        private String spouseThreeDateOfMarriage;
+        
+        @JsonProperty("spouseThreeTypeOfMarriage")
+        private List<LanguageValue> spouseThreeTypeOfMarriage;
+        
+        @JsonProperty("spouseThreeMarriageCertificateNumber")
+        private String spouseThreeMarriageCertificateNumber;
+        
+        @JsonProperty("spouseFourSurname")
+        private List<LanguageValue> spouseFourSurname;
+        
+        @JsonProperty("spouseFourGivenName")
+        private List<LanguageValue> spouseFourGivenName;
+        
+        @JsonProperty("spouseFourOtherNames")
+        private List<LanguageValue> spouseFourOtherNames;
+        
+        @JsonProperty("spouseFourMaidenName")
+        private List<LanguageValue> spouseFourMaidenName;
+        
+        @JsonProperty("spouseFourPreviousName")
+        private List<LanguageValue> spouseFourPreviousName;
+        
+        @JsonProperty("spouseFourNIN")
+        private String spouseFourNIN;
+        
+        @JsonProperty("spouseFourCitizenshipType")
+        private List<LanguageValue> spouseFourCitizenshipType;
+        
+        @JsonProperty("spouseFourPlaceOfMarriage")
+        private List<LanguageValue> spouseFourPlaceOfMarriage;
+        
+        @JsonProperty("spouseFourDateOfMarriage")
+        private String spouseFourDateOfMarriage;
+        
+        @JsonProperty("spouseFourTypeOfMarriage")
+        private List<LanguageValue> spouseFourTypeOfMarriage;
+        
+        @JsonProperty("spouseFourMarriageCertificateNumber")
+        private String spouseFourMarriageCertificateNumber;
+        
+        private List<LanguageValue> childSurname;
+        
+        private List<LanguageValue> childGivenName;
+        
+        private List<LanguageValue> childOtherName;
+        
+        private List<LanguageValue> childSex;
+        
+        private String childDateOfBirth;
+        
+        private String childNIN;
+        
+        private List<LanguageValue> childTwoSurname;
+        
+        private List<LanguageValue> childTwoGivenName;
+        
+        private List<LanguageValue> childTwoOtherName;
+        
+        private List<LanguageValue> childTwoSex;
+        
+        private String childTwoDateOfBirth;
+        
+        private String childTwoNIN;
+        
+        private List<LanguageValue> childThreeSurname;
+        
+        private List<LanguageValue> childThreeGivenName;
+        
+        private List<LanguageValue> childThreeOtherName;
+        
+        private List<LanguageValue> childThreeSex;
+        
+        private String childThreeDateOfBirth;
+        
+        private String childThreeNIN;
+        
+        private List<LanguageValue> childFourSurname;
+        
+        private List<LanguageValue> childFourGivenName;
+        
+        private List<LanguageValue> childFourOtherName;
+        
+        private List<LanguageValue> childFourSex;
+        
+        private String childFourDateOfBirth;
+        
+        private String childFourNIN;
+        
+        private List<LanguageValue> childFiveSurname;
+        
+        private List<LanguageValue> childFiveGivenName;
+        
+        private List<LanguageValue> childFiveOtherName;
+        
+        private List<LanguageValue> childFiveSex;
+        
+        private String childFiveDateOfBirth;
+        
+        private String childFiveNIN;
+        
+        private List<LanguageValue> childSixSurname;
+        
+        private List<LanguageValue> childSixGivenName;
+        
+        private List<LanguageValue> childSixOtherName;
+        
+        private List<LanguageValue> childSixSex;
+        
+        private String childSixDateOfBirth;
+        
+        private String childSixNIN;
+        
         @JsonProperty("occupation")
         private List<LanguageValue> occupation;
 
