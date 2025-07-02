@@ -873,6 +873,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 		    	        	String homePhoneNumber = previousDemographics.getIdentity().getHomePhoneNumber();
 		    	        	logger.info("Retrieved home phone from ID repository: {}",homePhoneNumber); 
 		    	        	
+		    	        	List<LanguageValue> countryCode = previousDemographics.getIdentity().getCountryCode();
+		    	        	logger.info("Retrieved home phone from ID repository: {}",countryCode); 
+		    	        		
 		    	        	if(email != null && !email.isEmpty()) {
 		    	        		demographicsMap.put(CommonConstants.COP_EMAIL_PREVIOUS, email);
 		    	        	} else {
@@ -901,6 +904,13 @@ public class ApplicationServiceImpl implements ApplicationService {
 		    	        		demographicsMap.put(CommonConstants.COP_HOME_PHONE_NUMBER_PREVIOUS, homePhoneNumber);
 		    	        	} else {
 		    	        		logger.info("Home phone number is null thus not adding to demographics map");
+		    	        	}
+		    	        	
+		    	        	if(countryCode != null && !countryCode.isEmpty()) {
+		    	        		String countryCodeJson = objectMapper.writeValueAsString(countryCode);
+		    	        		demographicsMap.put(CommonConstants.COP_COUNTRY_CODE_PREVIOUS, countryCodeJson);
+		    	        	} else {
+		    	        		logger.info("Country Code is null thus not adding to demographics map");
 		    	        	}
 		    	        	
 	    	        	}
