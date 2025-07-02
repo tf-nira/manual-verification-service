@@ -138,6 +138,50 @@ public class DemographicDetailsDTO {
         @JsonProperty("fatherSurname")
         private List<LanguageValue> fatherSurname;
         
+        private List<LanguageValue> fatherLivingStatus;
+        
+        private List<LanguageValue> fatherGivenName;
+        
+        private List<LanguageValue> fatherOtherNames;
+        
+        private String fatherIDDocumentNo;
+        
+        private List<LanguageValue> fatherOccupation;
+        
+        private List<LanguageValue> fatherOtherOccupation;
+        
+        private List<LanguageValue> fatherForeignResidenceCountry;
+        
+        private List<LanguageValue> fatherForeignResidenceAddress;
+        
+        private List<LanguageValue> fatherPostalAddress;
+        
+        private String fatherPlaceOfResidenceHouseNo;
+        
+        private List<LanguageValue> fatherForeignOriginCountry;
+        
+        private List<LanguageValue> fatherForeignOriginAddress;
+        
+        private List<LanguageValue> fatherPlaceOfOriginDistrict;
+        
+        private List<LanguageValue> fatherPlaceOfOriginCounty;
+        
+        private List<LanguageValue> fatherPlaceOfOriginSubCounty;
+        
+        private List<LanguageValue> fatherPlaceOfOriginParish;
+        
+        private String fatherNIN;
+        
+        private List<LanguageValue> fatherCitizenshipType;
+        
+        private String fatherCitizenCertificateNumber;
+        
+        private List<LanguageValue> fatherIndigenousCommunityTribe;
+        
+        private List<LanguageValue> fatherIndigenousCommunityClan;
+        
+        private List<LanguageValue> motherLivingStatus;
+        
         private List<LanguageValue> motherSurname;
         
         private List<LanguageValue> motherGivenName;
@@ -454,6 +498,18 @@ public class DemographicDetailsDTO {
         private String childSixDateOfBirth;
         
         private String childSixNIN;
+        
+        private List<LanguageValue> enrolmentCountry;
+        
+        private List<LanguageValue> applicantPlaceOfEnrolmentDistrict;
+        
+        private List<LanguageValue> applicantPlaceOfEnrolmentCounty;
+        
+        private List<LanguageValue> applicantPlaceOfEnrolmentSubCounty;
+        
+        private List<LanguageValue> applicantPlaceOfEnrolmentParish;
+        
+        private List<LanguageValue> applicantPlaceOfEnrolmentVillage;
         
         @JsonProperty("occupation")
         private List<LanguageValue> occupation;
