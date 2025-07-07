@@ -553,6 +553,8 @@ public class DemographicDetailsDTO {
 
         @JsonProperty("applicantPlaceOfResidenceStreet")
         private List<LanguageValue> applicantPlaceOfResidenceStreet;
+        
+        private List<LanguageValue> dualCitizenshipCertificateNumber;
 
         private String applicantUnabletoSign;
         private String email;
