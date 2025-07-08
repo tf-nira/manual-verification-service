@@ -555,6 +555,10 @@ public class DemographicDetailsDTO {
         private List<LanguageValue> applicantPlaceOfResidenceStreet;
         
         private List<LanguageValue> dualCitizenshipCertificateNumber;
+        
+        private List<LanguageValue> registrationCertificateNumber;
+        
+        private List<LanguageValue> naturalizationCertificateNumber;
 
         private String applicantUnabletoSign;
         private String email;

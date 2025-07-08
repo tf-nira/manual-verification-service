@@ -809,14 +809,17 @@ public class ApplicationServiceImpl implements ApplicationService {
 	        
 	        String lostCardService = env.getProperty("LOST");
 	        String COPService = env.getProperty("UPDATE");
+	        String renewalService = env.getProperty("RENEWAL");
 	        logger.info("Retrieved LOST card service value from properties: {}", lostCardService);
 	        logger.info("Retrieved COP card service value from properties: {}", COPService);
+	        logger.info("Retrived RENEWAL service from properties: {}", renewalService);
 	        logger.info("Current application service: {}", application.getService());
 	        String applicationService = application.getService();
 	        if(applicationService != null && !applicationService.trim().isEmpty() && 
 	        		(applicationService.equalsIgnoreCase(lostCardService) || 
-	        		applicationService.equalsIgnoreCase(COPService)) ) {
-	        	logger.info("Processing Lost/Replacement or COP of card application with ID: {}", application.getRegId());
+	        		applicationService.equalsIgnoreCase(COPService)) || 
+	        		applicationService.equalsIgnoreCase(renewalService)) {
+	        	logger.info("Processing Lost/Replacement or COP or Renewal of card application with ID: {}", application.getRegId());
 	        	
 	        	String nin = demographicsMap.get(CommonConstants.NIN);
 	        	logger.info("Retrieved NIN from demographics: {}", nin);
@@ -834,7 +837,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 	    	        	
 	    	        	if(surname != null && !surname.isEmpty()) {
 	    	        		String surnameJson = objectMapper.writeValueAsString(surname);
-	    	        		if(applicationService.equalsIgnoreCase(lostCardService)) {
+	    	        		if(applicationService.equalsIgnoreCase(lostCardService) || 
+	    	        				applicationService.equalsIgnoreCase(renewalService)) {
 		    	        		demographicsMap.put(CommonConstants.SURNAME, surnameJson);
 	    	        		} else if(applicationService.equalsIgnoreCase(COPService)) {
 	    	        			demographicsMap.put(CommonConstants.COP_SURNAME_PREVIOUS, surnameJson);
@@ -845,7 +849,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 	    	        	
 	    	        	if(givenName != null && !givenName.isEmpty()) {
 	    	        		String givenNameJson = objectMapper.writeValueAsString(givenName);
-	    	        		if(applicationService.equalsIgnoreCase(lostCardService)) {
+	    	        		if(applicationService.equalsIgnoreCase(lostCardService) || 
+	    	        				applicationService.equalsIgnoreCase(renewalService)) {
 	    	        			demographicsMap.put(CommonConstants.GIVEN_NAME, givenNameJson);
 	    	        		} else if(applicationService.equalsIgnoreCase(COPService)) {
 	    	        			demographicsMap.put(CommonConstants.COP_GIVEN_NAME_PREVIOUS, givenNameJson);
