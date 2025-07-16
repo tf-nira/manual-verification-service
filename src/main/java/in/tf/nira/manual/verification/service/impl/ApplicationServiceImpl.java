@@ -78,6 +78,7 @@ import io.mosip.kernel.core.http.ResponseWrapper;
 import io.mosip.kernel.core.util.CryptoUtil;
 import io.mosip.kernel.core.util.DateUtils;
 import io.mosip.kernel.core.util.JsonUtils;
+import java.io.File;
 
 @Service
 public class ApplicationServiceImpl implements ApplicationService {
@@ -1455,30 +1456,16 @@ public class ApplicationServiceImpl implements ApplicationService {
 	@Scheduled(cron = "${manual.verification.cron.expression:0 0 0/8 * * ?}")
 	public void fetchUsers() {
 		logger.info("Fetching user details for assignment");
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("Content-Type", "application/json");
-        HttpEntity<String> entity = new HttpEntity<>(headers);
-        UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.fromUriString(userDetailsUrl);
-        Map<String, String> pathParams = new HashMap<>();
-
+        
 		officerRoles.forEach(role -> {
-			pathParams.put("role-name", role);
-			
 	        try {
-				ResponseEntity<String> response = keycloakRestTemplate.exchange(uriComponentsBuilder.buildAndExpand(pathParams).toString(),
-						HttpMethod.GET, entity, String.class);
+	        	List<OfficerDetailDTO> allUserDetails = fetchAllUsers(role);
+	        	allUserDetails.sort((o1, o2) -> o1.getUserId().compareTo(o2.getUserId()));
+				officerDetailMap.put(role, allUserDetails);
 				
-				if(response.getBody() != null) {
-					JsonNode node = objectMapper.readTree(response.getBody());
-				    List<OfficerDetailDTO> userDetails = mapUsersToUserDetailDto(node, role);
-					
-				    userDetails.sort((o1, o2) -> o1.getUserId().compareTo(o2.getUserId()));
-				    officerDetailMap.put(role, userDetails);
-				    logger.info("{} users fetched for role: {}", userDetails.size(), role);
-				}
-			} catch (RestClientException e) {
-				logger.error("Unable to fetch user details for role: {}, error: {}", role, e);
-			} catch (Exception exc) {
+				logger.info("{} users fetched for role: {}", allUserDetails.size(), role);
+				
+				} catch (Exception exc) {
 				logger.error("Unable to fetch user details for role: {}, error: {}", role, exc);
 			}
 		});
@@ -1486,6 +1473,68 @@ public class ApplicationServiceImpl implements ApplicationService {
 		populateMapsForDisOfficers();
 		populateMapsForInternationalOfficers();
 		populateMapsForSeniorRegistrationOfficers();
+		//writeOfficerDetailMapToFile();
+	}
+	
+	private List<OfficerDetailDTO> fetchAllUsers(String role) throws Exception {
+		List<OfficerDetailDTO> allUsers = new ArrayList<>();
+		
+		int first = 0;
+		int max = 100;
+		boolean hasMore = true;
+		
+		HttpHeaders headers = new HttpHeaders();
+		headers.set("Content-Type", "application/json");
+		HttpEntity<String> entity =new HttpEntity<>(headers);
+		
+		while (hasMore) {
+			UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.fromUriString(userDetailsUrl)
+					.queryParam("first", first)
+					.queryParam("max", max);
+			
+			Map<String, String> pathParams = new HashMap<>();
+			pathParams.put("role-name", role);
+			
+			String finalUrl = uriComponentsBuilder.buildAndExpand(pathParams).toString();
+			
+			logger.info("Fetching users for role: {}, first: {}, max: {}", role, first, max);
+			
+			ResponseEntity<String> response = keycloakRestTemplate.exchange(finalUrl, HttpMethod.GET, entity, String.class);
+			
+			if(response.getBody() != null) {
+				JsonNode node = objectMapper.readTree(response.getBody());
+				List<OfficerDetailDTO> pageUsers = mapUsersToUserDetailDto(node, role);
+				
+				logger.info("Retrieved {} user for role: {} (page starting at {})", pageUsers.size(), role, first);
+				
+				if(pageUsers.isEmpty()) {
+					hasMore =false;
+				} else {
+					allUsers.addAll(pageUsers);
+					first += max;
+					
+					if(pageUsers.size() < max) {
+						hasMore = false;
+					}
+				}
+			} else {
+				hasMore = false;
+			}
+			
+		}
+		
+		logger.info("Total users fetched for role {}: {}", role, allUsers.size());
+		return allUsers;
+	}
+	
+	private void writeOfficerDetailMapToFile() {
+		try {
+			ObjectMapper mapper = new ObjectMapper();
+			mapper.writerWithDefaultPrettyPrinter().writeValue(new File("Officer-detail-map.json"),officerDetailMap);
+			logger.info("officer detail map written to Officer-detail-map.json");
+			
+		} catch (Exception e){
+			logger.error("Error occured while writing officer map to file");		}
 	}
 	
 	private List<OfficerDetailDTO> mapUsersToUserDetailDto(JsonNode node, String roleName) {
