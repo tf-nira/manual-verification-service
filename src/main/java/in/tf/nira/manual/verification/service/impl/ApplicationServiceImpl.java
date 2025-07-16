@@ -134,6 +134,12 @@ public class ApplicationServiceImpl implements ApplicationService {
 	@Value("${manual.verification.email.template.code}")
 	private String emailTemplateTypeCode;
 	
+	@Value("${manual.verification.email.template.code.legalofficer.ed}")
+	private String legalOfficerAndEdEmailTemplateTypeCode;
+	
+	@Value("${manual.verification.subject.template.type.code}")
+	private String subjectTemplateTypeCode;
+	
 	@Value("${manual.verification.sms.template.code}")
 	private String smsTemplateTypeCode;
 	
@@ -1086,10 +1092,12 @@ public class ApplicationServiceImpl implements ApplicationService {
 		attributes.put("DISTRICT", district);
 		attributes.put("INTERVIEW_EXPIRY_DATE", LocalDate.now().plusDays(interviewValidDays).format(formatter));
 		attributes.put("REVIEW_CONTENT", schInterviewDTO.getContent());
-        
+		
+		String emailTemplateTypeCode = getEmailTemplateByRole(application.getAssignedOfficerRole());
+        String subject = getSubjectByRole(application.getAssignedOfficerRole(), attributes, schInterviewDTO);
 		if (email != null) {
 			try {
-				sendEmail(email, schInterviewDTO.getSubject(), attributes, emailTemplateTypeCode);
+				sendEmail(email, subject, attributes, emailTemplateTypeCode);
 			} catch (Exception ex) {
 				logger.error("Failed to send email notification but continuing with interview scheduling: {}", ex.getMessage());			
 			}
@@ -1105,6 +1113,32 @@ public class ApplicationServiceImpl implements ApplicationService {
 			}
 		} else {
 			logger.warn("Phone number not available for the application");
+		}
+	}
+	
+	private String getEmailTemplateByRole(String assignedOfficerRole) {
+		if(CommonConstants.MVS_LEGAL_OFFICER_ROLE.equals(assignedOfficerRole) || CommonConstants.MVS_EXECUTIVE_DIRECTOR.equals(assignedOfficerRole)) {
+			return legalOfficerAndEdEmailTemplateTypeCode;
+		} else {
+			return emailTemplateTypeCode;
+		}
+	}
+	
+	private String getSubjectByRole(String assignedOfficerRole, Map<String, Object> attributes,
+			SchInterviewDTO schInterviewDTO) {
+		try {
+
+			if (CommonConstants.MVS_LEGAL_OFFICER_ROLE.equals(assignedOfficerRole)
+					|| CommonConstants.MVS_EXECUTIVE_DIRECTOR.equals(assignedOfficerRole)) {
+				InputStream subStream = templateGenerator.getTemplate(subjectTemplateTypeCode, attributes, "eng");
+				String subjectArtifact = IOUtils.toString(subStream, ENCODING);
+				return subjectArtifact;
+			} else {
+				return schInterviewDTO.getSubject();
+			}
+		} catch (Exception ex) {
+			logger.error("Failed to generate subject template, falling back to default subject: {}", ex.getMessage());
+			return schInterviewDTO.getSubject() != null ? schInterviewDTO.getSubject() : "Action Required – Personal Verification for Your Application";
 		}
 	}
 	
