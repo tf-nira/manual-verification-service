@@ -252,4 +252,27 @@ public class ApplicationController {
         
         return responseWrapper;
     }
+    
+    @GetMapping("/district-office/{districtName}")
+    @ApiResponses(value = { @ApiResponse(responseCode = "200", description = "OK"),
+            @ApiResponse(responseCode = "201", description = "Created", content = @Content(schema = @Schema(hidden = true))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(hidden = true))),
+            @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(hidden = true))),
+            @ApiResponse(responseCode = "404", description = "Not Found", content = @Content(schema = @Schema(hidden = true))) })
+    public ResponseWrapper<DistrictOfficeResponseDTO> getDistrictOfficeByName (@PathVariable("districtName") String districtName) {
+    	ResponseWrapper<DistrictOfficeResponseDTO> responseWrapper = new ResponseWrapper<DistrictOfficeResponseDTO>();
+    	responseWrapper.setId(CommonConstants.GET_DISTRICT_OFFICE_ID);
+    	responseWrapper.setVersion(CommonConstants.VERSION);
+    	try {
+    		responseWrapper.setResponse(applicationService.getDistrictOfficeByName(districtName));
+    	} catch (RequestException ex) {
+    		throw ex;
+    	} catch (Exception e) {
+    		throw new RequestException(ErrorCode.UNKNOWN_ERROR.getErrorCode(), 
+    				String.format(e.getMessage(), e.getLocalizedMessage()));
+    	}
+    	return responseWrapper;
+    }
+    
+    
 }
