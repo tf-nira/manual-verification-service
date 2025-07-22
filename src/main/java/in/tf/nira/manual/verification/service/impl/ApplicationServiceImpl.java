@@ -40,6 +40,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
@@ -2060,6 +2061,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 		logger.info("Completed processing applications with expired interview dates");;
 	}
 	
+	@Transactional(readOnly = true)
 	public DistrictOfficeResponseDTO getDistrictOfficeByName (String districtName) {
 		
 		if(districtName == null || districtName.trim().isEmpty()) {
