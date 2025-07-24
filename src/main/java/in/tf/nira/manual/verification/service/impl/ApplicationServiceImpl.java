@@ -160,7 +160,10 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 	@Value("${manual-verification.new.officer.email.template.code}")
 	private String newOfficerEmailTemplateTypeCode;
-	
+
+	@Value("#{${mosip.regproc.packet.classifier.tagging.agegroup.ranges}}")
+	private Map<String, String> ageGroupRanges;
+
 	private Map<String, List<OfficerDetailDTO>> officerDetailMap = new HashMap<>();
 	
 	private Map<String, String> schemajsonValue = null;
@@ -2082,7 +2085,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 		
 		return response;
 	}
-	
+
 	protected OfficerDetailDTO findOfficerByUserId(String userId) {
 	    // Search in all role maps
 	    for (Map.Entry<String, List<OfficerDetailDTO>> entry : officerDetailMap.entrySet()) {
@@ -2102,5 +2105,20 @@ public class ApplicationServiceImpl implements ApplicationService {
 	        return districtValue.substring(0, parenthesesIndex).trim();
 	    }
 	    return districtValue.trim();
+	}
+
+	@Override
+	public ConfigResponseDTO getApplicationConfig() {
+		ConfigResponseDTO response = new ConfigResponseDTO();
+		response.setAgeGroupRanges(getAgeGroupRanges());
+		return response;
+	}
+
+	public List<AgeGroupRangeDTO> getAgeGroupRanges() {
+		List<AgeGroupRangeDTO> ageGroupRangeDTO = new ArrayList<>();
+		for (Map.Entry<String, String> entry : ageGroupRanges.entrySet()) {
+			ageGroupRangeDTO.add(new AgeGroupRangeDTO(entry.getKey(), entry.getValue()));
+		}
+		return ageGroupRangeDTO;
 	}
 }

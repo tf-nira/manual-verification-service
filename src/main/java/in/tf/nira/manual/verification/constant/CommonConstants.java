@@ -23,6 +23,7 @@ public class CommonConstants {
 	public static final String CREATE_APP_ID = "tf.nira.app.create";
 	public static final String GET_USER_APP_ID = "tf.nira.user.app.get";
 	public static final String GET_APP_ID = "tf.nira.app.get";
+	public static final String GET_CONFIG_ID = "tf.nira.config.get";
 	public static final String UPDATE_APP_ID = "tf.nira.app.update";
 	public static final String SCHEDULE_APP_ID = "tf.nira.app.schedule";
 	public static final String UPLOAD_APP_ID = "tf.nira.app.upload";
