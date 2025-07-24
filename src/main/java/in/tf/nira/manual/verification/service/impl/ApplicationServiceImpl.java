@@ -1974,8 +1974,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 											.orElse(null);
 			prevOfficerInfo.merge(prevOfficer, 1, Integer::sum);
 
-			OfficerAssignment officerAssignment = officerAssignmentRepo.findByUserRole(CommonConstants.MVS_OFFICER_ROLE);
-			OfficerDetailDTO selectedOfficer = fetchOfficerForAssignment(CommonConstants.MVS_OFFICER_ROLE, officerAssignment, null, null);
+			OfficerAssignment officerAssignment = officerAssignmentRepo.findByUserRole(application.getAssignedOfficerRole());
+			OfficerDetailDTO selectedOfficer = fetchOfficerForAssignment(application.getAssignedOfficerRole(), officerAssignment, null, null);
 
 			if (selectedOfficer.getUserId().equals(application.getAssignedOfficerId())) {
 				int currentIndex = officers.indexOf(selectedOfficer);
