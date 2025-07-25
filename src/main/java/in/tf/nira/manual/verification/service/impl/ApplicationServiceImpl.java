@@ -1098,6 +1098,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         Map<String, Object> attributes = new HashMap<>();
 		attributes.put("APPLICATION_ID", application.getRegId());
 		attributes.put("MVS_CR_DATE", application.getCrDTimes().toLocalDate().format(formatter));
+		attributes.put("SERVICE", application.getService());
 		attributes.put("DISTRICT", district);
 		attributes.put("INTERVIEW_EXPIRY_DATE", LocalDate.now().plusDays(interviewValidDays).format(formatter));
 		attributes.put("REVIEW_CONTENT", schInterviewDTO.getContent());
