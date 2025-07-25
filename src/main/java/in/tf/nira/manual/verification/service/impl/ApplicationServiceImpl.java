@@ -146,6 +146,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 	@Value("${manual.verification.sms.template.code}")
 	private String smsTemplateTypeCode;
 	
+	@Value("${manual.verification.sms.template.code.legalofficer.ed}")
+	private String legalOfficerAndEdSmsTemplateTypeCode;
+	
 	@Value("${manual.verification.interview.valid.days}")
 	private int interviewValidDays;
 	
@@ -1117,7 +1120,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 		
 		if (phone != null) {
 			try {
-				sendSMS(phone, attributes);
+				String smsTemplateTypeCode = getSmsTemplateByRole(application.getAssignedOfficerRole());
+				sendSMS(phone, attributes, smsTemplateTypeCode);
 			} catch (Exception ex) {
 				logger.error("Failed to send sms notification but continuing with interview scheduling: {}", ex.getMessage());
 			}
@@ -1149,6 +1153,14 @@ public class ApplicationServiceImpl implements ApplicationService {
 		} catch (Exception ex) {
 			logger.error("Failed to generate subject template, falling back to default subject: {}", ex.getMessage());
 			return schInterviewDTO.getSubject() != null ? schInterviewDTO.getSubject() : "Action Required – Personal Verification for Your Application";
+		}
+	}
+	
+	private String getSmsTemplateByRole(String assignedOfficerRole) {
+		if(CommonConstants.MVS_LEGAL_OFFICER_ROLE.equals(assignedOfficerRole) || CommonConstants.MVS_EXECUTIVE_DIRECTOR.equals(assignedOfficerRole)) {
+			return legalOfficerAndEdSmsTemplateTypeCode;
+		} else {
+			return smsTemplateTypeCode;
 		}
 	}
 	
@@ -1414,7 +1426,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 	}
 	
 	
-	private void sendSMS(String phone, Map<String, Object> attributes) {
+	private void sendSMS(String phone, Map<String, Object> attributes, String smsTemplateTypeCode) {
 		logger.info("Sending SMS notification");
 		
 		try {
