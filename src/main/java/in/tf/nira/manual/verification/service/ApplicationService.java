@@ -17,4 +17,6 @@ public interface ApplicationService {
 	PageResponseDto<UserApplicationsResponse> searchApplications(SearchDto request);
 	DemographicDetailsDTO getDemographicDetails(String registrationId);
 	DocumentResponseDTO fetchDocument(DocumentRequestDTO documentRequest);
+	DistrictOfficeResponseDTO getDistrictOfficeByName (String district);
+	ConfigResponseDTO getApplicationConfig ();
 }

@@ -40,6 +40,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
@@ -55,6 +56,7 @@ import in.tf.nira.manual.verification.constant.StageCode;
 import in.tf.nira.manual.verification.dto.DemographicDetailsDTO.Document;
 import in.tf.nira.manual.verification.dto.DemographicDetailsDTO.LanguageValue;
 import in.tf.nira.manual.verification.dto.DemographicDetailsDTO.ProofDocument;
+import in.tf.nira.manual.verification.entity.DistrictOffice;
 import in.tf.nira.manual.verification.entity.MVSApplication;
 import in.tf.nira.manual.verification.entity.MVSApplicationHistory;
 import in.tf.nira.manual.verification.entity.OfficerAssignment;
@@ -62,6 +64,7 @@ import in.tf.nira.manual.verification.exception.ApiNotAccessibleException;
 import in.tf.nira.manual.verification.exception.RequestException;
 import in.tf.nira.manual.verification.helper.SearchHelper;
 import in.tf.nira.manual.verification.listener.Listener;
+import in.tf.nira.manual.verification.repository.DistrictOfficeRepository;
 import in.tf.nira.manual.verification.repository.MVSApplicationHistoryRepo;
 import in.tf.nira.manual.verification.repository.MVSApplicationRepo;
 import in.tf.nira.manual.verification.repository.OfficerAssignmentRepo;
@@ -134,8 +137,17 @@ public class ApplicationServiceImpl implements ApplicationService {
 	@Value("${manual.verification.email.template.code}")
 	private String emailTemplateTypeCode;
 	
+	@Value("${manual.verification.email.template.code.legalofficer.ed}")
+	private String legalOfficerAndEdEmailTemplateTypeCode;
+	
+	@Value("${manual.verification.subject.template.type.code}")
+	private String subjectTemplateTypeCode;
+	
 	@Value("${manual.verification.sms.template.code}")
 	private String smsTemplateTypeCode;
+	
+	@Value("${manual.verification.sms.template.code.legalofficer.ed}")
+	private String legalOfficerAndEdSmsTemplateTypeCode;
 	
 	@Value("${manual.verification.interview.valid.days}")
 	private int interviewValidDays;
@@ -151,7 +163,10 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 	@Value("${manual-verification.new.officer.email.template.code}")
 	private String newOfficerEmailTemplateTypeCode;
-	
+
+	@Value("#{${mosip.regproc.packet.classifier.tagging.agegroup.ranges}}")
+	private Map<String, String> ageGroupRanges;
+
 	private Map<String, List<OfficerDetailDTO>> officerDetailMap = new HashMap<>();
 	
 	private Map<String, String> schemajsonValue = null;
@@ -208,6 +223,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 	
 	@Autowired
 	private CountryRegionMapping countryRegionMapping;
+	
+	@Autowired
+	private DistrictOfficeRepository districtOfficeRepository;
 	
 	@PostConstruct
     public void runAtStartup() {
@@ -1083,13 +1101,16 @@ public class ApplicationServiceImpl implements ApplicationService {
         Map<String, Object> attributes = new HashMap<>();
 		attributes.put("APPLICATION_ID", application.getRegId());
 		attributes.put("MVS_CR_DATE", application.getCrDTimes().toLocalDate().format(formatter));
+		attributes.put("SERVICE", application.getService());
 		attributes.put("DISTRICT", district);
 		attributes.put("INTERVIEW_EXPIRY_DATE", LocalDate.now().plusDays(interviewValidDays).format(formatter));
 		attributes.put("REVIEW_CONTENT", schInterviewDTO.getContent());
-        
+		
+		String emailTemplateTypeCode = getEmailTemplateByRole(application.getAssignedOfficerRole());
+        String subject = getSubjectByRole(application.getAssignedOfficerRole(), attributes, schInterviewDTO);
 		if (email != null) {
 			try {
-				sendEmail(email, schInterviewDTO.getSubject(), attributes, emailTemplateTypeCode);
+				sendEmail(email, subject, attributes, emailTemplateTypeCode);
 			} catch (Exception ex) {
 				logger.error("Failed to send email notification but continuing with interview scheduling: {}", ex.getMessage());			
 			}
@@ -1099,12 +1120,47 @@ public class ApplicationServiceImpl implements ApplicationService {
 		
 		if (phone != null) {
 			try {
-				sendSMS(phone, attributes);
+				String smsTemplateTypeCode = getSmsTemplateByRole(application.getAssignedOfficerRole());
+				sendSMS(phone, attributes, smsTemplateTypeCode);
 			} catch (Exception ex) {
 				logger.error("Failed to send sms notification but continuing with interview scheduling: {}", ex.getMessage());
 			}
 		} else {
 			logger.warn("Phone number not available for the application");
+		}
+	}
+	
+	private String getEmailTemplateByRole(String assignedOfficerRole) {
+		if(CommonConstants.MVS_LEGAL_OFFICER_ROLE.equals(assignedOfficerRole) || CommonConstants.MVS_EXECUTIVE_DIRECTOR.equals(assignedOfficerRole)) {
+			return legalOfficerAndEdEmailTemplateTypeCode;
+		} else {
+			return emailTemplateTypeCode;
+		}
+	}
+	
+	private String getSubjectByRole(String assignedOfficerRole, Map<String, Object> attributes,
+			SchInterviewDTO schInterviewDTO) {
+		try {
+
+			if (CommonConstants.MVS_LEGAL_OFFICER_ROLE.equals(assignedOfficerRole)
+					|| CommonConstants.MVS_EXECUTIVE_DIRECTOR.equals(assignedOfficerRole)) {
+				InputStream subStream = templateGenerator.getTemplate(subjectTemplateTypeCode, attributes, "eng");
+				String subjectArtifact = IOUtils.toString(subStream, ENCODING);
+				return subjectArtifact;
+			} else {
+				return schInterviewDTO.getSubject();
+			}
+		} catch (Exception ex) {
+			logger.error("Failed to generate subject template, falling back to default subject: {}", ex.getMessage());
+			return schInterviewDTO.getSubject() != null ? schInterviewDTO.getSubject() : "Action Required – Personal Verification for Your Application";
+		}
+	}
+	
+	private String getSmsTemplateByRole(String assignedOfficerRole) {
+		if(CommonConstants.MVS_LEGAL_OFFICER_ROLE.equals(assignedOfficerRole) || CommonConstants.MVS_EXECUTIVE_DIRECTOR.equals(assignedOfficerRole)) {
+			return legalOfficerAndEdSmsTemplateTypeCode;
+		} else {
+			return smsTemplateTypeCode;
 		}
 	}
 	
@@ -1370,7 +1426,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 	}
 	
 	
-	private void sendSMS(String phone, Map<String, Object> attributes) {
+	private void sendSMS(String phone, Map<String, Object> attributes, String smsTemplateTypeCode) {
 		logger.info("Sending SMS notification");
 		
 		try {
@@ -1934,8 +1990,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 											.orElse(null);
 			prevOfficerInfo.merge(prevOfficer, 1, Integer::sum);
 
-			OfficerAssignment officerAssignment = officerAssignmentRepo.findByUserRole(CommonConstants.MVS_OFFICER_ROLE);
-			OfficerDetailDTO selectedOfficer = fetchOfficerForAssignment(CommonConstants.MVS_OFFICER_ROLE, officerAssignment, null, null);
+			OfficerAssignment officerAssignment = officerAssignmentRepo.findByUserRole(application.getAssignedOfficerRole());
+			OfficerDetailDTO selectedOfficer = fetchOfficerForAssignment(application.getAssignedOfficerRole(), officerAssignment, null, null);
 
 			if (selectedOfficer.getUserId().equals(application.getAssignedOfficerId())) {
 				int currentIndex = officers.indexOf(selectedOfficer);
@@ -2019,5 +2075,63 @@ public class ApplicationServiceImpl implements ApplicationService {
 		}
 		
 		logger.info("Completed processing applications with expired interview dates");;
+	}
+	
+	@Transactional(readOnly = true)
+	public DistrictOfficeResponseDTO getDistrictOfficeByName (String districtName) {
+		
+		if(districtName == null || districtName.trim().isEmpty()) {
+			throw new RequestException(ErrorCode.INVALID_REQUEST.getErrorCode(), ErrorCode.INVALID_REQUEST.getErrorMessage());
+		}
+		
+		Optional<DistrictOffice> districtOfficeOpt = districtOfficeRepository.findByDistrictNameIgnoreCase(districtName.trim());
+		
+		if(!districtOfficeOpt.isPresent()) {
+			throw new RequestException(ErrorCode.DATA_NOT_FOUND.getErrorCode(), ErrorCode.DATA_NOT_FOUND.getErrorMessage());
+		}
+		
+		DistrictOffice districtOffice = districtOfficeOpt.get();
+		
+		DistrictOfficeResponseDTO response = new DistrictOfficeResponseDTO();
+		response.setDistrictOfficeCode(districtOffice.getDistrictOfficeCode());
+		response.setDistrictOfficeName(districtOffice.getDistrictOfficeName());
+		
+		return response;
+	}
+
+	protected OfficerDetailDTO findOfficerByUserId(String userId) {
+	    // Search in all role maps
+	    for (Map.Entry<String, List<OfficerDetailDTO>> entry : officerDetailMap.entrySet()) {
+	        for (OfficerDetailDTO officer : entry.getValue()) {
+	            if (userId.equals(officer.getUserId())) {
+	                return officer;
+	            }
+	        }
+	    }
+	    return null;
+	}
+	
+	protected String extractDistrictName(String districtValue) {
+	    // Remove anything in parentheses and trim
+	    int parenthesesIndex = districtValue.indexOf('(');
+	    if (parenthesesIndex != -1) {
+	        return districtValue.substring(0, parenthesesIndex).trim();
+	    }
+	    return districtValue.trim();
+	}
+
+	@Override
+	public ConfigResponseDTO getApplicationConfig() {
+		ConfigResponseDTO response = new ConfigResponseDTO();
+		response.setAgeGroupRanges(getAgeGroupRanges());
+		return response;
+	}
+
+	public List<AgeGroupRangeDTO> getAgeGroupRanges() {
+		List<AgeGroupRangeDTO> ageGroupRangeDTO = new ArrayList<>();
+		for (Map.Entry<String, String> entry : ageGroupRanges.entrySet()) {
+			ageGroupRangeDTO.add(new AgeGroupRangeDTO(entry.getKey(), entry.getValue()));
+		}
+		return ageGroupRangeDTO;
 	}
 }
