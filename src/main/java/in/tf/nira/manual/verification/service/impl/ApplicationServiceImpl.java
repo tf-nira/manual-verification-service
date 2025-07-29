@@ -164,7 +164,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 	@Value("${manual-verification.new.officer.email.template.code}")
 	private String newOfficerEmailTemplateTypeCode;
 
-	@Value("#{${mosip.regproc.packet.classifier.tagging.agegroup.ranges}}")
+	@Value("#{${manual.verification.tagging.agegroup.ranges}}")
 	private Map<String, String> ageGroupRanges;
 
 	private Map<String, List<OfficerDetailDTO>> officerDetailMap = new HashMap<>();
