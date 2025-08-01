@@ -164,7 +164,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 	@Value("${manual-verification.new.officer.email.template.code}")
 	private String newOfficerEmailTemplateTypeCode;
 
-	@Value("#{${manual.verification.tagging.agegroup.ranges}}")
+	@Value("#{${mosip.regproc.packet.classifier.tagging.agegroup.ranges}}")
 	private Map<String, String> ageGroupRanges;
 
 	private Map<String, List<OfficerDetailDTO>> officerDetailMap = new HashMap<>();
@@ -465,6 +465,70 @@ public class ApplicationServiceImpl implements ApplicationService {
 					escalateApplication(application, CommonConstants.MVS_LEGAL_OFFICER_ROLE,
 							StageCode.ASSIGNED_TO_LEGAL_OFFICER.getStage(), request, null, null);
 				}
+				if (request.getSelectedOfficerLevel() != null && 
+						request.getSelectedOfficerLevel().equals(CommonConstants.MVS_DISTRICT_OR_INTERNATIONAL_OFFICER_ROLE)) {
+					ApplicationDetailsResponse appResponse = getApplicationDetails(application, false, false);
+					String nin = appResponse.getDemographics().get("NIN");
+					logger.info("NIN for the Application ID {} is: {}", applicationId, nin);
+					
+					String residenceStatus;
+					
+					if(nin != null) {
+						DemographicDetailsDTO demographicDetailsDTO = getDemographicDetails(nin);
+						residenceStatus = demographicDetailsDTO.getIdentity().getResidenceStatus().get(0).getValue();
+						
+						logger.info("Residence Status for Application ID {} is : {}", applicationId, residenceStatus);
+					} else {
+						logger.info("NIN is null for Application ID {}, thus cannot escalate the application");
+						break;
+					}
+					
+					if(residenceStatus != null && !residenceStatus.trim().equals("")
+							&& !residenceStatus.isEmpty()
+							&& residenceStatus.equalsIgnoreCase(CommonConstants.OUTSIDE_UGANDA)) {
+						nin = appResponse.getDemographics().get("NIN");
+						
+						logger.info("NIN for the Application ID {} is: {}", applicationId, nin);
+						
+						if(nin != null) {
+							DemographicDetailsDTO demographicDetailsDTO = getDemographicDetails(nin);
+							String foreignCountry = demographicDetailsDTO.getIdentity().getApplicantForeignResidenceCountry().get(0).getValue();
+							String region = countryRegionMapping.getRegionForCountry(foreignCountry);
+							
+							logger.info("Application ID {} escalating to international officer for country: {} (region: {})", applicationId, foreignCountry, region);
+							
+							escalateApplication(application, CommonConstants.MVS_INTERNATIONAL_OFFICER,
+								StageCode.ASSIGNED_TO_MVS_INTERNATIONAL_OFFICER.getStage(), request, null, region);
+						} else {
+							logger.info("NIN is null for Application ID {}, thus cannot escalate the application", applicationId);
+						}
+						
+					} else if(residenceStatus != null && !residenceStatus.trim().equals("") 
+							&& !residenceStatus.isEmpty() 
+							&& residenceStatus.equalsIgnoreCase(CommonConstants.INSIDE_UGANDA)) {
+						nin = appResponse.getDemographics().get("NIN");
+						
+						logger.info("NIN for Application ID {} is: {}", applicationId, nin);
+						
+						if(nin != null) {
+							DemographicDetailsDTO demographicDetailsDTO = getDemographicDetails(nin);
+							String district = demographicDetailsDTO.getIdentity().getApplicantPlaceOfResidenceDistrict().get(0).getValue();
+							
+							logger.info("Extracted district value is: {}", district);
+							
+							logger.info("Application ID {} escalating to {} district", applicationId, district);
+							
+							escalateApplication(application, CommonConstants.MVS_DISTRICT_OFFICER_ROLE,
+									StageCode.ASSIGNED_TO_DISTRICT_OFFICER.getStage(), request, district, null);
+						} else {
+							logger.info("NIN is null for Application ID {}, thus cannot escalate the application", applicationId);
+						}
+						
+					} else if(residenceStatus == null){
+						logger.info("Residence status for NIN {} is null thus cannot escalate the application", appResponse.getDemographics().get("NIN"));
+					}
+				}
+				
 				else if(request.getSelectedOfficerLevel() != null && request.getSelectedOfficerLevel().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE) ||
 						(request.getInsufficientDocuments() != null && request.getInsufficientDocuments())) {
 					ApplicationDetailsResponse appResponse = getApplicationDetails(application, false, false);

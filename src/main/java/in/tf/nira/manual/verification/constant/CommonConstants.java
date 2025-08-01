@@ -40,6 +40,9 @@ public class CommonConstants {
 	public static final String PACKET_MANAGER_REQUEST_VERSION = "v1";
 	
 	public static final String OUTSIDE_UGANDA="Outside Uganda";
+	public static final String INSIDE_UGANDA="Inside Uganda";
+	//Only to determine the role for escalating the application based on the residence status
+	public static final String MVS_DISTRICT_OR_INTERNATIONAL_OFFICER_ROLE="MVS_DISTRICT_OR_INTERNATIONAL_OFFICER_ROLE";
 	public static final String INTERNATIONAL_ADDRESS ="international";
 	
 	//id-repo
