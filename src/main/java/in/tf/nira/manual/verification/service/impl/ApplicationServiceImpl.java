@@ -164,7 +164,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 	@Value("${manual-verification.new.officer.email.template.code}")
 	private String newOfficerEmailTemplateTypeCode;
 
-	@Value("#{${manual.verification.tagging.agegroup.ranges}}")
+	@Value("#{${mosip.regproc.packet.classifier.tagging.agegroup.ranges}}")
 	private Map<String, String> ageGroupRanges;
 
 	private Map<String, List<OfficerDetailDTO>> officerDetailMap = new HashMap<>();
@@ -465,6 +465,70 @@ public class ApplicationServiceImpl implements ApplicationService {
 					escalateApplication(application, CommonConstants.MVS_LEGAL_OFFICER_ROLE,
 							StageCode.ASSIGNED_TO_LEGAL_OFFICER.getStage(), request, null, null);
 				}
+				if (request.getSelectedOfficerLevel() != null && 
+						request.getSelectedOfficerLevel().equals(CommonConstants.MVS_DISTRICT_OR_INTERNATIONAL_OFFICER_ROLE)) {
+					ApplicationDetailsResponse appResponse = getApplicationDetails(application, false, false);
+					String nin = appResponse.getDemographics().get("NIN");
+					logger.info("NIN for the Application ID {} is: {}", applicationId, nin);
+					
+					String residenceStatus;
+					
+					if(nin != null) {
+						DemographicDetailsDTO demographicDetailsDTO = getDemographicDetails(nin);
+						residenceStatus = demographicDetailsDTO.getIdentity().getResidenceStatus().get(0).getValue();
+						
+						logger.info("Residence Status for Application ID {} is : {}", applicationId, residenceStatus);
+					} else {
+						logger.info("NIN is null for Application ID {}, thus cannot escalate the application");
+						break;
+					}
+					
+					if(residenceStatus != null && !residenceStatus.trim().equals("")
+							&& !residenceStatus.isEmpty()
+							&& residenceStatus.equalsIgnoreCase(CommonConstants.OUTSIDE_UGANDA)) {
+						nin = appResponse.getDemographics().get("NIN");
+						
+						logger.info("NIN for the Application ID {} is: {}", applicationId, nin);
+						
+						if(nin != null) {
+							DemographicDetailsDTO demographicDetailsDTO = getDemographicDetails(nin);
+							String foreignCountry = demographicDetailsDTO.getIdentity().getApplicantForeignResidenceCountry().get(0).getValue();
+							String region = countryRegionMapping.getRegionForCountry(foreignCountry);
+							
+							logger.info("Application ID {} escalating to international officer for country: {} (region: {})", applicationId, foreignCountry, region);
+							
+							escalateApplication(application, CommonConstants.MVS_INTERNATIONAL_OFFICER,
+								StageCode.ASSIGNED_TO_MVS_INTERNATIONAL_OFFICER.getStage(), request, null, region);
+						} else {
+							logger.info("NIN is null for Application ID {}, thus cannot escalate the application", applicationId);
+						}
+						
+					} else if(residenceStatus != null && !residenceStatus.trim().equals("") 
+							&& !residenceStatus.isEmpty() 
+							&& residenceStatus.equalsIgnoreCase(CommonConstants.INSIDE_UGANDA)) {
+						nin = appResponse.getDemographics().get("NIN");
+						
+						logger.info("NIN for Application ID {} is: {}", applicationId, nin);
+						
+						if(nin != null) {
+							DemographicDetailsDTO demographicDetailsDTO = getDemographicDetails(nin);
+							String district = demographicDetailsDTO.getIdentity().getApplicantPlaceOfResidenceDistrict().get(0).getValue();
+							
+							logger.info("Extracted district value is: {}", district);
+							
+							logger.info("Application ID {} escalating to {} district", applicationId, district);
+							
+							escalateApplication(application, CommonConstants.MVS_DISTRICT_OFFICER_ROLE,
+									StageCode.ASSIGNED_TO_DISTRICT_OFFICER.getStage(), request, district, null);
+						} else {
+							logger.info("NIN is null for Application ID {}, thus cannot escalate the application", applicationId);
+						}
+						
+					} else if(residenceStatus == null){
+						logger.info("Residence status for NIN {} is null thus cannot escalate the application", appResponse.getDemographics().get("NIN"));
+					}
+				}
+				
 				else if(request.getSelectedOfficerLevel() != null && request.getSelectedOfficerLevel().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE) ||
 						(request.getInsufficientDocuments() != null && request.getInsufficientDocuments())) {
 					ApplicationDetailsResponse appResponse = getApplicationDetails(application, false, false);
@@ -1972,7 +2036,16 @@ public class ApplicationServiceImpl implements ApplicationService {
 		logger.info("Checking applications for re-assignment");
 
 		LocalDateTime dateThreshold = LocalDateTime.now().minusDays(reassignmentDays);
-		List<OfficerDetailDTO> officers = officerDetailMap.get(CommonConstants.MVS_OFFICER_ROLE);
+		List<String> requiredRoles = Arrays.asList(CommonConstants.MVS_OFFICER_ROLE, CommonConstants.MVS_SUPERVISOR_ROLE, 
+										CommonConstants.MVS_LEGAL_OFFICER_ROLE);
+		
+		List<OfficerDetailDTO> officers = requiredRoles
+											.stream()
+											.map(officerDetailMap::get)
+											.filter(Objects::nonNull)
+											.flatMap(List::stream)
+											.collect(Collectors.toList());
+											
 		List<MVSApplication> applications = mVSApplicationRepo.findRecordsOlderThanXDays(dateThreshold);
 
 		Map<OfficerDetailDTO, Integer> prevOfficerInfo = new HashMap<>();
@@ -1992,11 +2065,34 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 			OfficerAssignment officerAssignment = officerAssignmentRepo.findByUserRole(application.getAssignedOfficerRole());
 			OfficerDetailDTO selectedOfficer = fetchOfficerForAssignment(application.getAssignedOfficerRole(), officerAssignment, null, null);
-
-			if (selectedOfficer.getUserId().equals(application.getAssignedOfficerId())) {
-				int currentIndex = officers.indexOf(selectedOfficer);
-				selectedOfficer = officers.get((currentIndex + 1) % officers.size());
-				officerAssignment.setUserId(selectedOfficer.getUserId());
+			
+			if(selectedOfficer.getUserId().equals(application.getAssignedOfficerId())) {
+				//filtering the officers with same role as the application requires
+				String roleNeeded = application.getAssignedOfficerRole();
+				List<OfficerDetailDTO> sameRoleOfficers = officers.stream()
+															.filter(o -> roleNeeded.equals(o.getUserRole()))
+															.collect(Collectors.toList());
+				
+				int currentIndex = -1;
+				
+				for(int i = 0; i < sameRoleOfficers.size(); i++) {
+					if(sameRoleOfficers.get(i).getUserId().equals(selectedOfficer.getUserId())) {
+						currentIndex = i;
+						break;
+					}
+				}
+				
+				if(currentIndex != -1 && !sameRoleOfficers.isEmpty()) {
+					int nextIndex = (currentIndex + 1) % sameRoleOfficers.size();
+					selectedOfficer = sameRoleOfficers.get(nextIndex);
+					officerAssignment.setUserId(selectedOfficer.getUserId());
+				}
+				
+				if(currentIndex == -1 && !sameRoleOfficers.isEmpty()) {
+					//FallBack : assign to the first officer with same role
+					selectedOfficer = sameRoleOfficers.get(0);
+					officerAssignment.setUserId(selectedOfficer.getUserId());
+				}
 			}
 
 			application.setAssignedOfficerId(selectedOfficer.getUserId());

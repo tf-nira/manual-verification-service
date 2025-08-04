@@ -569,6 +569,8 @@ public class DemographicDetailsDTO {
 
         @JsonProperty("applicantForeignResidenceAddress")
         private List<LanguageValue> applicantForeignResidenceAddress;
+        
+        private List<LanguageValue> applicantForeignResidenceCountry;
 
         //all the document categories as mentioned in prereg ui spec
         
