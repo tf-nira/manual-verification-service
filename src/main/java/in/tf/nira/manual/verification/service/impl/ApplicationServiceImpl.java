@@ -2036,7 +2036,16 @@ public class ApplicationServiceImpl implements ApplicationService {
 		logger.info("Checking applications for re-assignment");
 
 		LocalDateTime dateThreshold = LocalDateTime.now().minusDays(reassignmentDays);
-		List<OfficerDetailDTO> officers = officerDetailMap.get(CommonConstants.MVS_OFFICER_ROLE);
+		List<String> requiredRoles = Arrays.asList(CommonConstants.MVS_OFFICER_ROLE, CommonConstants.MVS_SUPERVISOR_ROLE, 
+										CommonConstants.MVS_LEGAL_OFFICER_ROLE);
+		
+		List<OfficerDetailDTO> officers = requiredRoles
+											.stream()
+											.map(officerDetailMap::get)
+											.filter(Objects::nonNull)
+											.flatMap(List::stream)
+											.collect(Collectors.toList());
+											
 		List<MVSApplication> applications = mVSApplicationRepo.findRecordsOlderThanXDays(dateThreshold);
 
 		Map<OfficerDetailDTO, Integer> prevOfficerInfo = new HashMap<>();
@@ -2056,11 +2065,34 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 			OfficerAssignment officerAssignment = officerAssignmentRepo.findByUserRole(application.getAssignedOfficerRole());
 			OfficerDetailDTO selectedOfficer = fetchOfficerForAssignment(application.getAssignedOfficerRole(), officerAssignment, null, null);
-
-			if (selectedOfficer.getUserId().equals(application.getAssignedOfficerId())) {
-				int currentIndex = officers.indexOf(selectedOfficer);
-				selectedOfficer = officers.get((currentIndex + 1) % officers.size());
-				officerAssignment.setUserId(selectedOfficer.getUserId());
+			
+			if(selectedOfficer.getUserId().equals(application.getAssignedOfficerId())) {
+				//filtering the officers with same role as the application requires
+				String roleNeeded = application.getAssignedOfficerRole();
+				List<OfficerDetailDTO> sameRoleOfficers = officers.stream()
+															.filter(o -> roleNeeded.equals(o.getUserRole()))
+															.collect(Collectors.toList());
+				
+				int currentIndex = -1;
+				
+				for(int i = 0; i < sameRoleOfficers.size(); i++) {
+					if(sameRoleOfficers.get(i).getUserId().equals(selectedOfficer.getUserId())) {
+						currentIndex = i;
+						break;
+					}
+				}
+				
+				if(currentIndex != -1 && !sameRoleOfficers.isEmpty()) {
+					int nextIndex = (currentIndex + 1) % sameRoleOfficers.size();
+					selectedOfficer = sameRoleOfficers.get(nextIndex);
+					officerAssignment.setUserId(selectedOfficer.getUserId());
+				}
+				
+				if(currentIndex == -1 && !sameRoleOfficers.isEmpty()) {
+					//FallBack : assign to the first officer with same role
+					selectedOfficer = sameRoleOfficers.get(0);
+					officerAssignment.setUserId(selectedOfficer.getUserId());
+				}
 			}
 
 			application.setAssignedOfficerId(selectedOfficer.getUserId());
