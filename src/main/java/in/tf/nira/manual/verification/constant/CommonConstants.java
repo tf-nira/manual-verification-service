@@ -27,7 +27,7 @@ public class CommonConstants {
 	public static final String SCHEDULE_APP_ID = "tf.nira.app.schedule";
 	public static final String UPLOAD_APP_ID = "tf.nira.app.upload";
 	public static final String GET_NIN_DEMOGRAPHIC = "tf.nira.app.get.demographic";
-
+	public static final String GET_MATCHED_ID_DEMOGRAPHICS = "tf.nira.app.matchedId.demographic";
 	//service
 	public static final String UPDATE = "UPDATE";
 	

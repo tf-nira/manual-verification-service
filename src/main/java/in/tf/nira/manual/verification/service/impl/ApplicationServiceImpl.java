@@ -262,6 +262,10 @@ public class ApplicationServiceImpl implements ApplicationService {
 			//set assignedDate
 			mVSApplication.setAssignedDate(LocalDateTime.now());
 			
+			//for testing harcoding the matched reg_ids
+			List<String> regIds =Arrays.asList("10115100090004520250805124912" , "10115100070001320250723092851" , "10115100020017720250708085531");
+			mVSApplication.setMatchedRegIds(regIds);
+			
 			mVSApplicationRepo.save(mVSApplication);
 			
 			if(officerAssignment.getCrDTimes() == null) {
@@ -751,6 +755,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 	    userApp.setStatusComment(app.getStatusComment());
 	    userApp.setFoundLink(app.getFoundLink());
 	    userApp.setAgeGroup(app.getAgeGroup());
+	    userApp.setMatchedRegIds(app.getMatchedRegIds());
 	    
 	    if (app.getEscalationDetails() != null) {
 	        app.getEscalationDetails().forEach(esc -> {
@@ -2027,5 +2032,94 @@ public class ApplicationServiceImpl implements ApplicationService {
 		}
 		
 		logger.info("Completed processing applications with expired interview dates");;
+	}
+	
+	protected OfficerDetailDTO findOfficerByUserId(String userId) {
+	    // Search in all role maps
+	    for (Map.Entry<String, List<OfficerDetailDTO>> entry : officerDetailMap.entrySet()) {
+	        for (OfficerDetailDTO officer : entry.getValue()) {
+	            if (userId.equals(officer.getUserId())) {
+	                return officer;
+	            }
+	        }
+	    }
+	    return null;
+	}
+	
+	protected String extractDistrictName(String districtValue) {
+	    // Remove anything in parentheses and trim
+	    int parenthesesIndex = districtValue.indexOf('(');
+	    if (parenthesesIndex != -1) {
+	        return districtValue.substring(0, parenthesesIndex).trim();
+	    }
+	    return districtValue.trim();
+	}
+
+	public MatchedRegIdDTO fetchMatchedRegIdDemographics (String registrationId) {
+		logger.info("Fetching the demographic details for the matched regId : {}", registrationId);
+		
+		DemographicDetailsDTO demoDetails = getDemographicDetailByRegistartionId(registrationId);
+		
+		if(demoDetails == null || demoDetails.getIdentity() == null) {
+			throw new RequestException("IDENTITY_NOT_FOUND", "Demographic Identity not found for registartion Id" 
+					+ registrationId);
+		}
+		
+		DemographicDetailsDTO.Identity identity = demoDetails.getIdentity();
+		MatchedRegIdDTO matched = new MatchedRegIdDTO();
+		matched.setGivenName(getFirstValue(identity.getGivenName()));
+		matched.setSurname(getFirstValue(identity.getSurname()));
+		matched.setGender(getFirstValue(identity.getGender()));
+		matched.setDateOfBirth(identity.getDateOfBirth());
+		matched.setPhone(identity.getPhone());
+		matched.setEmail(identity.getEmail());
+		
+		return matched;
+		
+	}
+	
+	private DemographicDetailsDTO getDemographicDetailByRegistartionId(String registrationId) {
+		logger.info("Fetching demographic details from idRepo for regId {}",registrationId);
+		
+		String url =idRepoUrl + registrationId;
+		
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		HttpEntity<String> entity = new HttpEntity<>(null, headers);
+		
+		try {
+			ResponseEntity<ResponseWrapper<DemographicDetailsDTO>> responseEntity = restTemplate.exchange(
+					url, HttpMethod.GET, entity,
+					new ParameterizedTypeReference<ResponseWrapper<DemographicDetailsDTO>>() {
+					});
+			
+			if (responseEntity.getBody() == null) {
+				logger.error("Failed to get details from idrepo. Status Code : {}", responseEntity.getStatusCodeValue());
+				throw new RequestException(ErrorCode.IDREPO_FETCH_FAILED.getErrorCode(),
+						ErrorCode.IDREPO_FETCH_FAILED.getErrorMessage() + "with status code : "
+						+responseEntity.getStatusCodeValue());
+			}
+			
+			ResponseWrapper<DemographicDetailsDTO> responseWrapper = responseEntity.getBody();
+			
+			if(responseWrapper.getErrors() != null && !responseWrapper.getErrors().isEmpty()) {
+				logger.error("Id repo fetch failed for registration id {} : {}", registrationId,
+						responseWrapper.getErrors().get(0));
+				throw new RequestException(ErrorCode.INVALID_IDREPO_RESPONSE.getErrorCode(),
+						ErrorCode.INVALID_IDREPO_RESPONSE.getErrorMessage() + "with error : " +
+						responseWrapper.getErrors().get(0));
+			}
+			
+			return responseWrapper.getResponse();
+		} catch(RestClientException e) {
+			logger.error("Failed to get ersponse from Id repo : {}", e);
+			throw new RequestException(ErrorCode.IDREPO_FETCH_FAILED.getErrorCode(),
+					ErrorCode.IDREPO_FETCH_FAILED.getErrorMessage() + "with error : "
+					+ e.getMessage());
+		}
+	}
+	
+	private String getFirstValue(List<DemographicDetailsDTO.LanguageValue> list) {
+		return (list != null && !list.isEmpty())?list.get(0).getValue() : null;
 	}
 }
