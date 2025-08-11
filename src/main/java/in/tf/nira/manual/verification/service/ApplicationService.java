@@ -17,5 +17,5 @@ public interface ApplicationService {
 	PageResponseDto<UserApplicationsResponse> searchApplications(SearchDto request);
 	DemographicDetailsDTO getDemographicDetails(String registrationId);
 	DocumentResponseDTO fetchDocument(DocumentRequestDTO documentRequest);
-	MatchedRegIdDTO fetchMatchedRegIdDemographics(String registartionId);
+	DemographicDetailsDTO.Identity fetchMatchedRegIdDemographics(String registartionId);
 }

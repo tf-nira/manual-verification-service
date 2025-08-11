@@ -2055,7 +2055,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 	    return districtValue.trim();
 	}
 
-	public MatchedRegIdDTO fetchMatchedRegIdDemographics (String registrationId) {
+	
+	public DemographicDetailsDTO.Identity fetchMatchedRegIdDemographics (String registrationId) {
 		logger.info("Fetching the demographic details for the matched regId : {}", registrationId);
 		
 		DemographicDetailsDTO demoDetails = getDemographicDetailByRegistartionId(registrationId);
@@ -2066,15 +2067,15 @@ public class ApplicationServiceImpl implements ApplicationService {
 		}
 		
 		DemographicDetailsDTO.Identity identity = demoDetails.getIdentity();
-		MatchedRegIdDTO matched = new MatchedRegIdDTO();
-		matched.setGivenName(getFirstValue(identity.getGivenName()));
-		matched.setSurname(getFirstValue(identity.getSurname()));
-		matched.setGender(getFirstValue(identity.getGender()));
-		matched.setDateOfBirth(identity.getDateOfBirth());
-		matched.setPhone(identity.getPhone());
-		matched.setEmail(identity.getEmail());
+//		MatchedRegIdDTO matched = new MatchedRegIdDTO();
+//		matched.setGivenName(getFirstValue(identity.getGivenName()));
+//		matched.setSurname(getFirstValue(identity.getSurname()));
+//		matched.setGender(getFirstValue(identity.getGender()));
+//		matched.setDateOfBirth(identity.getDateOfBirth());
+//		matched.setPhone(identity.getPhone());
+//		matched.setEmail(identity.getEmail());
 		
-		return matched;
+		return identity;
 		
 	}
 	
