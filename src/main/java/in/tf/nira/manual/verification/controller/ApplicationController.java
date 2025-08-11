@@ -296,15 +296,15 @@ public class ApplicationController {
 		return responseWrapper;
 	}
     
-	@PreAuthorize("hasAnyRole(@authorizedRoles.getFetchDeomgraphicDetails())")
+	//@PreAuthorize("hasAnyRole(@authorizedRoles.getFetchDeomgraphicDetails())")
 	@GetMapping("/matched-id/demographics/{registrationId}")
 	@ApiResponses(value = { @ApiResponse(responseCode = "200", description = "OK"),
 			@ApiResponse(responseCode = "201", description = "Created", content = @Content(schema = @Schema(hidden = true))),
 			@ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(hidden = true))),
 			@ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(hidden = true))),
 			@ApiResponse(responseCode = "404", description = "Not Found", content = @Content(schema = @Schema(hidden = true))) })
-	public ResponseWrapper<MatchedRegIdDTO> fetchMatchedIdDemographics(@PathVariable String registrationId) {
-		ResponseWrapper<MatchedRegIdDTO> responseWrapper = new ResponseWrapper<MatchedRegIdDTO>();
+	public ResponseWrapper<DemographicDetailsDTO.Identity> fetchMatchedIdDemographics(@PathVariable String registrationId) {
+		ResponseWrapper<DemographicDetailsDTO.Identity> responseWrapper = new ResponseWrapper<DemographicDetailsDTO.Identity>();
 		responseWrapper.setId(CommonConstants.GET_MATCHED_ID_DEMOGRAPHICS);
 		responseWrapper.setVersion(CommonConstants.VERSION);
 		try {
