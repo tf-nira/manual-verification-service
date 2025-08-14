@@ -115,4 +115,17 @@ public class MVSApplication {
 	@Column(name="matched_reg_ids", columnDefinition="text[]")
 	private List<String> matchedRegIds;
 	
+	@Column(name = "surname")
+	private String surname;
+	
+	@Column(name = "given_name")
+	private String givenName;
+	
+	@Column(name = "date_of_birth")
+	private String dateOfBirth;
+
+	@Column(name = "enrolment_district")
+	private String applicantPlaceOfEnrolmentDistrict;
+	
+	
 }
