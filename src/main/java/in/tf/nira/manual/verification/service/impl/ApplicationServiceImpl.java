@@ -275,8 +275,11 @@ public class ApplicationServiceImpl implements ApplicationService {
 			mVSApplication.setAssignedDate(LocalDateTime.now());
 			
 			//for testing harcoding the matched reg_ids
-			List<String> regIds =Arrays.asList("10115100090004520250805124912" , "10115100070001320250723092851" , "10115100020017720250708085531");
-			mVSApplication.setMatchedRegIds(regIds);
+//			List<String> regIds =Arrays.asList("10115100090004520250805124912" , "10115100070001320250723092851" , "10115100020017720250708085531");
+//			mVSApplication.setMatchedRegIds(regIds);
+			
+			mVSApplication.setMatchedRegIds(verifyRequest.getMatchedRegIds());
+			logger.info("Received matched reg ids : {}",verifyRequest.getMatchedRegIds());
 			
 			mVSApplicationRepo.save(mVSApplication);
 			
