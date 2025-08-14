@@ -281,6 +281,12 @@ public class ApplicationServiceImpl implements ApplicationService {
 			mVSApplication.setMatchedRegIds(verifyRequest.getMatchedRegIds());
 			logger.info("Received matched reg ids : {}",verifyRequest.getMatchedRegIds());
 			
+			mVSApplication.setSurname(verifyRequest.getSurname());
+			mVSApplication.setGivenName(verifyRequest.getGivenName());
+			mVSApplication.setDateOfBirth(verifyRequest.getDateOfBirth());
+			mVSApplication.setApplicantPlaceOfEnrolmentDistrict(verifyRequest.getApplicantPlaceOfEnrolmentDistrict());;
+			
+			
 			mVSApplicationRepo.save(mVSApplication);
 			
 			if(officerAssignment.getCrDTimes() == null) {
