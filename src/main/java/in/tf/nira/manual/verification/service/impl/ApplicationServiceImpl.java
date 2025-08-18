@@ -12,6 +12,7 @@ import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -283,7 +284,21 @@ public class ApplicationServiceImpl implements ApplicationService {
 			
 			mVSApplication.setSurname(verifyRequest.getSurname());
 			mVSApplication.setGivenName(verifyRequest.getGivenName());
-			mVSApplication.setDateOfBirth(verifyRequest.getDateOfBirth());
+			
+			//getting the dob as string then parsing it into Local Date.
+			
+			String dobStr = verifyRequest.getDateOfBirth();
+			LocalDateTime dob =null;
+			
+			try {
+				DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+				LocalDate date = LocalDate.parse(dobStr, formatter);
+				dob = date.atStartOfDay();
+			} catch (DateTimeParseException ex) {
+				logger.info("Invalid date format for date of birth: {}", dobStr);
+				logger.info("Exception parsing the date of birth, dob will be set to null");
+			}
+			mVSApplication.setDateOfBirth(dob);
 			mVSApplication.setApplicantPlaceOfEnrolmentDistrict(verifyRequest.getApplicantPlaceOfEnrolmentDistrict());;
 			
 			
@@ -857,6 +872,12 @@ public class ApplicationServiceImpl implements ApplicationService {
 				}
 	        });
 	    }
+	    
+	    userApp.setSurname(app.getSurname());
+	    userApp.setGivenName(app.getGivenName());
+	    userApp.setDateOfBirth(app.getDateOfBirth());
+	    userApp.setResDistrict(app.getResDistrict());
+	    userApp.setApplicantPlaceOfEnrolmentDistrict(app.getApplicantPlaceOfEnrolmentDistrict());
 	    
 	    return userApp;
 	}

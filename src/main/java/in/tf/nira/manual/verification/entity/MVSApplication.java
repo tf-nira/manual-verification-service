@@ -1,5 +1,6 @@
 package in.tf.nira.manual.verification.entity;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -122,7 +123,7 @@ public class MVSApplication {
 	private String givenName;
 	
 	@Column(name = "date_of_birth")
-	private String dateOfBirth;
+	private LocalDateTime dateOfBirth;
 
 	@Column(name = "enrolment_district")
 	private String applicantPlaceOfEnrolmentDistrict;
