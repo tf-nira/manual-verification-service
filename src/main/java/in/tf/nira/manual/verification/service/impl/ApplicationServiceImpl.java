@@ -605,6 +605,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 			case CommonConstants.RECOMMEND_FOR_APPROVAL_STATUS:
 				ApplicationDetailsResponse appResponse = getApplicationDetails(application, false, false);
 				String district = getDemoValue(appResponse.getDemographics().get("applicantPlaceOfResidenceDistrict"));
+				String region = null;
 				String nin = appResponse.getDemographics().get("NIN");
 
 				if(district == null && nin != null) {
@@ -620,13 +621,13 @@ public class ApplicationServiceImpl implements ApplicationService {
 				   appResponse.getDemographics().get("residenceStatus") != null &&
 				   getDemoValue(appResponse.getDemographics().get("residenceStatus")) != null &&
 				   (getDemoValue(appResponse.getDemographics().get("residenceStatus")).equalsIgnoreCase(CommonConstants.OUTSIDE_UGANDA))) {
-					district = CommonConstants.INTERNATIONAL_ADDRESS;
+					region = "CENTRAL REGION";
 				}
-				
-				logger.info("Application ID {} escalating to {} sro", applicationId, district);
+
+				logger.info("Application ID {} escalating to {} sro", applicationId, district!=null ? district : region);
 
 				escalateApplication(application, CommonConstants.MVS_SENIOR_REGISTRATION_OFFICER,
-						StageCode.ASSIGNED_TO_MVS_SENIOR_REGISTRATION_OFFICER.getStage(), request, district, null);
+						StageCode.ASSIGNED_TO_MVS_SENIOR_REGISTRATION_OFFICER.getStage(), request, district, region);
 				break;
 			default:
 				throw new RequestException(
@@ -754,13 +755,21 @@ public class ApplicationServiceImpl implements ApplicationService {
 		}
 		
 		if (CommonConstants.MVS_SENIOR_REGISTRATION_OFFICER.equals(role)) {
-			//fetch officer by district
+			String regionName = null;
+
 			if (district != null) {
-				List<OfficerDetailDTO> seniorRegistrationOfficers = seniorRegistrationOfficerMap.get(district);
+				Optional<DistrictOffice> districtOffice = districtOfficeRepository.findByDistrictNameIgnoreCase(district);
+				regionName = districtOffice.get().getRegionName();
+			} else {
+				regionName = region;
+			}
+
+			if (regionName != null) {
+				List<OfficerDetailDTO> seniorRegistrationOfficers = seniorRegistrationOfficerMap.get(regionName);
 				
 				if (seniorRegistrationOfficers != null && !seniorRegistrationOfficers.isEmpty()) {
 
-					String nextOfficerId = seniorRegistrationOfficerAssignment.get(district);
+					String nextOfficerId = seniorRegistrationOfficerAssignment.get(regionName);
 
 					OfficerDetailDTO assignedOfficer = seniorRegistrationOfficers.stream()
 							.filter(o -> o.getUserId().equals(nextOfficerId))
@@ -769,13 +778,13 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 					int currentIndex = seniorRegistrationOfficers.indexOf(assignedOfficer);
 					int newNextOfficerIndex = (currentIndex + 1) % seniorRegistrationOfficers.size();
-					seniorRegistrationOfficerAssignment.put(district, seniorRegistrationOfficers.get(newNextOfficerIndex).getUserId());
+					seniorRegistrationOfficerAssignment.put(regionName, seniorRegistrationOfficers.get(newNextOfficerIndex).getUserId());
 
 					return assignedOfficer;
 
 				} else {
 					throw new RequestException(ErrorCode.NO_OFFICER_FOR_DISTRICT.getErrorCode(),
-							String.format(ErrorCode.NO_OFFICER_FOR_DISTRICT.getErrorMessage(), district));
+							String.format(ErrorCode.NO_OFFICER_FOR_DISTRICT.getErrorMessage(), regionName));
 				}
 			} else {
 				throw new RequestException(ErrorCode.DISTRICT_NOT_PRESENT.getErrorCode(),
@@ -1811,15 +1820,15 @@ public class ApplicationServiceImpl implements ApplicationService {
 			
 			logger.info("User attributes for {}: {}",u.getUserId(), attributes);
 	        
-	        String district = attributes.get("district");
-	        logger.info("District value for user {}: {}",u.getUserId(), district);
+	        String region = attributes.get("region");
+	        logger.info("Region value for user {}: {}",u.getUserId(), region);
 	        
-	        if (district != null) {
-	            seniorRegistrationOfficerMap.computeIfAbsent(district, k -> new ArrayList<>()).add(u);
-	            seniorRegistrationOfficerAssignment.putIfAbsent(district, u.getUserId());
-	            logger.info("Added Senior Registration Officer {} for district {}", u.getUserId(), district);
+	        if (region != null) {
+	            seniorRegistrationOfficerMap.computeIfAbsent(region, k -> new ArrayList<>()).add(u);
+	            seniorRegistrationOfficerAssignment.putIfAbsent(region, u.getUserId());
+	            logger.info("Added Senior Registration Officer {} for region {}", u.getUserId(), region);
 	        } else {
-	            logger.error("District not available for the Senior Registration Officer: {}", u.getUserId());
+	            logger.error("Region not available for the Senior Registration Officer: {}", u.getUserId());
 	        }
 	    });
 	}
