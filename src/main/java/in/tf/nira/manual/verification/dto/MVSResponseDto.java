@@ -12,4 +12,5 @@ public class MVSResponseDto {
 	private String comment;
 	private String category;
 	private String actionDate;
+	private String service;
 }

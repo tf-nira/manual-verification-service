@@ -1,5 +1,6 @@
 package in.tf.nira.manual.verification.dto;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -20,4 +21,9 @@ public class UserApplicationsResponse {
 	private String foundLink;
 	private String ageGroup;
 	private List<String> matchedRegIds;
+	private String surname;
+	private String givenName;
+	private LocalDateTime dateOfBirth;
+	private String resDistrict;
+	private String applicantPlaceOfEnrolmentDistrict;
 }

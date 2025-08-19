@@ -12,6 +12,7 @@ import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -50,6 +51,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import in.tf.nira.manual.verification.config.ServiceProperties;
 import in.tf.nira.manual.verification.constant.CommonConstants;
 import in.tf.nira.manual.verification.constant.ErrorCode;
 import in.tf.nira.manual.verification.constant.StageCode;
@@ -227,6 +230,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 	@Autowired
 	private DistrictOfficeRepository districtOfficeRepository;
 	
+	@Autowired
+	private ServiceProperties serviceProperties;
+	
 	@PostConstruct
     public void runAtStartup() {
         fetchUsers();
@@ -254,7 +260,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 			logger.info("Assigning application to officer: " + selectedOfficer.getUserId());
 			MVSApplication mVSApplication = new MVSApplication();
 			mVSApplication.setRegId(verifyRequest.getRegId());
-			mVSApplication.setService(env.getProperty(verifyRequest.getService().replaceAll(" ", "_")));
+			mVSApplication.setService(serviceProperties.toDisplay(verifyRequest.getService()));
 			mVSApplication.setServiceType(env.getProperty(verifyRequest.getServiceType().replaceAll(" ", "_")));
 			mVSApplication.setReferenceURL(verifyRequest.getReferenceURL());
 			mVSApplication.setSource(verifyRequest.getSource() != null ? verifyRequest.getSource() : defaultSource);
@@ -283,7 +289,21 @@ public class ApplicationServiceImpl implements ApplicationService {
 			
 			mVSApplication.setSurname(verifyRequest.getSurname());
 			mVSApplication.setGivenName(verifyRequest.getGivenName());
-			mVSApplication.setDateOfBirth(verifyRequest.getDateOfBirth());
+			
+			//getting the dob as string then parsing it into Local Date.
+			
+			String dobStr = verifyRequest.getDateOfBirth();
+			LocalDateTime dob =null;
+			
+			try {
+				DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+				LocalDate date = LocalDate.parse(dobStr, formatter);
+				dob = date.atStartOfDay();
+			} catch (DateTimeParseException ex) {
+				logger.info("Invalid date format for date of birth: {}", dobStr);
+				logger.info("Exception parsing the date of birth, dob will be set to null");
+			}
+			mVSApplication.setDateOfBirth(dob);
 			mVSApplication.setApplicantPlaceOfEnrolmentDistrict(verifyRequest.getApplicantPlaceOfEnrolmentDistrict());;
 			
 			
@@ -867,6 +887,12 @@ public class ApplicationServiceImpl implements ApplicationService {
 	        });
 	    }
 	    
+	    userApp.setSurname(app.getSurname());
+	    userApp.setGivenName(app.getGivenName());
+	    userApp.setDateOfBirth(app.getDateOfBirth());
+	    userApp.setResDistrict(app.getResDistrict());
+	    userApp.setApplicantPlaceOfEnrolmentDistrict(app.getApplicantPlaceOfEnrolmentDistrict());
+	    
 	    return userApp;
 	}
 	
@@ -1145,6 +1171,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 			response.setRegId(application.getRegId());
 			response.setStatus(StageCode.APPROVED.getStage());
 			response.setComment(comment);
+			response.setService(serviceProperties.toCode(application.getService()));
 			ResponseEntity<Object> responseEntity = new ResponseEntity<>(response, HttpStatus.OK);
 			listener.sendToQueue(responseEntity, 1);
 		} catch (JsonProcessingException | UnsupportedEncodingException e) {
@@ -1170,6 +1197,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 			response.setStatus(StageCode.REJECTED.getStage());
 			response.setComment(comment);
 			response.setCategory(rejectionCategory);
+			response.setService(serviceProperties.toCode(application.getService()));
 			response.setActionDate(LocalDate.now().format(formatter));
 			ResponseEntity<Object> responseEntity = new ResponseEntity<>(response, HttpStatus.OK);
 			listener.sendToQueue(responseEntity, 1);
