@@ -942,16 +942,21 @@ public class ApplicationServiceImpl implements ApplicationService {
 	        String lostCardService = env.getProperty("LOST");
 	        String COPService = env.getProperty("UPDATE");
 	        String renewalService = env.getProperty("RENEWAL");
+	        String getFirstService = env.getProperty("FIRSTID");
 	        logger.info("Retrieved LOST card service value from properties: {}", lostCardService);
 	        logger.info("Retrieved COP card service value from properties: {}", COPService);
 	        logger.info("Retrived RENEWAL service from properties: {}", renewalService);
-	        logger.info("Current application service: {}", application.getService());
+	        logger.info("Retrieved GETFIRST service from properties: {}", getFirstService);
+	        
 	        String applicationService = application.getService();
+	        logger.info("Current application service: {}", applicationService);
+	        
 	        if(applicationService != null && !applicationService.trim().isEmpty() && 
 	        		(applicationService.equalsIgnoreCase(lostCardService) || 
 	        		applicationService.equalsIgnoreCase(COPService)) || 
-	        		applicationService.equalsIgnoreCase(renewalService)) {
-	        	logger.info("Processing Lost/Replacement or COP or Renewal of card application with ID: {}", application.getRegId());
+	        		applicationService.equalsIgnoreCase(renewalService) ||
+	        		applicationService.equalsIgnoreCase(getFirstService)) {
+	        	logger.info("Processing service: {} for application with ID: {}", applicationService, application.getRegId());
 	        	
 	        	String nin = demographicsMap.get(CommonConstants.NIN);
 	        	logger.info("Retrieved NIN from demographics: {}", nin);
@@ -970,7 +975,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 	    	        	if(surname != null && !surname.isEmpty()) {
 	    	        		String surnameJson = objectMapper.writeValueAsString(surname);
 	    	        		if(applicationService.equalsIgnoreCase(lostCardService) || 
-	    	        				applicationService.equalsIgnoreCase(renewalService)) {
+	    	        				applicationService.equalsIgnoreCase(renewalService) ||
+	    	        				applicationService.equalsIgnoreCase(getFirstService)) {
 		    	        		demographicsMap.put(CommonConstants.SURNAME, surnameJson);
 	    	        		} else if(applicationService.equalsIgnoreCase(COPService)) {
 	    	        			demographicsMap.put(CommonConstants.COP_SURNAME_PREVIOUS, surnameJson);
@@ -982,7 +988,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 	    	        	if(givenName != null && !givenName.isEmpty()) {
 	    	        		String givenNameJson = objectMapper.writeValueAsString(givenName);
 	    	        		if(applicationService.equalsIgnoreCase(lostCardService) || 
-	    	        				applicationService.equalsIgnoreCase(renewalService)) {
+	    	        				applicationService.equalsIgnoreCase(renewalService) ||
+	    	        				applicationService.equalsIgnoreCase(getFirstService)) {
 	    	        			demographicsMap.put(CommonConstants.GIVEN_NAME, givenNameJson);
 	    	        		} else if(applicationService.equalsIgnoreCase(COPService)) {
 	    	        			demographicsMap.put(CommonConstants.COP_GIVEN_NAME_PREVIOUS, givenNameJson);
@@ -991,10 +998,12 @@ public class ApplicationServiceImpl implements ApplicationService {
 	    	        		logger.info("Given name is null thus not adding to demographics map");
 	    	        	}
 	    	        	
-	    	        	logger.info("Successfully added surname and given name to demographics for Lost/Replacement or COP card application: {}",
-	    	        			application.getRegId());
+	    	        	logger.info("Successfully added surname and given name to demographics for service: {} application: {}",
+	    	        			applicationService, application.getRegId());
 	    	        	
-	    	        	if(applicationService.equalsIgnoreCase(COPService)) {
+	    	        	if(applicationService.equalsIgnoreCase(COPService) || 
+	    	        			applicationService.equalsIgnoreCase(getFirstService)) {
+	    	        		
 	    	        		String email = previousDemographics.getIdentity().getEmail();
 		        			logger.info("Retrieved email from ID repository: {}",email);
 		        			
@@ -1013,43 +1022,59 @@ public class ApplicationServiceImpl implements ApplicationService {
 		    	        	List<LanguageValue> countryCode = previousDemographics.getIdentity().getCountryCode();
 		    	        	logger.info("Retrieved home phone from ID repository: {}",countryCode); 
 		    	        		
-		    	        	if(email != null && !email.isEmpty()) {
-		    	        		demographicsMap.put(CommonConstants.COP_EMAIL_PREVIOUS, email);
-		    	        	} else {
-		    	        		logger.info("Email is null thus not adding to demographics map");
+		    	        	if(applicationService.equalsIgnoreCase(COPService)) {
+		    	        		
+		    	        		if(email != null && !email.isEmpty()) {
+			    	        		demographicsMap.put(CommonConstants.COP_EMAIL_PREVIOUS, email);
+			    	        	} else {
+			    	        		logger.info("Email is null thus not adding to demographics map");
+			    	        	}
+			    	        	
+			    	        	if(dateOfBirth != null && !dateOfBirth.isEmpty()) {
+			    	        		demographicsMap.put(CommonConstants.COP_DATE_OF_BIRTH_PREVIOUS, dateOfBirth);
+			    	        	} else {
+			    	        		logger.info("Date Of Birth is null thus not adding to demographics map");
+			    	        	}
+			    	        	
+			    	        	if(ninPrevious != null && !ninPrevious.isEmpty()) {
+			    	        		demographicsMap.put(CommonConstants.COP_NIN_PREVIOUS, ninPrevious);
+			    	        	} else {
+			    	        		logger.info("NIN is null thus not adding to demographics map");
+			    	        	}
+			    	        	
+			    	        	if(phone != null && !phone.isEmpty()) {
+			    	        		demographicsMap.put(CommonConstants.COP_PHONE_PREVIOUS, phone);
+			    	        	} else {
+			    	        		logger.info("Phone is null thus not adding to demographics map");
+			    	        	}
+			    	        	
+			    	        	if(homePhoneNumber != null && !homePhoneNumber.isEmpty()) {
+			    	        		demographicsMap.put(CommonConstants.COP_HOME_PHONE_NUMBER_PREVIOUS, homePhoneNumber);
+			    	        	} else {
+			    	        		logger.info("Home phone number is null thus not adding to demographics map");
+			    	        	}
+			    	        	
+			    	        	if(countryCode != null && !countryCode.isEmpty()) {
+			    	        		String countryCodeJson = objectMapper.writeValueAsString(countryCode);
+			    	        		demographicsMap.put(CommonConstants.COP_COUNTRY_CODE_PREVIOUS, countryCodeJson);
+			    	        	} else {
+			    	        		logger.info("Country Code is null thus not adding to demographics map");
+			    	        	}
+			    	        	
+		    	        	} else if(applicationService.equalsIgnoreCase(getFirstService)) {
+		    	        		
+		    	        		if (demographicsMap.get(CommonConstants.DATE_OF_BIRTH) ==null && dateOfBirth != null && !dateOfBirth.isEmpty()) {
+		    	        			demographicsMap.put(CommonConstants.DATE_OF_BIRTH, dateOfBirth);
+		    	        		} else {
+		    	        			logger.info("Date of birth is null or already present thus not adding to demographics map for the GETFIRST ID Service");
+		    	        		}
+		    	        		
+		    	        		if(demographicsMap.get(CommonConstants.PHONE) == null && phone != null && !phone.isEmpty()) {
+		    	        			demographicsMap.put(CommonConstants.PHONE, phone);
+		    	        		} else {
+		    	        			logger.info("Phone number is null or already present thus not adding to demographics map for the GETFIRST ID Service");
+		    	        		}
 		    	        	}
-		    	        	
-		    	        	if(dateOfBirth != null && !dateOfBirth.isEmpty()) {
-		    	        		demographicsMap.put(CommonConstants.COP_DATE_OF_BIRTH_PREVIOUS, dateOfBirth);
-		    	        	} else {
-		    	        		logger.info("Date Of Birth is null thus not adding to demographics map");
-		    	        	}
-		    	        	
-		    	        	if(ninPrevious != null && !ninPrevious.isEmpty()) {
-		    	        		demographicsMap.put(CommonConstants.COP_NIN_PREVIOUS, ninPrevious);
-		    	        	} else {
-		    	        		logger.info("NIN is null thus not adding to demographics map");
-		    	        	}
-		    	        	
-		    	        	if(phone != null && !phone.isEmpty()) {
-		    	        		demographicsMap.put(CommonConstants.COP_PHONE_PREVIOUS, phone);
-		    	        	} else {
-		    	        		logger.info("Phone is null thus not adding to demographics map");
-		    	        	}
-		    	        	
-		    	        	if(homePhoneNumber != null && !homePhoneNumber.isEmpty()) {
-		    	        		demographicsMap.put(CommonConstants.COP_HOME_PHONE_NUMBER_PREVIOUS, homePhoneNumber);
-		    	        	} else {
-		    	        		logger.info("Home phone number is null thus not adding to demographics map");
-		    	        	}
-		    	        	
-		    	        	if(countryCode != null && !countryCode.isEmpty()) {
-		    	        		String countryCodeJson = objectMapper.writeValueAsString(countryCode);
-		    	        		demographicsMap.put(CommonConstants.COP_COUNTRY_CODE_PREVIOUS, countryCodeJson);
-		    	        	} else {
-		    	        		logger.info("Country Code is null thus not adding to demographics map");
-		    	        	}
-		    	        	
 	    	        	}
 	    	        	
 	        		}catch (Exception e) {
