@@ -260,7 +260,6 @@ public class ApplicationServiceImpl implements ApplicationService {
 			logger.info("Assigning application to officer: " + selectedOfficer.getUserId());
 			MVSApplication mVSApplication = new MVSApplication();
 			mVSApplication.setRegId(verifyRequest.getRegId());
-			//mVSApplication.setService(env.getProperty(verifyRequest.getService().replaceAll(" ", "_")));
 			mVSApplication.setService(serviceProperties.toDisplay(verifyRequest.getService()));
 			mVSApplication.setServiceType(env.getProperty(verifyRequest.getServiceType().replaceAll(" ", "_")));
 			mVSApplication.setReferenceURL(verifyRequest.getReferenceURL());
