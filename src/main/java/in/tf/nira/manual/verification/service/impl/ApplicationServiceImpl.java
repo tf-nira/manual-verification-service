@@ -49,6 +49,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import in.tf.nira.manual.verification.config.ServiceProperties;
 import in.tf.nira.manual.verification.constant.CommonConstants;
 import in.tf.nira.manual.verification.constant.ErrorCode;
 import in.tf.nira.manual.verification.constant.StageCode;
@@ -209,6 +211,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 	@Autowired
 	private CountryRegionMapping countryRegionMapping;
 	
+	@Autowired
+	private ServiceProperties serviceProperties;
+	
 	@PostConstruct
     public void runAtStartup() {
         fetchUsers();
@@ -236,7 +241,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 			logger.info("Assigning application to officer: " + selectedOfficer.getUserId());
 			MVSApplication mVSApplication = new MVSApplication();
 			mVSApplication.setRegId(verifyRequest.getRegId());
-			mVSApplication.setService(env.getProperty(verifyRequest.getService().replaceAll(" ", "_")));
+			//mVSApplication.setService(env.getProperty(verifyRequest.getService().replaceAll(" ", "_")));
+			mVSApplication.setService(serviceProperties.toDisplay(verifyRequest.getService()));
 			mVSApplication.setServiceType(env.getProperty(verifyRequest.getServiceType().replaceAll(" ", "_")));
 			mVSApplication.setReferenceURL(verifyRequest.getReferenceURL());
 			mVSApplication.setSource(verifyRequest.getSource() != null ? verifyRequest.getSource() : defaultSource);
@@ -1040,6 +1046,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 			response.setRegId(application.getRegId());
 			response.setStatus(StageCode.APPROVED.getStage());
 			response.setComment(comment);
+			response.setService(serviceProperties.toCode(application.getService()));
 			ResponseEntity<Object> responseEntity = new ResponseEntity<>(response, HttpStatus.OK);
 			listener.sendToQueue(responseEntity, 1);
 		} catch (JsonProcessingException | UnsupportedEncodingException e) {
@@ -1065,6 +1072,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 			response.setStatus(StageCode.REJECTED.getStage());
 			response.setComment(comment);
 			response.setCategory(rejectionCategory);
+			response.setService(serviceProperties.toCode(application.getService()));
 			response.setActionDate(LocalDate.now().format(formatter));
 			ResponseEntity<Object> responseEntity = new ResponseEntity<>(response, HttpStatus.OK);
 			listener.sendToQueue(responseEntity, 1);
