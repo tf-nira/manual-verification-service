@@ -8,5 +8,6 @@ import java.util.List;
 public class ConfigResponseDTO {
 
     private List<AgeGroupRangeDTO> ageGroupRanges;
+    private List<String> districtList;
 
 }

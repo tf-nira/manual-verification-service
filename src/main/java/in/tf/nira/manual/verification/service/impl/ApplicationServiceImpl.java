@@ -2296,6 +2296,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 	public ConfigResponseDTO getApplicationConfig() {
 		ConfigResponseDTO response = new ConfigResponseDTO();
 		response.setAgeGroupRanges(getAgeGroupRanges());
+		response.setDistrictList(getAllDistrictNames());
 		return response;
 	}
 
@@ -2305,6 +2306,10 @@ public class ApplicationServiceImpl implements ApplicationService {
 			ageGroupRangeDTO.add(new AgeGroupRangeDTO(entry.getKey(), entry.getValue()));
 		}
 		return ageGroupRangeDTO;
+	}
+	
+	private List<String> getAllDistrictNames() {
+		return districtOfficeRepository.findAllDistrictNames();
 	}
 	
 	public DemographicDetailsDTO.Identity fetchMatchedRegIdDemographics (String registrationId) {

@@ -32,4 +32,6 @@ public class DistrictOffice {
 	@Column(name = "region_name")
 	private String regionName;
 
+	@Column(name = "district_name_with_code")
+	private String districtNameWithCode;
 }
