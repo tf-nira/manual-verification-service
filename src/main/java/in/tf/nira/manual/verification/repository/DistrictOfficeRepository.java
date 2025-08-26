@@ -10,7 +10,7 @@ import org.springframework.data.repository.query.Param;
 import in.tf.nira.manual.verification.entity.DistrictOffice;
 
 public interface DistrictOfficeRepository extends JpaRepository<DistrictOffice, Integer>{
-	@Query("SELECT d FROM DistrictOffice d WHERE UPPER(d.districtName) = UPPER(:districtName)")
+	@Query("SELECT d FROM DistrictOffice d WHERE UPPER(d.districtNameWithCode) = UPPER(:districtName)")
 	Optional<DistrictOffice> findByDistrictNameIgnoreCase(@Param("districtName") String districtName);
 	
 	@Query("SELECT DISTINCT d.districtNameWithCode from DistrictOffice d")
