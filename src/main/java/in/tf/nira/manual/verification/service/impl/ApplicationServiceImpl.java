@@ -498,7 +498,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 					escalateApplication(application, CommonConstants.MVS_LEGAL_OFFICER_ROLE,
 							StageCode.ASSIGNED_TO_LEGAL_OFFICER.getStage(), request, null, null);
 				}
-				if (request.getSelectedOfficerLevel() != null && 
+				else if (request.getSelectedOfficerLevel() != null && 
 						request.getSelectedOfficerLevel().equals(CommonConstants.MVS_DISTRICT_OR_INTERNATIONAL_OFFICER_ROLE)) {
 					ApplicationDetailsResponse appResponse = getApplicationDetails(application, false, false);
 					String nin = appResponse.getDemographics().get("NIN");
