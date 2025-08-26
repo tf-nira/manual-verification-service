@@ -101,8 +101,8 @@ public class AuthServiceImpl implements AuthService {
 			        throw new RequestException(ErrorCode.INVALID_REQUEST.getErrorCode(),
 			                "District not found in officer attributes for userId: " + authRequest.getRequest().getUserName());
 			    }
-				String districtName = applicationServiceImpl.extractDistrictName(districtValue);
-				DistrictOfficeResponseDTO districtOfficeDetails = applicationServiceImpl.getDistrictOfficeByName(districtName);
+				//String districtName = applicationServiceImpl.extractDistrictName(districtValue);
+				DistrictOfficeResponseDTO districtOfficeDetails = applicationServiceImpl.getDistrictOfficeByName(districtValue);
 				authResponse.getResponse().setDistrictOfficeDetails(districtOfficeDetails);
 			}
 			logger.info("auth response :: {}",authResponse.getResponse());
