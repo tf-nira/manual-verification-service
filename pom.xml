@@ -215,11 +215,18 @@
 			<artifactId>activemq-client</artifactId>
 			<version>5.17.4</version>
 		</dependency>
+		<dependency>
+			<groupId>com.vladmihalcea</groupId>
+			<artifactId>hibernate-types-52</artifactId>
+			<version>2.21.1</version> <!-- Use version compatible with Hibernate
+			and Spring Boot version -->
+		</dependency>
+
 	</dependencies>
 
 	<dependencyManagement>
 		<dependencies>
-		<!-- <dependency>
+			<!-- <dependency>
 			<groupId>io.mosip.kernel</groupId>
 			<artifactId>kernel-auth-adapter</artifactId>
 			<version>1.2.0.1</version>

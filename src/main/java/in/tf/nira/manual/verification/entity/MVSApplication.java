@@ -1,5 +1,6 @@
 package in.tf.nira.manual.verification.entity;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -10,12 +11,18 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 
+import org.hibernate.annotations.Type;
+import org.hibernate.annotations.TypeDef;
 import org.hibernate.annotations.Where;
+
+import com.vladmihalcea.hibernate.type.array.ListArrayType;
 
 import in.tf.nira.manual.verification.dto.EscalationDetailsDTO;
 import in.tf.nira.manual.verification.util.EscalationDetailsConverter;
 import in.tf.nira.manual.verification.util.StringListConverter;
 import lombok.Data;
+
+@TypeDef(name = "list-array", typeClass = ListArrayType.class)
 
 @Entity(name = "mvs_application")
 @Table
@@ -104,5 +111,22 @@ public class MVSApplication {
 	
 	@Column(name = "assigned_date")
 	private LocalDateTime assignedDate;
+	
+	@Type(type="list-array")
+	@Column(name="matched_reg_ids", columnDefinition="text[]")
+	private List<String> matchedRegIds;
+	
+	@Column(name = "surname")
+	private String surname;
+	
+	@Column(name = "given_name")
+	private String givenName;
+	
+	@Column(name = "date_of_birth")
+	private LocalDateTime dateOfBirth;
+
+	@Column(name = "enrolment_district")
+	private String applicantPlaceOfEnrolmentDistrict;
+	
 	
 }

@@ -12,6 +12,7 @@ import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -40,6 +41,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
@@ -49,12 +51,15 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import in.tf.nira.manual.verification.config.ServiceProperties;
 import in.tf.nira.manual.verification.constant.CommonConstants;
 import in.tf.nira.manual.verification.constant.ErrorCode;
 import in.tf.nira.manual.verification.constant.StageCode;
 import in.tf.nira.manual.verification.dto.DemographicDetailsDTO.Document;
 import in.tf.nira.manual.verification.dto.DemographicDetailsDTO.LanguageValue;
 import in.tf.nira.manual.verification.dto.DemographicDetailsDTO.ProofDocument;
+import in.tf.nira.manual.verification.entity.DistrictOffice;
 import in.tf.nira.manual.verification.entity.MVSApplication;
 import in.tf.nira.manual.verification.entity.MVSApplicationHistory;
 import in.tf.nira.manual.verification.entity.OfficerAssignment;
@@ -62,6 +67,7 @@ import in.tf.nira.manual.verification.exception.ApiNotAccessibleException;
 import in.tf.nira.manual.verification.exception.RequestException;
 import in.tf.nira.manual.verification.helper.SearchHelper;
 import in.tf.nira.manual.verification.listener.Listener;
+import in.tf.nira.manual.verification.repository.DistrictOfficeRepository;
 import in.tf.nira.manual.verification.repository.MVSApplicationHistoryRepo;
 import in.tf.nira.manual.verification.repository.MVSApplicationRepo;
 import in.tf.nira.manual.verification.repository.OfficerAssignmentRepo;
@@ -134,8 +140,17 @@ public class ApplicationServiceImpl implements ApplicationService {
 	@Value("${manual.verification.email.template.code}")
 	private String emailTemplateTypeCode;
 	
+	@Value("${manual.verification.email.template.code.legalofficer.ed}")
+	private String legalOfficerAndEdEmailTemplateTypeCode;
+	
+	@Value("${manual.verification.subject.template.type.code}")
+	private String subjectTemplateTypeCode;
+	
 	@Value("${manual.verification.sms.template.code}")
 	private String smsTemplateTypeCode;
+	
+	@Value("${manual.verification.sms.template.code.legalofficer.ed}")
+	private String legalOfficerAndEdSmsTemplateTypeCode;
 	
 	@Value("${manual.verification.interview.valid.days}")
 	private int interviewValidDays;
@@ -151,7 +166,10 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 	@Value("${manual-verification.new.officer.email.template.code}")
 	private String newOfficerEmailTemplateTypeCode;
-	
+
+	@Value("#{${manual.verification.tagging.agegroup.ranges}}")
+	private Map<String, String> ageGroupRanges;
+
 	private Map<String, List<OfficerDetailDTO>> officerDetailMap = new HashMap<>();
 	
 	private Map<String, String> schemajsonValue = null;
@@ -209,6 +227,12 @@ public class ApplicationServiceImpl implements ApplicationService {
 	@Autowired
 	private CountryRegionMapping countryRegionMapping;
 	
+	@Autowired
+	private DistrictOfficeRepository districtOfficeRepository;
+	
+	@Autowired
+	private ServiceProperties serviceProperties;
+	
 	@PostConstruct
     public void runAtStartup() {
         fetchUsers();
@@ -236,7 +260,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 			logger.info("Assigning application to officer: " + selectedOfficer.getUserId());
 			MVSApplication mVSApplication = new MVSApplication();
 			mVSApplication.setRegId(verifyRequest.getRegId());
-			mVSApplication.setService(env.getProperty(verifyRequest.getService().replaceAll(" ", "_")));
+			mVSApplication.setService(serviceProperties.toDisplay(verifyRequest.getService()));
 			mVSApplication.setServiceType(env.getProperty(verifyRequest.getServiceType().replaceAll(" ", "_")));
 			mVSApplication.setReferenceURL(verifyRequest.getReferenceURL());
 			mVSApplication.setSource(verifyRequest.getSource() != null ? verifyRequest.getSource() : defaultSource);
@@ -255,6 +279,33 @@ public class ApplicationServiceImpl implements ApplicationService {
 			
 			//set assignedDate
 			mVSApplication.setAssignedDate(LocalDateTime.now());
+			
+			//for testing harcoding the matched reg_ids
+//			List<String> regIds =Arrays.asList("10115100090004520250805124912" , "10115100070001320250723092851" , "10115100020017720250708085531");
+//			mVSApplication.setMatchedRegIds(regIds);
+			
+			mVSApplication.setMatchedRegIds(verifyRequest.getMatchedRegIds());
+			logger.info("Received matched reg ids : {}",verifyRequest.getMatchedRegIds());
+			
+			mVSApplication.setSurname(verifyRequest.getSurname());
+			mVSApplication.setGivenName(verifyRequest.getGivenName());
+			
+			//getting the dob as string then parsing it into Local Date.
+			
+			String dobStr = verifyRequest.getDateOfBirth();
+			LocalDateTime dob =null;
+			
+			try {
+				DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+				LocalDate date = LocalDate.parse(dobStr, formatter);
+				dob = date.atStartOfDay();
+			} catch (DateTimeParseException ex) {
+				logger.info("Invalid date format for date of birth: {}", dobStr);
+				logger.info("Exception parsing the date of birth, dob will be set to null");
+			}
+			mVSApplication.setDateOfBirth(dob);
+			mVSApplication.setApplicantPlaceOfEnrolmentDistrict(verifyRequest.getApplicantPlaceOfEnrolmentDistrict());;
+			
 			
 			mVSApplicationRepo.save(mVSApplication);
 			
@@ -447,6 +498,70 @@ public class ApplicationServiceImpl implements ApplicationService {
 					escalateApplication(application, CommonConstants.MVS_LEGAL_OFFICER_ROLE,
 							StageCode.ASSIGNED_TO_LEGAL_OFFICER.getStage(), request, null, null);
 				}
+				else if (request.getSelectedOfficerLevel() != null && 
+						request.getSelectedOfficerLevel().equals(CommonConstants.MVS_DISTRICT_OR_INTERNATIONAL_OFFICER_ROLE)) {
+					ApplicationDetailsResponse appResponse = getApplicationDetails(application, false, false);
+					String nin = appResponse.getDemographics().get("NIN");
+					logger.info("NIN for the Application ID {} is: {}", applicationId, nin);
+					
+					String residenceStatus;
+					
+					if(nin != null) {
+						DemographicDetailsDTO demographicDetailsDTO = getDemographicDetails(nin);
+						residenceStatus = demographicDetailsDTO.getIdentity().getResidenceStatus().get(0).getValue();
+						
+						logger.info("Residence Status for Application ID {} is : {}", applicationId, residenceStatus);
+					} else {
+						logger.info("NIN is null for Application ID {}, thus cannot escalate the application");
+						break;
+					}
+					
+					if(residenceStatus != null && !residenceStatus.trim().equals("")
+							&& !residenceStatus.isEmpty()
+							&& residenceStatus.equalsIgnoreCase(CommonConstants.OUTSIDE_UGANDA)) {
+						nin = appResponse.getDemographics().get("NIN");
+						
+						logger.info("NIN for the Application ID {} is: {}", applicationId, nin);
+						
+						if(nin != null) {
+							DemographicDetailsDTO demographicDetailsDTO = getDemographicDetails(nin);
+							String foreignCountry = demographicDetailsDTO.getIdentity().getApplicantForeignResidenceCountry().get(0).getValue();
+							String region = countryRegionMapping.getRegionForCountry(foreignCountry);
+							
+							logger.info("Application ID {} escalating to international officer for country: {} (region: {})", applicationId, foreignCountry, region);
+							
+							escalateApplication(application, CommonConstants.MVS_INTERNATIONAL_OFFICER,
+								StageCode.ASSIGNED_TO_MVS_INTERNATIONAL_OFFICER.getStage(), request, null, region);
+						} else {
+							logger.info("NIN is null for Application ID {}, thus cannot escalate the application", applicationId);
+						}
+						
+					} else if(residenceStatus != null && !residenceStatus.trim().equals("") 
+							&& !residenceStatus.isEmpty() 
+							&& residenceStatus.equalsIgnoreCase(CommonConstants.INSIDE_UGANDA)) {
+						nin = appResponse.getDemographics().get("NIN");
+						
+						logger.info("NIN for Application ID {} is: {}", applicationId, nin);
+						
+						if(nin != null) {
+							DemographicDetailsDTO demographicDetailsDTO = getDemographicDetails(nin);
+							String district = demographicDetailsDTO.getIdentity().getApplicantPlaceOfResidenceDistrict().get(0).getValue();
+							
+							logger.info("Extracted district value is: {}", district);
+							
+							logger.info("Application ID {} escalating to {} district", applicationId, district);
+							
+							escalateApplication(application, CommonConstants.MVS_DISTRICT_OFFICER_ROLE,
+									StageCode.ASSIGNED_TO_DISTRICT_OFFICER.getStage(), request, district, null);
+						} else {
+							logger.info("NIN is null for Application ID {}, thus cannot escalate the application", applicationId);
+						}
+						
+					} else if(residenceStatus == null){
+						logger.info("Residence status for NIN {} is null thus cannot escalate the application", appResponse.getDemographics().get("NIN"));
+					}
+				}
+				
 				else if(request.getSelectedOfficerLevel() != null && request.getSelectedOfficerLevel().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE) ||
 						(request.getInsufficientDocuments() != null && request.getInsufficientDocuments())) {
 					ApplicationDetailsResponse appResponse = getApplicationDetails(application, false, false);
@@ -495,6 +610,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 			case CommonConstants.RECOMMEND_FOR_APPROVAL_STATUS:
 				ApplicationDetailsResponse appResponse = getApplicationDetails(application, false, false);
 				String district = getDemoValue(appResponse.getDemographics().get("applicantPlaceOfResidenceDistrict"));
+				String region = null;
 				String nin = appResponse.getDemographics().get("NIN");
 
 				if(district == null && nin != null) {
@@ -510,13 +626,13 @@ public class ApplicationServiceImpl implements ApplicationService {
 				   appResponse.getDemographics().get("residenceStatus") != null &&
 				   getDemoValue(appResponse.getDemographics().get("residenceStatus")) != null &&
 				   (getDemoValue(appResponse.getDemographics().get("residenceStatus")).equalsIgnoreCase(CommonConstants.OUTSIDE_UGANDA))) {
-					district = CommonConstants.INTERNATIONAL_ADDRESS;
+					region = "CENTRAL REGION";
 				}
-				
-				logger.info("Application ID {} escalating to {} sro", applicationId, district);
+
+				logger.info("Application ID {} escalating to {} sro", applicationId, district!=null ? district : region);
 
 				escalateApplication(application, CommonConstants.MVS_SENIOR_REGISTRATION_OFFICER,
-						StageCode.ASSIGNED_TO_MVS_SENIOR_REGISTRATION_OFFICER.getStage(), request, district, null);
+						StageCode.ASSIGNED_TO_MVS_SENIOR_REGISTRATION_OFFICER.getStage(), request, district, region);
 				break;
 			default:
 				throw new RequestException(
@@ -644,13 +760,21 @@ public class ApplicationServiceImpl implements ApplicationService {
 		}
 		
 		if (CommonConstants.MVS_SENIOR_REGISTRATION_OFFICER.equals(role)) {
-			//fetch officer by district
+			String regionName = null;
+
 			if (district != null) {
-				List<OfficerDetailDTO> seniorRegistrationOfficers = seniorRegistrationOfficerMap.get(district);
+				Optional<DistrictOffice> districtOffice = districtOfficeRepository.findByDistrictNameIgnoreCase(district);
+				regionName = districtOffice.get().getRegionName();
+			} else {
+				regionName = region;
+			}
+
+			if (regionName != null) {
+				List<OfficerDetailDTO> seniorRegistrationOfficers = seniorRegistrationOfficerMap.get(regionName);
 				
 				if (seniorRegistrationOfficers != null && !seniorRegistrationOfficers.isEmpty()) {
 
-					String nextOfficerId = seniorRegistrationOfficerAssignment.get(district);
+					String nextOfficerId = seniorRegistrationOfficerAssignment.get(regionName);
 
 					OfficerDetailDTO assignedOfficer = seniorRegistrationOfficers.stream()
 							.filter(o -> o.getUserId().equals(nextOfficerId))
@@ -659,13 +783,13 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 					int currentIndex = seniorRegistrationOfficers.indexOf(assignedOfficer);
 					int newNextOfficerIndex = (currentIndex + 1) % seniorRegistrationOfficers.size();
-					seniorRegistrationOfficerAssignment.put(district, seniorRegistrationOfficers.get(newNextOfficerIndex).getUserId());
+					seniorRegistrationOfficerAssignment.put(regionName, seniorRegistrationOfficers.get(newNextOfficerIndex).getUserId());
 
 					return assignedOfficer;
 
 				} else {
 					throw new RequestException(ErrorCode.NO_OFFICER_FOR_DISTRICT.getErrorCode(),
-							String.format(ErrorCode.NO_OFFICER_FOR_DISTRICT.getErrorMessage(), district));
+							String.format(ErrorCode.NO_OFFICER_FOR_DISTRICT.getErrorMessage(), regionName));
 				}
 			} else {
 				throw new RequestException(ErrorCode.DISTRICT_NOT_PRESENT.getErrorCode(),
@@ -745,6 +869,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 	    userApp.setStatusComment(app.getStatusComment());
 	    userApp.setFoundLink(app.getFoundLink());
 	    userApp.setAgeGroup(app.getAgeGroup());
+	    userApp.setMatchedRegIds(app.getMatchedRegIds());
 	    
 	    if (app.getEscalationDetails() != null) {
 	        app.getEscalationDetails().forEach(esc -> {
@@ -761,6 +886,12 @@ public class ApplicationServiceImpl implements ApplicationService {
 				}
 	        });
 	    }
+	    
+	    userApp.setSurname(app.getSurname());
+	    userApp.setGivenName(app.getGivenName());
+	    userApp.setDateOfBirth(app.getDateOfBirth());
+	    userApp.setResDistrict(app.getResDistrict());
+	    userApp.setApplicantPlaceOfEnrolmentDistrict(app.getApplicantPlaceOfEnrolmentDistrict());
 	    
 	    return userApp;
 	}
@@ -811,16 +942,21 @@ public class ApplicationServiceImpl implements ApplicationService {
 	        String lostCardService = env.getProperty("LOST");
 	        String COPService = env.getProperty("UPDATE");
 	        String renewalService = env.getProperty("RENEWAL");
+	        String getFirstService = env.getProperty("FIRSTID");
 	        logger.info("Retrieved LOST card service value from properties: {}", lostCardService);
 	        logger.info("Retrieved COP card service value from properties: {}", COPService);
 	        logger.info("Retrived RENEWAL service from properties: {}", renewalService);
-	        logger.info("Current application service: {}", application.getService());
+	        logger.info("Retrieved GETFIRST service from properties: {}", getFirstService);
+	        
 	        String applicationService = application.getService();
+	        logger.info("Current application service: {}", applicationService);
+	        
 	        if(applicationService != null && !applicationService.trim().isEmpty() && 
 	        		(applicationService.equalsIgnoreCase(lostCardService) || 
 	        		applicationService.equalsIgnoreCase(COPService)) || 
-	        		applicationService.equalsIgnoreCase(renewalService)) {
-	        	logger.info("Processing Lost/Replacement or COP or Renewal of card application with ID: {}", application.getRegId());
+	        		applicationService.equalsIgnoreCase(renewalService) ||
+	        		applicationService.equalsIgnoreCase(getFirstService)) {
+	        	logger.info("Processing service: {} for application with ID: {}", applicationService, application.getRegId());
 	        	
 	        	String nin = demographicsMap.get(CommonConstants.NIN);
 	        	logger.info("Retrieved NIN from demographics: {}", nin);
@@ -839,7 +975,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 	    	        	if(surname != null && !surname.isEmpty()) {
 	    	        		String surnameJson = objectMapper.writeValueAsString(surname);
 	    	        		if(applicationService.equalsIgnoreCase(lostCardService) || 
-	    	        				applicationService.equalsIgnoreCase(renewalService)) {
+	    	        				applicationService.equalsIgnoreCase(renewalService) ||
+	    	        				applicationService.equalsIgnoreCase(getFirstService)) {
 		    	        		demographicsMap.put(CommonConstants.SURNAME, surnameJson);
 	    	        		} else if(applicationService.equalsIgnoreCase(COPService)) {
 	    	        			demographicsMap.put(CommonConstants.COP_SURNAME_PREVIOUS, surnameJson);
@@ -851,7 +988,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 	    	        	if(givenName != null && !givenName.isEmpty()) {
 	    	        		String givenNameJson = objectMapper.writeValueAsString(givenName);
 	    	        		if(applicationService.equalsIgnoreCase(lostCardService) || 
-	    	        				applicationService.equalsIgnoreCase(renewalService)) {
+	    	        				applicationService.equalsIgnoreCase(renewalService) ||
+	    	        				applicationService.equalsIgnoreCase(getFirstService)) {
 	    	        			demographicsMap.put(CommonConstants.GIVEN_NAME, givenNameJson);
 	    	        		} else if(applicationService.equalsIgnoreCase(COPService)) {
 	    	        			demographicsMap.put(CommonConstants.COP_GIVEN_NAME_PREVIOUS, givenNameJson);
@@ -860,10 +998,12 @@ public class ApplicationServiceImpl implements ApplicationService {
 	    	        		logger.info("Given name is null thus not adding to demographics map");
 	    	        	}
 	    	        	
-	    	        	logger.info("Successfully added surname and given name to demographics for Lost/Replacement or COP card application: {}",
-	    	        			application.getRegId());
+	    	        	logger.info("Successfully added surname and given name to demographics for service: {} application: {}",
+	    	        			applicationService, application.getRegId());
 	    	        	
-	    	        	if(applicationService.equalsIgnoreCase(COPService)) {
+	    	        	if(applicationService.equalsIgnoreCase(COPService) || 
+	    	        			applicationService.equalsIgnoreCase(getFirstService)) {
+	    	        		
 	    	        		String email = previousDemographics.getIdentity().getEmail();
 		        			logger.info("Retrieved email from ID repository: {}",email);
 		        			
@@ -882,43 +1022,59 @@ public class ApplicationServiceImpl implements ApplicationService {
 		    	        	List<LanguageValue> countryCode = previousDemographics.getIdentity().getCountryCode();
 		    	        	logger.info("Retrieved home phone from ID repository: {}",countryCode); 
 		    	        		
-		    	        	if(email != null && !email.isEmpty()) {
-		    	        		demographicsMap.put(CommonConstants.COP_EMAIL_PREVIOUS, email);
-		    	        	} else {
-		    	        		logger.info("Email is null thus not adding to demographics map");
+		    	        	if(applicationService.equalsIgnoreCase(COPService)) {
+		    	        		
+		    	        		if(email != null && !email.isEmpty()) {
+			    	        		demographicsMap.put(CommonConstants.COP_EMAIL_PREVIOUS, email);
+			    	        	} else {
+			    	        		logger.info("Email is null thus not adding to demographics map");
+			    	        	}
+			    	        	
+			    	        	if(dateOfBirth != null && !dateOfBirth.isEmpty()) {
+			    	        		demographicsMap.put(CommonConstants.COP_DATE_OF_BIRTH_PREVIOUS, dateOfBirth);
+			    	        	} else {
+			    	        		logger.info("Date Of Birth is null thus not adding to demographics map");
+			    	        	}
+			    	        	
+			    	        	if(ninPrevious != null && !ninPrevious.isEmpty()) {
+			    	        		demographicsMap.put(CommonConstants.COP_NIN_PREVIOUS, ninPrevious);
+			    	        	} else {
+			    	        		logger.info("NIN is null thus not adding to demographics map");
+			    	        	}
+			    	        	
+			    	        	if(phone != null && !phone.isEmpty()) {
+			    	        		demographicsMap.put(CommonConstants.COP_PHONE_PREVIOUS, phone);
+			    	        	} else {
+			    	        		logger.info("Phone is null thus not adding to demographics map");
+			    	        	}
+			    	        	
+			    	        	if(homePhoneNumber != null && !homePhoneNumber.isEmpty()) {
+			    	        		demographicsMap.put(CommonConstants.COP_HOME_PHONE_NUMBER_PREVIOUS, homePhoneNumber);
+			    	        	} else {
+			    	        		logger.info("Home phone number is null thus not adding to demographics map");
+			    	        	}
+			    	        	
+			    	        	if(countryCode != null && !countryCode.isEmpty()) {
+			    	        		String countryCodeJson = objectMapper.writeValueAsString(countryCode);
+			    	        		demographicsMap.put(CommonConstants.COP_COUNTRY_CODE_PREVIOUS, countryCodeJson);
+			    	        	} else {
+			    	        		logger.info("Country Code is null thus not adding to demographics map");
+			    	        	}
+			    	        	
+		    	        	} else if(applicationService.equalsIgnoreCase(getFirstService)) {
+		    	        		
+		    	        		if (demographicsMap.get(CommonConstants.DATE_OF_BIRTH) ==null && dateOfBirth != null && !dateOfBirth.isEmpty()) {
+		    	        			demographicsMap.put(CommonConstants.DATE_OF_BIRTH, dateOfBirth);
+		    	        		} else {
+		    	        			logger.info("Date of birth is null or already present thus not adding to demographics map for the GETFIRST ID Service");
+		    	        		}
+		    	        		
+		    	        		if(demographicsMap.get(CommonConstants.PHONE) == null && phone != null && !phone.isEmpty()) {
+		    	        			demographicsMap.put(CommonConstants.PHONE, phone);
+		    	        		} else {
+		    	        			logger.info("Phone number is null or already present thus not adding to demographics map for the GETFIRST ID Service");
+		    	        		}
 		    	        	}
-		    	        	
-		    	        	if(dateOfBirth != null && !dateOfBirth.isEmpty()) {
-		    	        		demographicsMap.put(CommonConstants.COP_DATE_OF_BIRTH_PREVIOUS, dateOfBirth);
-		    	        	} else {
-		    	        		logger.info("Date Of Birth is null thus not adding to demographics map");
-		    	        	}
-		    	        	
-		    	        	if(ninPrevious != null && !ninPrevious.isEmpty()) {
-		    	        		demographicsMap.put(CommonConstants.COP_NIN_PREVIOUS, ninPrevious);
-		    	        	} else {
-		    	        		logger.info("NIN is null thus not adding to demographics map");
-		    	        	}
-		    	        	
-		    	        	if(phone != null && !phone.isEmpty()) {
-		    	        		demographicsMap.put(CommonConstants.COP_PHONE_PREVIOUS, phone);
-		    	        	} else {
-		    	        		logger.info("Phone is null thus not adding to demographics map");
-		    	        	}
-		    	        	
-		    	        	if(homePhoneNumber != null && !homePhoneNumber.isEmpty()) {
-		    	        		demographicsMap.put(CommonConstants.COP_HOME_PHONE_NUMBER_PREVIOUS, homePhoneNumber);
-		    	        	} else {
-		    	        		logger.info("Home phone number is null thus not adding to demographics map");
-		    	        	}
-		    	        	
-		    	        	if(countryCode != null && !countryCode.isEmpty()) {
-		    	        		String countryCodeJson = objectMapper.writeValueAsString(countryCode);
-		    	        		demographicsMap.put(CommonConstants.COP_COUNTRY_CODE_PREVIOUS, countryCodeJson);
-		    	        	} else {
-		    	        		logger.info("Country Code is null thus not adding to demographics map");
-		    	        	}
-		    	        	
 	    	        	}
 	    	        	
 	        		}catch (Exception e) {
@@ -1040,6 +1196,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 			response.setRegId(application.getRegId());
 			response.setStatus(StageCode.APPROVED.getStage());
 			response.setComment(comment);
+			response.setService(serviceProperties.toCode(application.getService()));
 			ResponseEntity<Object> responseEntity = new ResponseEntity<>(response, HttpStatus.OK);
 			listener.sendToQueue(responseEntity, 1);
 		} catch (JsonProcessingException | UnsupportedEncodingException e) {
@@ -1065,6 +1222,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 			response.setStatus(StageCode.REJECTED.getStage());
 			response.setComment(comment);
 			response.setCategory(rejectionCategory);
+			response.setService(serviceProperties.toCode(application.getService()));
 			response.setActionDate(LocalDate.now().format(formatter));
 			ResponseEntity<Object> responseEntity = new ResponseEntity<>(response, HttpStatus.OK);
 			listener.sendToQueue(responseEntity, 1);
@@ -1083,13 +1241,16 @@ public class ApplicationServiceImpl implements ApplicationService {
         Map<String, Object> attributes = new HashMap<>();
 		attributes.put("APPLICATION_ID", application.getRegId());
 		attributes.put("MVS_CR_DATE", application.getCrDTimes().toLocalDate().format(formatter));
+		attributes.put("SERVICE", application.getService());
 		attributes.put("DISTRICT", district);
 		attributes.put("INTERVIEW_EXPIRY_DATE", LocalDate.now().plusDays(interviewValidDays).format(formatter));
 		attributes.put("REVIEW_CONTENT", schInterviewDTO.getContent());
-        
+		
+		String emailTemplateTypeCode = getEmailTemplateByRole(application.getAssignedOfficerRole());
+        String subject = getSubjectByRole(application.getAssignedOfficerRole(), attributes, schInterviewDTO);
 		if (email != null) {
 			try {
-				sendEmail(email, schInterviewDTO.getSubject(), attributes, emailTemplateTypeCode);
+				sendEmail(email, subject, attributes, emailTemplateTypeCode);
 			} catch (Exception ex) {
 				logger.error("Failed to send email notification but continuing with interview scheduling: {}", ex.getMessage());			
 			}
@@ -1099,12 +1260,47 @@ public class ApplicationServiceImpl implements ApplicationService {
 		
 		if (phone != null) {
 			try {
-				sendSMS(phone, attributes);
+				String smsTemplateTypeCode = getSmsTemplateByRole(application.getAssignedOfficerRole());
+				sendSMS(phone, attributes, smsTemplateTypeCode);
 			} catch (Exception ex) {
 				logger.error("Failed to send sms notification but continuing with interview scheduling: {}", ex.getMessage());
 			}
 		} else {
 			logger.warn("Phone number not available for the application");
+		}
+	}
+	
+	private String getEmailTemplateByRole(String assignedOfficerRole) {
+		if(CommonConstants.MVS_LEGAL_OFFICER_ROLE.equals(assignedOfficerRole) || CommonConstants.MVS_EXECUTIVE_DIRECTOR.equals(assignedOfficerRole)) {
+			return legalOfficerAndEdEmailTemplateTypeCode;
+		} else {
+			return emailTemplateTypeCode;
+		}
+	}
+	
+	private String getSubjectByRole(String assignedOfficerRole, Map<String, Object> attributes,
+			SchInterviewDTO schInterviewDTO) {
+		try {
+
+			if (CommonConstants.MVS_LEGAL_OFFICER_ROLE.equals(assignedOfficerRole)
+					|| CommonConstants.MVS_EXECUTIVE_DIRECTOR.equals(assignedOfficerRole)) {
+				InputStream subStream = templateGenerator.getTemplate(subjectTemplateTypeCode, attributes, "eng");
+				String subjectArtifact = IOUtils.toString(subStream, ENCODING);
+				return subjectArtifact;
+			} else {
+				return schInterviewDTO.getSubject();
+			}
+		} catch (Exception ex) {
+			logger.error("Failed to generate subject template, falling back to default subject: {}", ex.getMessage());
+			return schInterviewDTO.getSubject() != null ? schInterviewDTO.getSubject() : "Action Required – Personal Verification for Your Application";
+		}
+	}
+	
+	private String getSmsTemplateByRole(String assignedOfficerRole) {
+		if(CommonConstants.MVS_LEGAL_OFFICER_ROLE.equals(assignedOfficerRole) || CommonConstants.MVS_EXECUTIVE_DIRECTOR.equals(assignedOfficerRole)) {
+			return legalOfficerAndEdSmsTemplateTypeCode;
+		} else {
+			return smsTemplateTypeCode;
 		}
 	}
 	
@@ -1370,7 +1566,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 	}
 	
 	
-	private void sendSMS(String phone, Map<String, Object> attributes) {
+	private void sendSMS(String phone, Map<String, Object> attributes, String smsTemplateTypeCode) {
 		logger.info("Sending SMS notification");
 		
 		try {
@@ -1656,15 +1852,15 @@ public class ApplicationServiceImpl implements ApplicationService {
 			
 			logger.info("User attributes for {}: {}",u.getUserId(), attributes);
 	        
-	        String district = attributes.get("district");
-	        logger.info("District value for user {}: {}",u.getUserId(), district);
+	        String region = attributes.get("region");
+	        logger.info("Region value for user {}: {}",u.getUserId(), region);
 	        
-	        if (district != null) {
-	            seniorRegistrationOfficerMap.computeIfAbsent(district, k -> new ArrayList<>()).add(u);
-	            seniorRegistrationOfficerAssignment.putIfAbsent(district, u.getUserId());
-	            logger.info("Added Senior Registration Officer {} for district {}", u.getUserId(), district);
+	        if (region != null) {
+	            seniorRegistrationOfficerMap.computeIfAbsent(region, k -> new ArrayList<>()).add(u);
+	            seniorRegistrationOfficerAssignment.putIfAbsent(region, u.getUserId());
+	            logger.info("Added Senior Registration Officer {} for region {}", u.getUserId(), region);
 	        } else {
-	            logger.error("District not available for the Senior Registration Officer: {}", u.getUserId());
+	            logger.error("Region not available for the Senior Registration Officer: {}", u.getUserId());
 	        }
 	    });
 	}
@@ -1916,7 +2112,16 @@ public class ApplicationServiceImpl implements ApplicationService {
 		logger.info("Checking applications for re-assignment");
 
 		LocalDateTime dateThreshold = LocalDateTime.now().minusDays(reassignmentDays);
-		List<OfficerDetailDTO> officers = officerDetailMap.get(CommonConstants.MVS_OFFICER_ROLE);
+		List<String> requiredRoles = Arrays.asList(CommonConstants.MVS_OFFICER_ROLE, CommonConstants.MVS_SUPERVISOR_ROLE, 
+										CommonConstants.MVS_LEGAL_OFFICER_ROLE);
+		
+		List<OfficerDetailDTO> officers = requiredRoles
+											.stream()
+											.map(officerDetailMap::get)
+											.filter(Objects::nonNull)
+											.flatMap(List::stream)
+											.collect(Collectors.toList());
+											
 		List<MVSApplication> applications = mVSApplicationRepo.findRecordsOlderThanXDays(dateThreshold);
 
 		Map<OfficerDetailDTO, Integer> prevOfficerInfo = new HashMap<>();
@@ -1934,13 +2139,36 @@ public class ApplicationServiceImpl implements ApplicationService {
 											.orElse(null);
 			prevOfficerInfo.merge(prevOfficer, 1, Integer::sum);
 
-			OfficerAssignment officerAssignment = officerAssignmentRepo.findByUserRole(CommonConstants.MVS_OFFICER_ROLE);
-			OfficerDetailDTO selectedOfficer = fetchOfficerForAssignment(CommonConstants.MVS_OFFICER_ROLE, officerAssignment, null, null);
-
-			if (selectedOfficer.getUserId().equals(application.getAssignedOfficerId())) {
-				int currentIndex = officers.indexOf(selectedOfficer);
-				selectedOfficer = officers.get((currentIndex + 1) % officers.size());
-				officerAssignment.setUserId(selectedOfficer.getUserId());
+			OfficerAssignment officerAssignment = officerAssignmentRepo.findByUserRole(application.getAssignedOfficerRole());
+			OfficerDetailDTO selectedOfficer = fetchOfficerForAssignment(application.getAssignedOfficerRole(), officerAssignment, null, null);
+			
+			if(selectedOfficer.getUserId().equals(application.getAssignedOfficerId())) {
+				//filtering the officers with same role as the application requires
+				String roleNeeded = application.getAssignedOfficerRole();
+				List<OfficerDetailDTO> sameRoleOfficers = officers.stream()
+															.filter(o -> roleNeeded.equals(o.getUserRole()))
+															.collect(Collectors.toList());
+				
+				int currentIndex = -1;
+				
+				for(int i = 0; i < sameRoleOfficers.size(); i++) {
+					if(sameRoleOfficers.get(i).getUserId().equals(selectedOfficer.getUserId())) {
+						currentIndex = i;
+						break;
+					}
+				}
+				
+				if(currentIndex != -1 && !sameRoleOfficers.isEmpty()) {
+					int nextIndex = (currentIndex + 1) % sameRoleOfficers.size();
+					selectedOfficer = sameRoleOfficers.get(nextIndex);
+					officerAssignment.setUserId(selectedOfficer.getUserId());
+				}
+				
+				if(currentIndex == -1 && !sameRoleOfficers.isEmpty()) {
+					//FallBack : assign to the first officer with same role
+					selectedOfficer = sameRoleOfficers.get(0);
+					officerAssignment.setUserId(selectedOfficer.getUserId());
+				}
 			}
 
 			application.setAssignedOfficerId(selectedOfficer.getUserId());
@@ -2019,5 +2247,136 @@ public class ApplicationServiceImpl implements ApplicationService {
 		}
 		
 		logger.info("Completed processing applications with expired interview dates");;
+	}
+	
+	@Transactional(readOnly = true)
+	public DistrictOfficeResponseDTO getDistrictOfficeByName (String districtName) {
+		
+		if(districtName == null || districtName.trim().isEmpty()) {
+			throw new RequestException(ErrorCode.INVALID_REQUEST.getErrorCode(), ErrorCode.INVALID_REQUEST.getErrorMessage());
+		}
+		
+		Optional<DistrictOffice> districtOfficeOpt = districtOfficeRepository.findByDistrictNameIgnoreCase(districtName.trim());
+		
+		if(!districtOfficeOpt.isPresent()) {
+			throw new RequestException(ErrorCode.DATA_NOT_FOUND.getErrorCode(), ErrorCode.DATA_NOT_FOUND.getErrorMessage());
+		}
+		
+		DistrictOffice districtOffice = districtOfficeOpt.get();
+		
+		DistrictOfficeResponseDTO response = new DistrictOfficeResponseDTO();
+		response.setDistrictOfficeCode(districtOffice.getDistrictOfficeCode());
+		response.setDistrictOfficeName(districtOffice.getDistrictOfficeName());
+		
+		return response;
+	}
+
+	protected OfficerDetailDTO findOfficerByUserId(String userId) {
+	    // Search in all role maps
+	    for (Map.Entry<String, List<OfficerDetailDTO>> entry : officerDetailMap.entrySet()) {
+	        for (OfficerDetailDTO officer : entry.getValue()) {
+	            if (userId.equals(officer.getUserId())) {
+	                return officer;
+	            }
+	        }
+	    }
+	    return null;
+	}
+	
+	protected String extractDistrictName(String districtValue) {
+	    // Remove anything in parentheses and trim
+	    int parenthesesIndex = districtValue.indexOf('(');
+	    if (parenthesesIndex != -1) {
+	        return districtValue.substring(0, parenthesesIndex).trim();
+	    }
+	    return districtValue.trim();
+	}
+
+	@Override
+	public ConfigResponseDTO getApplicationConfig() {
+		ConfigResponseDTO response = new ConfigResponseDTO();
+		response.setAgeGroupRanges(getAgeGroupRanges());
+		response.setDistrictList(getAllDistrictNames());
+		return response;
+	}
+
+	public List<AgeGroupRangeDTO> getAgeGroupRanges() {
+		List<AgeGroupRangeDTO> ageGroupRangeDTO = new ArrayList<>();
+		for (Map.Entry<String, String> entry : ageGroupRanges.entrySet()) {
+			ageGroupRangeDTO.add(new AgeGroupRangeDTO(entry.getKey(), entry.getValue()));
+		}
+		return ageGroupRangeDTO;
+	}
+	
+	private List<String> getAllDistrictNames() {
+		return districtOfficeRepository.findAllDistrictNames();
+	}
+	
+	public DemographicDetailsDTO.Identity fetchMatchedRegIdDemographics (String registrationId) {
+		logger.info("Fetching the demographic details for the matched regId : {}", registrationId);
+		
+		DemographicDetailsDTO demoDetails = getDemographicDetailByRegistartionId(registrationId);
+		
+		if(demoDetails == null || demoDetails.getIdentity() == null) {
+			throw new RequestException("IDENTITY_NOT_FOUND", "Demographic Identity not found for registartion Id" 
+					+ registrationId);
+		}
+		
+		DemographicDetailsDTO.Identity identity = demoDetails.getIdentity();
+//		MatchedRegIdDTO matched = new MatchedRegIdDTO();
+//		matched.setGivenName(getFirstValue(identity.getGivenName()));
+//		matched.setSurname(getFirstValue(identity.getSurname()));
+//		matched.setGender(getFirstValue(identity.getGender()));
+//		matched.setDateOfBirth(identity.getDateOfBirth());
+//		matched.setPhone(identity.getPhone());
+//		matched.setEmail(identity.getEmail());
+		
+		return identity;
+		
+	}
+	
+	private DemographicDetailsDTO getDemographicDetailByRegistartionId(String registrationId) {
+		logger.info("Fetching demographic details from idRepo for regId {}",registrationId);
+		
+		String url =idRepoUrl + registrationId;
+		
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		HttpEntity<String> entity = new HttpEntity<>(null, headers);
+		
+		try {
+			ResponseEntity<ResponseWrapper<DemographicDetailsDTO>> responseEntity = restTemplate.exchange(
+					url, HttpMethod.GET, entity,
+					new ParameterizedTypeReference<ResponseWrapper<DemographicDetailsDTO>>() {
+					});
+			
+			if (responseEntity.getBody() == null) {
+				logger.error("Failed to get details from idrepo. Status Code : {}", responseEntity.getStatusCodeValue());
+				throw new RequestException(ErrorCode.IDREPO_FETCH_FAILED.getErrorCode(),
+						ErrorCode.IDREPO_FETCH_FAILED.getErrorMessage() + "with status code : "
+						+responseEntity.getStatusCodeValue());
+			}
+			
+			ResponseWrapper<DemographicDetailsDTO> responseWrapper = responseEntity.getBody();
+			
+			if(responseWrapper.getErrors() != null && !responseWrapper.getErrors().isEmpty()) {
+				logger.error("Id repo fetch failed for registration id {} : {}", registrationId,
+						responseWrapper.getErrors().get(0));
+				throw new RequestException(ErrorCode.INVALID_IDREPO_RESPONSE.getErrorCode(),
+						ErrorCode.INVALID_IDREPO_RESPONSE.getErrorMessage() + "with error : " +
+						responseWrapper.getErrors().get(0));
+			}
+			
+			return responseWrapper.getResponse();
+		} catch(RestClientException e) {
+			logger.error("Failed to get ersponse from Id repo : {}", e);
+			throw new RequestException(ErrorCode.IDREPO_FETCH_FAILED.getErrorCode(),
+					ErrorCode.IDREPO_FETCH_FAILED.getErrorMessage() + "with error : "
+					+ e.getMessage());
+		}
+	}
+	
+	private String getFirstValue(List<DemographicDetailsDTO.LanguageValue> list) {
+		return (list != null && !list.isEmpty())?list.get(0).getValue() : null;
 	}
 }

@@ -23,7 +23,7 @@ public interface MVSApplicationRepo extends JpaRepository<MVSApplication, String
 	MVSApplication getRejectedApplicationById(@Param("applicationId") String applicationId);
 
 	@Query("SELECT e FROM mvs_application e " +
-			"WHERE e.assignedOfficerRole = 'MVS_OFFICER' " +
+			"WHERE e.assignedOfficerRole IN ('MVS_OFFICER','MVS_SUPERVISOR','MVS_LEGAL_OFFICER') " +
 			"AND ((e.updatedTimes IS NOT NULL AND e.updatedTimes < :dateThreshold) " +
 			"OR (e.updatedTimes IS NULL AND e.crDTimes < :dateThreshold))")
 	List<MVSApplication> findRecordsOlderThanXDays(@Param("dateThreshold") LocalDateTime dateThreshold);
