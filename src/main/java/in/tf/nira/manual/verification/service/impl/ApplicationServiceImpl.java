@@ -294,14 +294,17 @@ public class ApplicationServiceImpl implements ApplicationService {
 			
 			String dobStr = verifyRequest.getDateOfBirth();
 			LocalDateTime dob =null;
-			
-			try {
-				DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-				LocalDate date = LocalDate.parse(dobStr, formatter);
-				dob = date.atStartOfDay();
-			} catch (DateTimeParseException ex) {
-				logger.info("Invalid date format for date of birth: {}", dobStr);
-				logger.info("Exception parsing the date of birth, dob will be set to null");
+			if(dobStr != null && !dobStr.trim().isEmpty()) {
+				try {
+					DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+					LocalDate date = LocalDate.parse(dobStr, formatter);
+					dob = date.atStartOfDay();
+				} catch (DateTimeParseException ex) {
+					logger.error("Invalid date format for date of birth: {}", dobStr);
+					logger.error("Exception parsing the date of birth, dob will be set to null");
+				} catch (Exception ex) {
+					logger.error("Error parsing the date of birth: "+ex.getMessage());
+				}
 			}
 			mVSApplication.setDateOfBirth(dob);
 			mVSApplication.setApplicantPlaceOfEnrolmentDistrict(verifyRequest.getApplicantPlaceOfEnrolmentDistrict());;
