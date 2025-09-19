@@ -258,58 +258,29 @@ public class ApplicationServiceImpl implements ApplicationService {
 		
 		if(selectedOfficer != null) {
 			logger.info("Assigning application to officer: " + selectedOfficer.getUserId());
-			MVSApplication mVSApplication = new MVSApplication();
-			mVSApplication.setRegId(verifyRequest.getRegId());
-			mVSApplication.setService(serviceProperties.toDisplay(verifyRequest.getService()));
-			mVSApplication.setServiceType(env.getProperty(verifyRequest.getServiceType().replaceAll(" ", "_")));
-			mVSApplication.setReferenceURL(verifyRequest.getReferenceURL());
-			mVSApplication.setSource(verifyRequest.getSource() != null ? verifyRequest.getSource() : defaultSource);
-			mVSApplication.setRefId(verifyRequest.getRefId());
-			mVSApplication.setSchemaVersion(verifyRequest.getSchemaVersion());
-			mVSApplication.setFoundLink(verifyRequest.getFoundLink());
-			mVSApplication.setAgeGroup(verifyRequest.getAgeGroup());;
-			mVSApplication.setResDistrict(verifyRequest.getApplicantPlaceOfResidenceDistrict());
-			mVSApplication.setAssignedOfficerId(selectedOfficer.getUserId());
-			mVSApplication.setAssignedOfficerName(selectedOfficer.getUserName());
-			mVSApplication.setAssignedOfficerRole(selectedOfficer.getUserRole());
-			mVSApplication.setStage(StageCode.ASSIGNED_TO_OFFICER.getStage());
-			mVSApplication.setCreatedBy(SYSTEM);
-			mVSApplication.setCrDTimes(LocalDateTime.now());
-			mVSApplication.setStatusComment(verifyRequest.getStatusComment());
-			
-			//set assignedDate
-			mVSApplication.setAssignedDate(LocalDateTime.now());
-			
-			//for testing harcoding the matched reg_ids
-//			List<String> regIds =Arrays.asList("10115100090004520250805124912" , "10115100070001320250723092851" , "10115100020017720250708085531");
-//			mVSApplication.setMatchedRegIds(regIds);
-			
-			mVSApplication.setMatchedRegIds(verifyRequest.getMatchedRegIds());
-			logger.info("Received matched reg ids : {}",verifyRequest.getMatchedRegIds());
-			
-			mVSApplication.setSurname(verifyRequest.getSurname());
-			mVSApplication.setGivenName(verifyRequest.getGivenName());
-			
-			//getting the dob as string then parsing it into Local Date.
-			
-			String dobStr = verifyRequest.getDateOfBirth();
-			LocalDateTime dob =null;
-			if(dobStr != null && !dobStr.trim().isEmpty()) {
-				try {
-					DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-					LocalDate date = LocalDate.parse(dobStr, formatter);
-					dob = date.atStartOfDay();
-				} catch (DateTimeParseException ex) {
-					logger.error("Invalid date format for date of birth: {}", dobStr);
-					logger.error("Exception parsing the date of birth, dob will be set to null");
-				} catch (Exception ex) {
-					logger.error("Error parsing the date of birth: "+ex.getMessage());
-				}
+			MVSApplication mVSApplication;
+			Optional<MVSApplication> existingMVSApplication = mVSApplicationRepo.findById(verifyRequest.getRegId());
+			if (existingMVSApplication.isPresent()) {
+				logger.info("Registration Id: {} ,already exist in the mvs application table",verifyRequest.getRegId());
+				logger.info("Updating the existing application details");
+				
+				mVSApplication = existingMVSApplication.get();
+				logger.info("Fetched Application details: {}",mVSApplication);
+				
+				mVSApplication.setStatusComment(verifyRequest.getStatusComment());
+				mVSApplication.setAssignedOfficerId(selectedOfficer.getUserId());
+				mVSApplication.setAssignedOfficerName(selectedOfficer.getUserName());
+				mVSApplication.setAssignedOfficerRole(selectedOfficer.getUserRole());
+				mVSApplication.setStage(StageCode.ASSIGNED_TO_OFFICER.getStage());
+				mVSApplication.setCrDTimes(LocalDateTime.now());
+				mVSApplication.setAssignedDate(LocalDateTime.now());
+				
+				logger.info("After updating the application: {}", mVSApplication);
+			} else {
+				logger.info("Registration Id: {} , doesnot exist in the mvs application table", verifyRequest.getRegId());
+				
+				mVSApplication = createNewApplication(verifyRequest, selectedOfficer);
 			}
-			mVSApplication.setDateOfBirth(dob);
-			mVSApplication.setApplicantPlaceOfEnrolmentDistrict(verifyRequest.getApplicantPlaceOfEnrolmentDistrict());;
-			
-			
 			mVSApplicationRepo.save(mVSApplication);
 			
 			if(officerAssignment.getCrDTimes() == null) {
@@ -330,6 +301,64 @@ public class ApplicationServiceImpl implements ApplicationService {
 		return response;
 	}
 
+	public MVSApplication createNewApplication(CreateAppRequestDTO verifyRequest, OfficerDetailDTO selectedOfficer) {
+		logger.info("Creating new application in the mvs application table");
+		MVSApplication mVSApplication = new MVSApplication();
+		mVSApplication.setRegId(verifyRequest.getRegId());
+		mVSApplication.setService(serviceProperties.toDisplay(verifyRequest.getService()));
+		mVSApplication.setServiceType(env.getProperty(verifyRequest.getServiceType().replaceAll(" ", "_")));
+		mVSApplication.setReferenceURL(verifyRequest.getReferenceURL());
+		mVSApplication.setSource(verifyRequest.getSource() != null ? verifyRequest.getSource() : defaultSource);
+		mVSApplication.setRefId(verifyRequest.getRefId());
+		mVSApplication.setSchemaVersion(verifyRequest.getSchemaVersion());
+		mVSApplication.setFoundLink(verifyRequest.getFoundLink());
+		mVSApplication.setAgeGroup(verifyRequest.getAgeGroup());
+		mVSApplication.setResDistrict(verifyRequest.getApplicantPlaceOfResidenceDistrict());
+		mVSApplication.setAssignedOfficerId(selectedOfficer.getUserId());
+		mVSApplication.setAssignedOfficerName(selectedOfficer.getUserName());
+		mVSApplication.setAssignedOfficerRole(selectedOfficer.getUserRole());
+		mVSApplication.setStage(StageCode.ASSIGNED_TO_OFFICER.getStage());
+		mVSApplication.setCreatedBy(SYSTEM);
+		mVSApplication.setCrDTimes(LocalDateTime.now());
+		mVSApplication.setStatusComment(verifyRequest.getStatusComment());
+		
+		//set assignedDate
+		mVSApplication.setAssignedDate(LocalDateTime.now());
+		
+		//for testing harcoding the matched reg_ids
+//		List<String> regIds =Arrays.asList("10115100090004520250805124912" , "10115100070001320250723092851" , "10115100020017720250708085531");
+//		mVSApplication.setMatchedRegIds(regIds);
+		
+		mVSApplication.setMatchedRegIds(verifyRequest.getMatchedRegIds());
+		logger.info("Received matched reg ids : {}",verifyRequest.getMatchedRegIds());
+		
+		mVSApplication.setSurname(verifyRequest.getSurname());
+		mVSApplication.setGivenName(verifyRequest.getGivenName());
+		
+		//getting the dob as string then parsing it into Local Date.
+		
+		String dobStr = verifyRequest.getDateOfBirth();
+		LocalDateTime dob =null;
+		if(dobStr != null && !dobStr.trim().isEmpty()) {
+			try {
+				DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+				LocalDate date = LocalDate.parse(dobStr, formatter);
+				dob = date.atStartOfDay();
+			} catch (DateTimeParseException ex) {
+				logger.error("Invalid date format for date of birth: {}", dobStr);
+				logger.error("Exception parsing the date of birth, dob will be set to null");
+			} catch (Exception ex) {
+				logger.error("Error parsing the date of birth: "+ex.getMessage());
+			}
+		}
+		mVSApplication.setDateOfBirth(dob);
+		mVSApplication.setApplicantPlaceOfEnrolmentDistrict(verifyRequest.getApplicantPlaceOfEnrolmentDistrict());;
+		
+		logger.info("New application created with following details: {}", mVSApplication);
+		
+		return mVSApplication;
+	}
+	
 	@Override
 	public String getOfficerRoleBasedOnUpdateService(CreateAppRequestDTO verifyRequest) {
 		try {
