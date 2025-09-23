@@ -133,7 +133,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 	
 	@Value("${manual.verification.document.upload.process}")
 	private String documentUploadProcess;
-	
+
 	@Value("${manual.verification.default.source:REGISTRATION_CLIENT}")
 	private String defaultSource;
 	
@@ -453,6 +453,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 				} else if (CommonConstants.MVS_LEGAL_OFFICER_ROLE.equals(esc.getLevel())) {
 					response.setLegalEscDetails(esc);
 				}
+				else if (CommonConstants.MVS_MANAGER.equals((esc.getLevel()))){
+					response.setLegalEscDetails(esc);
+				}
 			});
 		}
 
@@ -588,6 +591,10 @@ public class ApplicationServiceImpl implements ApplicationService {
 				else if(request.getSelectedOfficerLevel() != null && request.getSelectedOfficerLevel().equals(CommonConstants.MVS_SUPERVISOR_ROLE)) {
 					escalateApplication(application, CommonConstants.MVS_SUPERVISOR_ROLE,
 							StageCode.ASSIGNED_TO_SUPERVISOR.getStage(), request, null, null);
+				}
+				else if(request.getSelectedOfficerLevel() != null && request.getSelectedOfficerLevel().equals(CommonConstants.MVS_MANAGER)) {
+					escalateApplication(application, CommonConstants.MVS_MANAGER,
+							StageCode.ASSIGNED_TO_MVS_MANAGER.getStage(), request, null, null);
 				}
 				else if(request.getSelectedOfficerLevel() != null && request.getSelectedOfficerLevel().equals(CommonConstants.MVS_EXECUTIVE_DIRECTOR)) {
 					escalateApplication(application, CommonConstants.MVS_EXECUTIVE_DIRECTOR,
@@ -2381,5 +2388,128 @@ public class ApplicationServiceImpl implements ApplicationService {
 	
 	private String getFirstValue(List<DemographicDetailsDTO.LanguageValue> list) {
 		return (list != null && !list.isEmpty())?list.get(0).getValue() : null;
+	}
+
+
+	@Override
+	public StatusResponseDTO updateDemographics(String applicationId,  ModifiedDetailsDTO modifiedDetailsDTO) {
+		logger.info("Modifying the demographic detail for Id: {}", applicationId);
+
+		MVSApplication application = getApplicationById(applicationId);
+
+		Map<String, Object> demographicDetails = modifiedDetailsDTO.toNonNullMap();
+
+		Map<String, String> stringFields = demographicDetails.entrySet().stream()
+				.filter(e -> e.getValue() != null)
+				.collect(Collectors.toMap(
+						Map.Entry::getKey,
+						e -> e.getValue().toString()   // convert Object to String
+				));
+
+		if (application.getAssignedOfficerRole().equals(CommonConstants.MVS_MANAGER)) {
+			uploadToPacketManagerfordemographic(application, modifiedDetailsDTO);
+			application.setUpdatedBy(UserDetailUtil.getLoggedInUserId());
+			application.setUpdatedTimes(LocalDateTime.now());
+
+			String dateOfBirth = stringFields.get("dateOfBirth");
+			String givenName = stringFields.get("givenName");
+			String surname = stringFields.get("surname");
+
+			if (dateOfBirth != null && !dateOfBirth.isEmpty()) {
+				DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+				LocalDateTime DateOfBirth = LocalDateTime.parse(dateOfBirth + "T00:00:00"); // for date-only string
+				application.setDateOfBirth(DateOfBirth);
+			}
+
+			if (givenName != null && !givenName.isEmpty()) {
+				application.setGivenName(givenName);
+			}
+
+			if (surname != null && !surname.isEmpty()) {
+				application.setSurname(surname);
+			}
+			mVSApplicationRepo.save(application);
+
+		} else {
+			logger.error("{} not allowed to upload documents", application.getAssignedOfficerRole());
+			throw new RequestException(ErrorCode.DEMOGRAPHIC_MODIFY_NOT_ALLOWED.getErrorCode(),
+					String.format(ErrorCode.DEMOGRAPHIC_MODIFY_NOT_ALLOWED.getErrorMessage(), application.getAssignedOfficerRole()));
+		}
+
+		StatusResponseDTO response = new StatusResponseDTO();
+		response.setStatus("Success");
+		return response;
+	}
+
+
+	private void uploadToPacketManagerfordemographic(MVSApplication application, ModifiedDetailsDTO modifiedDetailsDTO) {
+		Map<String, Object> demographicDetails = modifiedDetailsDTO.toNonNullMap();
+
+		Map<String, String> stringFields = demographicDetails.entrySet().stream()
+				.filter(e -> e.getValue() != null)
+				.collect(Collectors.toMap(
+						Map.Entry::getKey,
+						e -> e.getValue().toString()   // convert Object to String
+				));
+
+		logger.info("updated the demographic detail: {}", demographicDetails);
+		logger.info("updated the demographic detail to string : {}", stringFields);
+
+		PacketDto packetDto = new PacketDto();
+		packetDto.setId(application.getRegId());
+		packetDto.setSource(application.getSource());
+		packetDto.setProcess(documentUploadProcess);
+		packetDto.setRefId(application.getRefId());
+		packetDto.setSchemaVersion(application.getSchemaVersion());
+		packetDto.setSchemaJson(getSchemaJson(application.getSchemaVersion()));
+
+		List<Map<String, String>> audits = new ArrayList<>();
+		Map<String, String> audit = new HashMap<>();
+		audit.put("id", application.getRegId());
+		audits.add(audit);
+		packetDto.setAudits(audits);
+
+		packetDto.setFields(stringFields);
+
+		RequestWrapper<PacketDto> request = new RequestWrapper<>();
+		request.setId(PACKET_MANAGER_ID);
+		request.setVersion(PACKET_MANAGER_VERSION);
+		request.setRequesttime(DateUtils.getUTCCurrentDateTime());
+		request.setRequest(packetDto);
+
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		HttpEntity<RequestWrapper<PacketDto>> httpEntity = new HttpEntity<>(request, headers);
+
+		try {
+			ResponseEntity<ResponseWrapper<List<PacketInfo>>> responseEntity = restTemplate.exchange(
+					createPacketUrl,
+					HttpMethod.PUT,
+					httpEntity,
+					new ParameterizedTypeReference<ResponseWrapper<List<PacketInfo>>>() {}
+			);
+
+			if (responseEntity.getBody() == null) {
+				logger.error("Failed to upload Demographic-Details. Status code: " + responseEntity.getStatusCodeValue());
+				throw new RequestException(ErrorCode.PACKET_MANAGER_UPLOAD_FAILED.getErrorCode(),
+						ErrorCode.PACKET_MANAGER_UPLOAD_FAILED.getErrorMessage() + "with status code: " + responseEntity.getStatusCodeValue());
+			}
+
+			ResponseWrapper<List<PacketInfo>> responseWrapper = responseEntity.getBody();
+
+			if (responseWrapper.getErrors() != null && !responseWrapper.getErrors().isEmpty()) {
+				logger.error("Demographic update upload error: {}", responseWrapper.getErrors().get(0));
+				throw new RequestException(ErrorCode.INVALID_PACKET_MANAGER_RESPONSE.getErrorCode(),
+						ErrorCode.INVALID_PACKET_MANAGER_RESPONSE.getErrorMessage() + "with error: " + responseWrapper.getErrors().get(0));
+			}
+
+			logger.info("Demographic Modifieded successfully");
+		} catch (RestClientException e) {
+			logger.error("Failed to upload packet to Packet Manager, {}", e);
+			throw new RequestException(ErrorCode.PACKET_MANAGER_UPLOAD_FAILED.getErrorCode(),
+					ErrorCode.PACKET_MANAGER_UPLOAD_FAILED.getErrorMessage() + "with error: " + e.getMessage());
+		}
+
+
 	}
 }

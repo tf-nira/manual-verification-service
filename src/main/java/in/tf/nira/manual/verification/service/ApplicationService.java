@@ -20,4 +20,5 @@ public interface ApplicationService {
 	DistrictOfficeResponseDTO getDistrictOfficeByName (String district);
 	ConfigResponseDTO getApplicationConfig ();
 	DemographicDetailsDTO.Identity fetchMatchedRegIdDemographics(String registartionId);
+	StatusResponseDTO updateDemographics(String applicationId, ModifiedDetailsDTO modifiedDetailsDTO);
 }

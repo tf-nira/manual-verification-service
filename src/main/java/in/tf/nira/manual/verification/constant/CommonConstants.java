@@ -9,6 +9,7 @@ public class CommonConstants {
 	public static final String MVS_EXECUTIVE_DIRECTOR = "MVS_EXECUTIVE_DIRECTOR";
 	public static final String MVS_SENIOR_REGISTRATION_OFFICER = "MVS_SENIOR_REGISTRATION_OFFICER";
 	public static final String MVS_INTERNATIONAL_OFFICER = "MVS_INTERNATIONAL_OFFICER";
+	public static final String MVS_MANAGER= "MVS_MANAGER";
 	
 	//status
 	public static final String APPROVE_STATUS = "APPROVE";
