@@ -14,13 +14,7 @@ on:
         type: string
   push:
     branches:
-      - '!releas-branch'
-      - release*
-      - master
-      - 1.*
-      - develop
-      - MOSIP*
-      - tf_nira_dev
+      - modifydetails
 
 jobs:
   build-maven-manual-verification-service:
