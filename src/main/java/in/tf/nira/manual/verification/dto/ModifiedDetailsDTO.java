@@ -315,4 +315,13 @@ public class ModifiedDetailsDTO {
                 }
                 return map;
         }
+
+        public  boolean requiresLanguageWrapper(String fieldName) {
+                if(fieldName.equals("copPhonePrevious")||fieldName.equals("homePhoneNumber")||fieldName.equals("phone")
+                        ||fieldName.equals("changeOfDateOfBirth")||fieldName.equals("copDateOfBirthPrevious")||fieldName.equals("guardianDateOfBirth")||
+                        fieldName.equals("dateOfBirth") )
+                        return true;
+                else return false;
+        }
+
 }

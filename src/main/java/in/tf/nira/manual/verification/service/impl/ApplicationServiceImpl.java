@@ -2416,9 +2416,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 			String surname = stringFields.get("surname");
 
 			if (dateOfBirth != null && !dateOfBirth.isEmpty()) {
-				DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-				LocalDateTime DateOfBirth = LocalDateTime.parse(dateOfBirth + "T00:00:00"); // for date-only string
-				application.setDateOfBirth(DateOfBirth);
+				DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+				LocalDate DateOfBirth = LocalDate.parse(dateOfBirth, formatter);
+				application.setDateOfBirth(DateOfBirth.atStartOfDay());
 			}
 
 			if (givenName != null && !givenName.isEmpty()) {
@@ -2448,8 +2448,29 @@ public class ApplicationServiceImpl implements ApplicationService {
 		Map<String, String> stringFields = demographicDetails.entrySet().stream()
 				.filter(e -> e.getValue() != null)
 				.collect(Collectors.toMap(
-						Map.Entry::getKey,
-						e -> e.getValue().toString()   // convert Object to String
+//						Map.Entry::getKey,
+						e -> e.getKey(),
+						e -> {
+							String key = e.getKey();
+							Object val = e.getValue();
+
+							if (!(modifiedDetailsDTO.requiresLanguageWrapper(key)) && val instanceof String) {
+								List<Map<String, String>> langList = new ArrayList<>();
+								Map<String, String> langMap = new HashMap<>();
+								langMap.put("language", "eng");
+								langMap.put("value", val.toString());
+								langList.add(langMap);
+								try {
+									return objectMapper.writeValueAsString(langList); // serialize as JSON string
+								} catch (JsonProcessingException ex) {
+									ex.printStackTrace();
+									return ""; // fallback
+								}
+							} else {
+								return val.toString(); // send as-is for phone, dateOfBirth, etc.
+							}
+						}
+//						e -> e.getValue().toString()   // convert Object to String
 				));
 
 		logger.info("updated the demographic detail: {}", demographicDetails);
