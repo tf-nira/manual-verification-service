@@ -2461,7 +2461,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 								langMap.put("value", val.toString());
 								langList.add(langMap);
 								try {
-									return objectMapper.writeValueAsString(langList); // serialize as JSON string
+									String json=objectMapper.writeValueAsString(langList); // serialize as JSON string
+									return json.replace("\"", "\\\"");
 								} catch (JsonProcessingException ex) {
 									ex.printStackTrace();
 									return ""; // fallback
