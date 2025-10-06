@@ -274,6 +274,105 @@ public class ApplicationServiceImpl implements ApplicationService {
 				mVSApplication.setStage(StageCode.ASSIGNED_TO_OFFICER.getStage());
 				mVSApplication.setCrDTimes(LocalDateTime.now());
 				mVSApplication.setAssignedDate(LocalDateTime.now());
+
+//				??
+				if (
+						Objects.equals(verifyRequest.getService(), "GetFirst ID") &&
+								(
+										(mVSApplication.getSurname() == null ||mVSApplication.getSurname().isBlank()) ||
+												(mVSApplication.getGivenName() == null || mVSApplication.getGivenName().isBlank()) ||
+												(mVSApplication.getDateOfBirth() == null)
+								)
+				){
+					try {
+
+						ResponseEntity<String> responseEntity = restTemplate.exchange(verifyRequest.getReferenceURL(), HttpMethod.GET, null, String.class);
+						String response = responseEntity.getBody();
+
+//						if (response == null || response.isBlank()) {
+//							logger.warn("Received an empty or null response from data share for RegId: {}", verifyRequest.getRegId());
+//							return verifyRequest; // Return with base data
+//						}
+
+						if (encryption) {
+							logger.info("Decrypting response from data share");
+							response = cryptoUtil.decrypt(response);
+						}
+
+
+						DataShareResponseDto dataShareResponse = objectMapper.readValue(response, DataShareResponseDto.class);
+
+						if (dataShareResponse != null && dataShareResponse.getIdentity() != null) {
+							Map<String, String> demographicsMap = dataShareResponse.getIdentity();
+							String nin = demographicsMap.get(CommonConstants.NIN);
+
+							// If a NIN exists, fetch more details from the ID repository.
+							if (nin != null && !nin.isBlank()) {
+								try {
+									logger.info("Fetching demographic details from ID repository for NIN...");
+									DemographicDetailsDTO previousDemographics = getDemographicDetails(nin);
+
+									if (previousDemographics != null && previousDemographics.getIdentity() != null) {
+										// FIX: Safely access list elements to prevent IndexOutOfBoundsException.
+										List<DemographicDetailsDTO.LanguageValue> givenNameList = previousDemographics.getIdentity().getGivenName();
+										if (givenNameList != null && !givenNameList.isEmpty()) {
+											mVSApplication.setGivenName(givenNameList.get(0).getValue());
+										}
+
+										List<DemographicDetailsDTO.LanguageValue> surnameList = previousDemographics.getIdentity().getSurname();
+										if (surnameList != null && !surnameList.isEmpty()) {
+											mVSApplication.setSurname(surnameList.get(0).getValue());
+										}
+
+										String dateOfBirthStr = previousDemographics.getIdentity().getDateOfBirth();
+										LocalDate localDate = null;
+										if (dateOfBirthStr != null) {
+											try {
+												DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+												localDate = LocalDate.parse(dateOfBirthStr, formatter);
+												logger.info("Local date : "+localDate);
+												mVSApplication.setDateOfBirth(localDate.atStartOfDay());
+//										userApp.setDateOfBirth(localDate);
+											} catch (DateTimeParseException e) {
+												// FIX: Use logger for errors instead of System.err.
+												logger.error("Invalid date format from ID repository: {}", dateOfBirthStr);
+											}
+										}
+
+//										NewService.updateUserInfo(app.getRegId(), surnameList.get(0).getValue(), givenNameList.get(0).getValue(), localDate.atStartOfDay());
+//
+//										List<DemographicDetailsDTO.LanguageValue> EnrolmentDistrictList = previousDemographics.getIdentity().getApplicantPlaceOfEnrolmentDistrict();
+//
+//
+//										if (userApp.getApplicantPlaceOfEnrolmentDistrict() == null && EnrolmentDistrictList != null && !EnrolmentDistrictList.isEmpty()) {
+//
+//											userApp.setApplicantPlaceOfEnrolmentDistrict(EnrolmentDistrictList.get(0).getValue());
+//											logger.info("Distict set " + userApp.getApplicantPlaceOfEnrolmentDistrict());
+//											logger.info("Enrolment dist " + EnrolmentDistrictList);
+//										}
+
+//								logger.info("enrolment district  "+EnrolmentDistrictList);
+//								logger.info("District set "+userApp.getApplicantPlaceOfEnrolmentDistrict());
+//								logger.info("Previous demogphy :"+previousDemographics.getIdentity() );
+									}
+								} catch (Exception e) {
+									// This is a non-critical error. Log it but don't stop execution.
+									logger.error("Failed to fetch details from ID repository. Proceeding with existing data. Error: {}", e.getMessage());
+								}
+							}
+						}
+					} catch (RestClientException e) {
+						logger.error("Network error fetching from data share URL [{}]. Error: {}", verifyRequest.getReferenceURL(), e.getMessage());
+					} catch (JsonProcessingException e) {
+						logger.error("Failed to parse JSON response from data share URL [{}]. Error: {}", verifyRequest.getReferenceURL(), e.getMessage());
+					} catch (Exception e) {
+						// A general catch-all for any other unexpected errors (e.g., decryption).
+						logger.error("An unexpected error occurred while processing application RegId [{}]. Error: {}", verifyRequest.getRegId(), e.getMessage(), e);
+					}	}
+
+//				??
+
+
 				
 				logger.info("After updating the application: {}", mVSApplication);
 			} else {
