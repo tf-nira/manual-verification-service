@@ -7,6 +7,7 @@ import lombok.Data;
 import java.util.HashMap;
 import java.util.Map;
 import java.lang.reflect.Field;
+import java.util.Set;
 
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -18,8 +19,6 @@ public class ModifiedDetailsDTO {
         private Boolean NINVerified;
         private String PRN;
         private String UIN;
-        private Boolean addSpouse;
-        private String addingName;
         private String appBirCountryUGA;
         private String appOriCountryUGA;
         private String appResCountryUGA;
@@ -64,16 +63,7 @@ public class ModifiedDetailsDTO {
         private String applicantPlaceOfResidenceSubCounty;
         private String applicantPlaceOfResidenceVillage;
         private String applicantPlaceOfResidenceYearsLived;
-        private String applicantProofOfSignature;
         private String cardNumber;
-        private Boolean changeDetailsOfFather;
-        private Boolean changeDetailsOfMother;
-        private Boolean changeInCitizenshipType;
-        private Boolean changeInPlaceOfBirth;
-        private Boolean changeInPlaceOfOrigin;
-        private Boolean changeInPlaceOfResidence;
-        private Boolean changeOfDateOfBirth;
-        private Boolean changeOrderOfNames;
         private String childDateOfBirth;
         private String childFiveDateOfBirth;
         private String childFiveGivenName;
@@ -117,14 +107,12 @@ public class ModifiedDetailsDTO {
         private String childTwoSex;
         private String childTwoSurname;
         private String citizenshipCertificateNo;
-        private Boolean completeChangeofName;
         private String copCountryCodePrevious;
         private String copDateOfBirthPrevious;
         private String copGivenNamePrevious;
         private String copNinPrevious;
         private String copPhonePrevious;
         private String copSurnamePrevious;
-        private Boolean correctionOfErrorRegardingNin;
         private String dateOfBirth;
         private String declarant;
         private String declarantGender;
@@ -137,7 +125,6 @@ public class ModifiedDetailsDTO {
         private String declarantotherNames;
         private String disabilities;
         private String email;
-        private String enrollmentOfficerComment;
         private String enrolmentCountry;
         private String fatOriCountryUGA;
         private String fatResCountryUGA;
@@ -202,8 +189,6 @@ public class ModifiedDetailsDTO {
         private String highestLevelOfEducation;
         private String homePhoneNumber;
         private String introducerNIN;
-        private String introducerProofOfSignature;
-        private String introducerSignature;
         private String maidenName;
         private String maritalStatus;
         private String motOriCountryUGA;
@@ -257,7 +242,6 @@ public class ModifiedDetailsDTO {
         private String previousName;
         private String profession;
         private String removeSpouse;
-        private String removingName;
         private String renewalNIN;
         private String residenceStatus;
         private String selectedHandles;
@@ -295,7 +279,6 @@ public class ModifiedDetailsDTO {
         private String spouseTwoTypeOfMarriage;
         private String spouseTypeOfMarriage;
         private String surname;
-        private String surnameCop;
         private String updatedAt;
         private String userService;
         private String userServiceType;
@@ -316,13 +299,28 @@ public class ModifiedDetailsDTO {
                 return map;
         }
 
-        public  boolean requiresLanguageWrapper(String fieldName) {
-                if(fieldName.equals("copPhonePrevious")||fieldName.equals("homePhoneNumber")||fieldName.equals("phone")||fieldName.equals("nextOfKinPhoneNumber")
-                        ||fieldName.equals("changeOfDateOfBirth")||fieldName.equals("copDateOfBirthPrevious")||fieldName.equals("guardianDateOfBirth")||
-                        fieldName.equals("dateOfBirth") ||fieldName.equals("childDateOfBirth")||fieldName.equals("childTwoDateOfBirth")||fieldName.equals("childThreeDateOfBirth")||
-                        fieldName.equals("childFourDateOfBirth")|| fieldName.equals("childFiveDateOfBirth")|| fieldName.equals("childSixDateOfBirth")|| fieldName.equals("email"))
-                        return true;
-                else return false;
+        private static final Set<String> FIELDS_REQUIRING_WRAPPER = Set.of(
+                "copPhonePrevious", "homePhoneNumber", "phone", "nextOfKinPhoneNumber",
+                "changeOfDateOfBirth", "copDateOfBirthPrevious", "guardianDateOfBirth",
+                "dateOfBirth", "childDateOfBirth", "childTwoDateOfBirth", "childThreeDateOfBirth",
+                "childFourDateOfBirth", "childFiveDateOfBirth", "childSixDateOfBirth",
+                "email", "NIN", "PRN", "applicantPassportFileNumber", "applicantPassportNumber",
+                "applicantPlaceOfResidenceHouseNo", "applicantPlaceOfResidenceYearsLived",
+                "cardNumber", "childFiveNIN", "childFourNIN", "childNIN", "childSixNIN",
+                "childThreeNIN", "childTwoNIN", "citizenshipCertificateNo", "copNinPrevious",
+                "fatherCitizenCertificateNumber", "fatherIDDocumentNo", "fatherNIN",
+                "fatherPlaceOfResidenceHouseNo", "fatherUIN", "foundLink",
+                "guardianNIN_AIN", "introducerNIN", "motherCitizenCertificateNumber",
+                "motherIDDocumentNo", "motherNIN", "motherPlaceOfResidenceHouseNo",
+                "ninExpiryDate", "numberOfOtherSpouses", "spouseDateOfMarriage",
+                "spouseMarriageCertificateNumber", "spouseNIN", "spouseThreeDateOfMarriage",
+                "spouseThreeMarriageCertificateNumber", "spouseThreeNIN",
+                "spouseTwoDateOfMarriage", "spouseTwoMarriageCertificateNumber", "spouseTwoNIN"
+        );
+
+
+        public boolean requiresLanguageWrapper(String fieldName) {
+                return FIELDS_REQUIRING_WRAPPER.contains(fieldName);
         }
 
 }
