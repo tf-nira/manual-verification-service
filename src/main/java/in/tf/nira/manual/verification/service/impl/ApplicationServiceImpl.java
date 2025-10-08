@@ -134,6 +134,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 	@Value("${manual.verification.document.upload.process}")
 	private String documentUploadProcess;
 
+	@Value("${manual.verification.demographic.modify.process}")
+	private String demographicModificationProcess;
+
 	@Value("${manual.verification.default.source:REGISTRATION_CLIENT}")
 	private String defaultSource;
 	
@@ -2480,7 +2483,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 		PacketDto packetDto = new PacketDto();
 		packetDto.setId(application.getRegId());
 		packetDto.setSource(application.getSource());
-		packetDto.setProcess(documentUploadProcess);
+		packetDto.setProcess(demographicModificationProcess);
 		packetDto.setRefId(application.getRefId());
 		packetDto.setSchemaVersion(application.getSchemaVersion());
 		packetDto.setSchemaJson(getSchemaJson(application.getSchemaVersion()));

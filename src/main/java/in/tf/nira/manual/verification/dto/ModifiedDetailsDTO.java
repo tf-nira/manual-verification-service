@@ -317,9 +317,10 @@ public class ModifiedDetailsDTO {
         }
 
         public  boolean requiresLanguageWrapper(String fieldName) {
-                if(fieldName.equals("copPhonePrevious")||fieldName.equals("homePhoneNumber")||fieldName.equals("phone")
+                if(fieldName.equals("copPhonePrevious")||fieldName.equals("homePhoneNumber")||fieldName.equals("phone")||fieldName.equals("nextOfKinPhoneNumber")
                         ||fieldName.equals("changeOfDateOfBirth")||fieldName.equals("copDateOfBirthPrevious")||fieldName.equals("guardianDateOfBirth")||
-                        fieldName.equals("dateOfBirth") )
+                        fieldName.equals("dateOfBirth") ||fieldName.equals("childDateOfBirth")||fieldName.equals("childTwoDateOfBirth")||fieldName.equals("childThreeDateOfBirth")||
+                        fieldName.equals("childFourDateOfBirth")|| fieldName.equals("childFiveDateOfBirth")|| fieldName.equals("childSixDateOfBirth")|| fieldName.equals("email"))
                         return true;
                 else return false;
         }
