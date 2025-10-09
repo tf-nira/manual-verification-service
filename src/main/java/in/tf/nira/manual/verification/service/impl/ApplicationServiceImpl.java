@@ -255,7 +255,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 			officerAssignment = new OfficerAssignment();
 		}
 		OfficerDetailDTO selectedOfficer = fetchOfficerForAssignment(officerRole, officerAssignment, null, null);
-		
+
 		if(selectedOfficer != null) {
 			logger.info("Assigning application to officer: " + selectedOfficer.getUserId());
 			MVSApplication mVSApplication;
@@ -263,10 +263,10 @@ public class ApplicationServiceImpl implements ApplicationService {
 			if (existingMVSApplication.isPresent()) {
 				logger.info("Registration Id: {} ,already exist in the mvs application table",verifyRequest.getRegId());
 				logger.info("Updating the existing application details");
-				
+
 				mVSApplication = existingMVSApplication.get();
 				logger.info("Fetched Application details: {}",mVSApplication);
-				
+
 				mVSApplication.setStatusComment(verifyRequest.getStatusComment());
 				mVSApplication.setAssignedOfficerId(selectedOfficer.getUserId());
 				mVSApplication.setAssignedOfficerName(selectedOfficer.getUserName());
@@ -274,15 +274,27 @@ public class ApplicationServiceImpl implements ApplicationService {
 				mVSApplication.setStage(StageCode.ASSIGNED_TO_OFFICER.getStage());
 				mVSApplication.setCrDTimes(LocalDateTime.now());
 				mVSApplication.setAssignedDate(LocalDateTime.now());
-				
+
+				if (
+						Objects.equals(verifyRequest.getService(),CommonConstants.GET_FIRST_ID_SERVICE) &&
+								(
+										(mVSApplication.getSurname() == null || mVSApplication.getSurname().isBlank()) ||
+												(mVSApplication.getGivenName() == null || mVSApplication.getGivenName().isBlank()) ||
+												(mVSApplication.getApplicantPlaceOfEnrolmentDistrict() == null || mVSApplication.getApplicantPlaceOfEnrolmentDistrict().isBlank()) ||
+												(mVSApplication.getDateOfBirth() == null)
+								)
+				) {
+					populateDemographicsIfMissing(mVSApplication, verifyRequest);
+				}
+
 				logger.info("After updating the application: {}", mVSApplication);
 			} else {
 				logger.info("Registration Id: {} , doesnot exist in the mvs application table", verifyRequest.getRegId());
-				
+
 				mVSApplication = createNewApplication(verifyRequest, selectedOfficer);
 			}
 			mVSApplicationRepo.save(mVSApplication);
-			
+
 			if(officerAssignment.getCrDTimes() == null) {
 				officerAssignment.setCreatedBy(SYSTEM);
 				officerAssignment.setCrDTimes(LocalDateTime.now());
@@ -292,7 +304,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 				officerAssignment.setUpdatedTimes(LocalDateTime.now());
 			}
 			officerAssignmentRepo.save(officerAssignment);
-			
+
 			logger.info("Application assigned to officer: " + selectedOfficer.getUserId());
 		}
 
@@ -353,12 +365,102 @@ public class ApplicationServiceImpl implements ApplicationService {
 		}
 		mVSApplication.setDateOfBirth(dob);
 		mVSApplication.setApplicantPlaceOfEnrolmentDistrict(verifyRequest.getApplicantPlaceOfEnrolmentDistrict());;
-		
+
+		if (Objects.equals(verifyRequest.getService(), CommonConstants.GET_FIRST_ID_SERVICE)) {
+			populateDemographicsIfMissing(mVSApplication, verifyRequest);
+		}
 		logger.info("New application created with following details: {}", mVSApplication);
 		
 		return mVSApplication;
 	}
-	
+
+	/**
+	 * Fetches and populates demographic details for an application from an external source.
+	 * This method assumes the decision to call it has already been made.
+	 *
+	 * @param mvsApplication The application object to be updated. This object is modified directly.
+	 * @param verifyRequest The original request DTO containing the reference URL.
+	 */
+	private void populateDemographicsIfMissing(MVSApplication mvsApplication, CreateAppRequestDTO verifyRequest) {
+		try {
+			ResponseEntity<String> responseEntity =
+					restTemplate.exchange(verifyRequest.getReferenceURL(), HttpMethod.GET, null, String.class);
+			String response = responseEntity.getBody();
+
+			DataShareResponseDto dataShareResponse = objectMapper.readValue(response, DataShareResponseDto.class);
+
+			if (dataShareResponse != null && dataShareResponse.getIdentity() != null) {
+				Map<String, String> demographicsMap = dataShareResponse.getIdentity();
+				String nin = demographicsMap.get(CommonConstants.NIN);
+
+				if (nin != null && !nin.isBlank()) {
+					try {
+						logger.info("Fetching demographic details from ID repository for NIN...");
+						DemographicDetailsDTO previousDemographics = getDemographicDetails(nin);
+
+						if (previousDemographics != null && previousDemographics.getIdentity() != null) {
+
+							List<DemographicDetailsDTO.LanguageValue> givenNameList =
+									previousDemographics.getIdentity().getGivenName();
+							if (givenNameList != null && !givenNameList.isEmpty()) {
+								mvsApplication.setGivenName(givenNameList.get(0).getValue());
+							}
+
+							List<DemographicDetailsDTO.LanguageValue> surnameList =
+									previousDemographics.getIdentity().getSurname();
+							if (surnameList != null && !surnameList.isEmpty()) {
+								mvsApplication.setSurname(surnameList.get(0).getValue());
+							}
+
+							String dateOfBirthStr = previousDemographics.getIdentity().getDateOfBirth();
+							if (dateOfBirthStr != null) {
+								try {
+									DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+									LocalDate localDate = LocalDate.parse(dateOfBirthStr, formatter);
+									logger.info("Local date : {}", localDate);
+									mvsApplication.setDateOfBirth(localDate.atStartOfDay());
+								} catch (DateTimeParseException e) {
+									logger.error("Invalid date format from ID repository: {}", dateOfBirthStr);
+								}
+							}
+
+							String enrolmentDistrictList=demographicsMap.get(CommonConstants.APPLICANT_PLACE_OF_ENROLMENT_DISTRICT);
+
+							if (enrolmentDistrictList != null) {
+								ObjectMapper mapper = new ObjectMapper();
+								List<Map<String, String>> list = mapper.readValue(
+										enrolmentDistrictList, new TypeReference<List<Map<String, String>>>() {}
+								);
+
+								String value = list.get(0).get("value");
+								mvsApplication.setApplicantPlaceOfEnrolmentDistrict(value);
+							}else
+							{
+								List<DemographicDetailsDTO.LanguageValue> previousEnrolmentDistrictList = previousDemographics.getIdentity().getApplicantPlaceOfEnrolmentDistrict();
+								mvsApplication.setApplicantPlaceOfEnrolmentDistrict(previousEnrolmentDistrictList.get(0).getValue());
+							}
+						}
+					} catch (Exception e) {
+						logger.error("Failed to fetch details from ID repository. Proceeding with existing data. Error: {}",
+								e.getMessage());
+					}
+				}
+			}
+		} catch (RestClientException e) {
+			logger.error("Network error fetching from data share URL [{}]. Error: {}",
+					verifyRequest.getReferenceURL(), e.getMessage());
+		} catch (JsonProcessingException e) {
+			logger.error("Failed to parse JSON response from data share URL [{}]. Error: {}",
+					verifyRequest.getReferenceURL(), e.getMessage());
+		} catch (Exception e) {
+			logger.error("An unexpected error occurred while processing application RegId [{}]. Error: {}",
+					verifyRequest.getRegId(), e.getMessage(), e);
+		}
+	}
+
+
+
+
 	@Override
 	public String getOfficerRoleBasedOnUpdateService(CreateAppRequestDTO verifyRequest) {
 		try {
