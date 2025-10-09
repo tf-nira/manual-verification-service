@@ -53,6 +53,11 @@ public class CommonConstants {
 	public static final String SURNAME = "surname";
 	public static final String DATE_OF_BIRTH = "dateOfBirth";
 	public static final String PHONE = "phone";
+	public static final String USER_SERVICE = "userService";
+	
+	//age-group
+	public static final String MINOR = "MINOR";
+	public static final String INFANT = "INFANT";
 	
 	//cop
 	public static final String COP_GIVEN_NAME_PREVIOUS = "copGivenNamePrevious";

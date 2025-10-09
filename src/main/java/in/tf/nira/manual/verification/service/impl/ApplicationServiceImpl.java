@@ -1077,13 +1077,30 @@ public class ApplicationServiceImpl implements ApplicationService {
 	        String COPService = env.getProperty("UPDATE");
 	        String renewalService = env.getProperty("RENEWAL");
 	        String getFirstService = env.getProperty("FIRSTID");
+	        String migrationService = env.getProperty("MIGRATOR");
 	        logger.info("Retrieved LOST card service value from properties: {}", lostCardService);
 	        logger.info("Retrieved COP card service value from properties: {}", COPService);
 	        logger.info("Retrived RENEWAL service from properties: {}", renewalService);
 	        logger.info("Retrieved GETFIRST service from properties: {}", getFirstService);
+	        logger.info("Retrived MIGRATOR service from properties: {}", migrationService);
 	        
 	        String applicationService = application.getService();
 	        logger.info("Current application service: {}", applicationService);
+	        
+	        if(applicationService != null && !applicationService.trim().isEmpty() &&
+	        		applicationService.equalsIgnoreCase(migrationService)) {
+	        	logger.info("Processing service: {} for application with ID: {}", applicationService, application.getRegId());
+	        	logger.info("The age group for the registration id: {} is: {}", application.getRegId(), application.getAgeGroup());
+	        	
+	        	if(application.getAgeGroup().equalsIgnoreCase(CommonConstants.MINOR) || 
+	        			application.getAgeGroup().equalsIgnoreCase(CommonConstants.INFANT)) {
+	        		demographicsMap.put(CommonConstants.USER_SERVICE, env.getProperty("MIGRATOR"));
+	        	} else {
+	        		demographicsMap.put(CommonConstants.USER_SERVICE, env.getProperty("RENEWAL"));
+	        	}
+	        	
+	        	logger.info("Updated the user service for Registration ID: {} as {}", application.getRegId(), applicationService);
+	        }
 	        
 	        if(applicationService != null && !applicationService.trim().isEmpty() && 
 	        		(applicationService.equalsIgnoreCase(lostCardService) || 
