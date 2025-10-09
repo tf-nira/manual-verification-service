@@ -64,7 +64,6 @@ public class CommonConstants {
 	public static final String COP_HOME_PHONE_NUMBER_PREVIOUS = "copHomePhoneNumberPrevious";
 	public static final String COP_COUNTRY_CODE_PREVIOUS = "copCountryCodePrevious";
 
-	//
 	public static final String GET_FIRST_ID_SERVICE="GetFirst ID";
 	public static final String APPLICANT_PLACE_OF_ENROLMENT_DISTRICT = "applicantPlaceOfEnrolmentDistrict";
 }

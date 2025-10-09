@@ -284,7 +284,6 @@ public class ApplicationServiceImpl implements ApplicationService {
 												(mVSApplication.getDateOfBirth() == null)
 								)
 				) {
-					// If true, call the helper method to fetch and fill the data.
 					populateDemographicsIfMissing(mVSApplication, verifyRequest);
 				}
 
@@ -313,7 +312,6 @@ public class ApplicationServiceImpl implements ApplicationService {
 		response.setStatus("Success");
 		return response;
 	}
-
 
 	public MVSApplication createNewApplication(CreateAppRequestDTO verifyRequest, OfficerDetailDTO selectedOfficer) {
 		logger.info("Creating new application in the mvs application table");
@@ -369,7 +367,6 @@ public class ApplicationServiceImpl implements ApplicationService {
 		mVSApplication.setApplicantPlaceOfEnrolmentDistrict(verifyRequest.getApplicantPlaceOfEnrolmentDistrict());;
 
 		if (Objects.equals(verifyRequest.getService(), CommonConstants.GET_FIRST_ID_SERVICE)) {
-			// If true, call the helper method to fetch and fill the data.
 			populateDemographicsIfMissing(mVSApplication, verifyRequest);
 		}
 		logger.info("New application created with following details: {}", mVSApplication);
@@ -385,7 +382,6 @@ public class ApplicationServiceImpl implements ApplicationService {
 	 * @param verifyRequest The original request DTO containing the reference URL.
 	 */
 	private void populateDemographicsIfMissing(MVSApplication mvsApplication, CreateAppRequestDTO verifyRequest) {
-		// The IF condition has been removed from this method.
 		try {
 			ResponseEntity<String> responseEntity =
 					restTemplate.exchange(verifyRequest.getReferenceURL(), HttpMethod.GET, null, String.class);
@@ -397,7 +393,6 @@ public class ApplicationServiceImpl implements ApplicationService {
 				Map<String, String> demographicsMap = dataShareResponse.getIdentity();
 				String nin = demographicsMap.get(CommonConstants.NIN);
 
-				// If a NIN exists, fetch more details from the ID repository.
 				if (nin != null && !nin.isBlank()) {
 					try {
 						logger.info("Fetching demographic details from ID repository for NIN...");
