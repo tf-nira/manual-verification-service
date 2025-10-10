@@ -275,14 +275,10 @@ public class ApplicationServiceImpl implements ApplicationService {
 				mVSApplication.setCrDTimes(LocalDateTime.now());
 				mVSApplication.setAssignedDate(LocalDateTime.now());
 
-				if (
-						Objects.equals(verifyRequest.getService(),CommonConstants.GET_FIRST_ID_SERVICE) &&
-								(
-										(mVSApplication.getSurname() == null || mVSApplication.getSurname().isBlank()) ||
+				if ((mVSApplication.getSurname() == null || mVSApplication.getSurname().isBlank()) ||
 												(mVSApplication.getGivenName() == null || mVSApplication.getGivenName().isBlank()) ||
 												(mVSApplication.getApplicantPlaceOfEnrolmentDistrict() == null || mVSApplication.getApplicantPlaceOfEnrolmentDistrict().isBlank()) ||
 												(mVSApplication.getDateOfBirth() == null)
-								)
 				) {
 					populateDemographicsIfMissing(mVSApplication, verifyRequest);
 				}
@@ -366,7 +362,10 @@ public class ApplicationServiceImpl implements ApplicationService {
 		mVSApplication.setDateOfBirth(dob);
 		mVSApplication.setApplicantPlaceOfEnrolmentDistrict(verifyRequest.getApplicantPlaceOfEnrolmentDistrict());;
 
-		if (Objects.equals(verifyRequest.getService(), CommonConstants.GET_FIRST_ID_SERVICE)) {
+		if ((mVSApplication.getSurname() == null || mVSApplication.getSurname().isBlank()) ||
+				(mVSApplication.getGivenName() == null || mVSApplication.getGivenName().isBlank()) ||
+				(mVSApplication.getApplicantPlaceOfEnrolmentDistrict() == null || mVSApplication.getApplicantPlaceOfEnrolmentDistrict().isBlank()) ||
+				(mVSApplication.getDateOfBirth() == null)) {
 			populateDemographicsIfMissing(mVSApplication, verifyRequest);
 		}
 		logger.info("New application created with following details: {}", mVSApplication);
