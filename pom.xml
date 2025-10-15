@@ -221,6 +221,11 @@
 			<version>2.21.1</version> <!-- Use version compatible with Hibernate
 			and Spring Boot version -->
 		</dependency>
+		<dependency>
+			<groupId>com.github.erosb</groupId>
+			<artifactId>everit-json-schema</artifactId>
+			<version>1.14.6</version>
+		</dependency>
 
 	</dependencies>
 

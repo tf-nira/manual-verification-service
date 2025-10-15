@@ -1,6 +1,7 @@
 package in.tf.nira.manual.verification.service;
 
 import java.util.List;
+import java.util.Map;
 
 import in.tf.nira.manual.verification.dto.*;
 
@@ -20,5 +21,5 @@ public interface ApplicationService {
 	DistrictOfficeResponseDTO getDistrictOfficeByName (String district);
 	ConfigResponseDTO getApplicationConfig ();
 	DemographicDetailsDTO.Identity fetchMatchedRegIdDemographics(String registartionId);
-	StatusResponseDTO updateDemographics(String applicationId, ModifiedDetailsDTO modifiedDetailsDTO);
+    StatusResponseDTO updateDemographics(String applicationId, Map<String,Object> modifiedDetailsDTO);
 }

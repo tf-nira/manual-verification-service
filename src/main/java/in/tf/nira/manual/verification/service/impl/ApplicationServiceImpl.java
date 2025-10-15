@@ -20,6 +20,7 @@ import java.time.LocalDate;
 import javax.annotation.PostConstruct;
 import javax.imageio.ImageIO;
 import in.tf.nira.manual.verification.dto.*;
+import in.tf.nira.manual.verification.helper.IDSchemaValidator;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -85,6 +86,7 @@ import io.mosip.kernel.core.util.CryptoUtil;
 import io.mosip.kernel.core.util.DateUtils;
 import io.mosip.kernel.core.util.JsonUtils;
 import java.io.File;
+import org.everit.json.schema.ValidationException;
 
 @Service
 public class ApplicationServiceImpl implements ApplicationService {
@@ -240,7 +242,7 @@ public class ApplicationServiceImpl implements ApplicationService {
     public void runAtStartup() {
         fetchUsers();
     }
-	
+
 	@Override
 	public StatusResponseDTO createApplication(CreateAppRequestDTO verifyRequest) {
 		logger.info("Application received for manual verification in mvs with reg id: " + verifyRequest.getRegId());
@@ -2395,30 +2397,41 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 
 	@Override
-	public StatusResponseDTO updateDemographics(String applicationId,  ModifiedDetailsDTO modifiedDetailsDTO) {
+	public StatusResponseDTO updateDemographics(String applicationId,  Map<String,Object> modifyDetails) {
 		logger.info("Modifying the demographic detail for Id: {}", applicationId);
 
 		MVSApplication application = getApplicationById(applicationId);
-
-		Map<String, Object> demographicDetails = modifiedDetailsDTO.toNonNullMap();
+		Map<String,Object>demographicDetails= (Map<String, Object>) modifyDetails.get("request");
 
 		Map<String, String> stringFields = demographicDetails.entrySet().stream()
 				.filter(e -> e.getValue() != null)
 				.collect(Collectors.toMap(
 						Map.Entry::getKey,
-						e -> e.getValue().toString()   // convert Object to String
+						e -> {
+							Object val = e.getValue();
+							if (val instanceof List) {
+								List list = (List) val;
+								if (!list.isEmpty() && list.get(0) instanceof Map) {
+									Map first = (Map) list.get(0);
+									Object value = first.get("value");
+									return value != null ? value.toString() : "";
+								}
+							}
+							return val.toString();
+						}
 				));
 
 		if (application.getAssignedOfficerRole().equals(CommonConstants.MVS_MANAGER)) {
-			uploadToPacketManagerfordemographic(application, modifiedDetailsDTO);
-			application.setUpdatedBy(UserDetailUtil.getLoggedInUserId());
-			application.setUpdatedTimes(LocalDateTime.now());
+				uploadToPacketManagerfordemographic(application, demographicDetails);
 
-			String dateOfBirth = stringFields.get("dateOfBirth");
-			String givenName = stringFields.get("givenName");
-			String surname = stringFields.get("surname");
+				application.setUpdatedBy(UserDetailUtil.getLoggedInUserId());
+				application.setUpdatedTimes(LocalDateTime.now());
 
-			if (dateOfBirth != null && !dateOfBirth.isEmpty()) {
+				String dateOfBirth = stringFields.get("dateOfBirth");
+				String givenName = stringFields.get("givenName");
+				String surname = stringFields.get("surname");
+
+				if (dateOfBirth != null && !dateOfBirth.isEmpty()) {
 				DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 				LocalDate DateOfBirth = LocalDate.parse(dateOfBirth, formatter);
 				application.setDateOfBirth(DateOfBirth.atStartOfDay());
@@ -2445,36 +2458,19 @@ public class ApplicationServiceImpl implements ApplicationService {
 	}
 
 
-	private void uploadToPacketManagerfordemographic(MVSApplication application, ModifiedDetailsDTO modifiedDetailsDTO) {
-		Map<String, Object> demographicDetails = modifiedDetailsDTO.toNonNullMap();
-
+	private void uploadToPacketManagerfordemographic(MVSApplication application, Map<String,Object> demographicDetails) {
+		ObjectMapper mapper = new ObjectMapper();
 		Map<String, String> stringFields = demographicDetails.entrySet().stream()
 				.filter(e -> e.getValue() != null)
 				.collect(Collectors.toMap(
-//						Map.Entry::getKey,
-						e -> e.getKey(),
+						Map.Entry::getKey,
 						e -> {
-							String key = e.getKey();
-							Object val = e.getValue();
-
-							if (!(modifiedDetailsDTO.requiresLanguageWrapper(key)) && val instanceof String) {
-								List<Map<String, String>> langList = new ArrayList<>();
-								Map<String, String> langMap = new HashMap<>();
-								langMap.put("language", "eng");
-								langMap.put("value", val.toString());
-								langList.add(langMap);
-								try {
-									return objectMapper.writeValueAsString(langList); // serialize as JSON string
-
-								} catch (JsonProcessingException ex) {
-									ex.printStackTrace();
-									return ""; // fallback
-								}
-							} else {
-								return val.toString(); // send as-is for phone, dateOfBirth, etc.
+							try {
+								return mapper.writeValueAsString(e.getValue());
+							} catch (Exception ex) {
+								throw new RuntimeException("Failed to serialize value for key: " + e.getKey(), ex);
 							}
 						}
-//						e -> e.getValue().toString()   // convert Object to String
 				));
 
 		logger.info("updated the demographic detail: {}", demographicDetails);
@@ -2487,7 +2483,6 @@ public class ApplicationServiceImpl implements ApplicationService {
 		packetDto.setRefId(application.getRefId());
 		packetDto.setSchemaVersion(application.getSchemaVersion());
 		packetDto.setSchemaJson(getSchemaJson(application.getSchemaVersion()));
-
 		List<Map<String, String>> audits = new ArrayList<>();
 		Map<String, String> audit = new HashMap<>();
 		audit.put("id", application.getRegId());
@@ -2505,36 +2500,51 @@ public class ApplicationServiceImpl implements ApplicationService {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		HttpEntity<RequestWrapper<PacketDto>> httpEntity = new HttpEntity<>(request, headers);
+        try {
+				IDSchemaValidator.validate(stringFields, Double.parseDouble(application.getSchemaVersion()), getSchemaJson(application.getSchemaVersion()));
 
-		try {
-			ResponseEntity<ResponseWrapper<List<PacketInfo>>> responseEntity = restTemplate.exchange(
-					createPacketUrl,
-					HttpMethod.PUT,
-					httpEntity,
-					new ParameterizedTypeReference<ResponseWrapper<List<PacketInfo>>>() {}
-			);
+			try {
+				ResponseEntity<ResponseWrapper<List<PacketInfo>>> responseEntity = restTemplate.exchange(
+						createPacketUrl,
+						HttpMethod.PUT,
+						httpEntity,
+						new ParameterizedTypeReference<ResponseWrapper<List<PacketInfo>>>() {
+						}
+				);
 
-			if (responseEntity.getBody() == null) {
-				logger.error("Failed to upload Demographic-Details. Status code: " + responseEntity.getStatusCodeValue());
+				if (responseEntity.getBody() == null) {
+					logger.error("Failed to upload Demographic-Details. Status code: " + responseEntity.getStatusCodeValue());
+					throw new RequestException(ErrorCode.PACKET_MANAGER_UPLOAD_FAILED.getErrorCode(),
+							ErrorCode.PACKET_MANAGER_UPLOAD_FAILED.getErrorMessage() + "with status code: " + responseEntity.getStatusCodeValue());
+				}
+
+				ResponseWrapper<List<PacketInfo>> responseWrapper = responseEntity.getBody();
+
+				if (responseWrapper.getErrors() != null && !responseWrapper.getErrors().isEmpty()) {
+					logger.error("Demographic update upload error: {}", responseWrapper.getErrors().get(0));
+					throw new RequestException(ErrorCode.INVALID_PACKET_MANAGER_RESPONSE.getErrorCode(),
+							ErrorCode.INVALID_PACKET_MANAGER_RESPONSE.getErrorMessage() + "with error: " + responseWrapper.getErrors().get(0));
+				}
+
+				logger.info("Demographic Modifieded successfully");
+			} catch (RestClientException e) {
+				logger.error("Failed to upload packet to Packet Manager, {}", e);
 				throw new RequestException(ErrorCode.PACKET_MANAGER_UPLOAD_FAILED.getErrorCode(),
-						ErrorCode.PACKET_MANAGER_UPLOAD_FAILED.getErrorMessage() + "with status code: " + responseEntity.getStatusCodeValue());
+						ErrorCode.PACKET_MANAGER_UPLOAD_FAILED.getErrorMessage() + "with error: " + e.getMessage());
 			}
-
-			ResponseWrapper<List<PacketInfo>> responseWrapper = responseEntity.getBody();
-
-			if (responseWrapper.getErrors() != null && !responseWrapper.getErrors().isEmpty()) {
-				logger.error("Demographic update upload error: {}", responseWrapper.getErrors().get(0));
-				throw new RequestException(ErrorCode.INVALID_PACKET_MANAGER_RESPONSE.getErrorCode(),
-						ErrorCode.INVALID_PACKET_MANAGER_RESPONSE.getErrorMessage() + "with error: " + responseWrapper.getErrors().get(0));
-			}
-
-			logger.info("Demographic Modifieded successfully");
-		} catch (RestClientException e) {
-			logger.error("Failed to upload packet to Packet Manager, {}", e);
-			throw new RequestException(ErrorCode.PACKET_MANAGER_UPLOAD_FAILED.getErrorCode(),
-					ErrorCode.PACKET_MANAGER_UPLOAD_FAILED.getErrorMessage() + "with error: " + e.getMessage());
+		} catch (ValidationException ve) {
+			// Validation failed, REST call will NOT execute
+			System.out.println("Validation failed: " + ve.getMessage());
+			ve.getAllMessages().forEach(System.out::println);
+			throw ve; // ✅ rethrow to propagate the failure
+		} catch (Exception ex) {
+			// Any other exceptions
+			ex.printStackTrace();
+			throw new RuntimeException("Unexpected error during demographic update", ex); // ✅ rethrow
 		}
 
-
 	}
+
+
+
 }

@@ -1,6 +1,7 @@
 package in.tf.nira.manual.verification.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import javax.validation.Valid;
 
@@ -328,15 +329,13 @@ public class ApplicationController {
 			@ApiResponse(responseCode = "404", description = "Not Found", content = @Content(schema = @Schema(hidden = true)))
 	})
 	public ResponseWrapper<StatusResponseDTO> updateDemographics(
-			@PathVariable String applicationId,
-			@Valid @RequestBody RequestWrapper<ModifiedDetailsDTO> request) {
-
+			@PathVariable String applicationId,  @RequestBody Map<String, Object> request){
 		ResponseWrapper<StatusResponseDTO> responseWrapper = new ResponseWrapper<>();
 		responseWrapper.setId(CommonConstants.UPDATE_APP_ID);
 		responseWrapper.setVersion(CommonConstants.VERSION);
 
 		try {
-			responseWrapper.setResponse(applicationService.updateDemographics(applicationId, request.getRequest()));
+			responseWrapper.setResponse(applicationService.updateDemographics(applicationId, request));
 		} catch (RequestException e) {
 			throw e;
 		} catch (Exception exc) {
