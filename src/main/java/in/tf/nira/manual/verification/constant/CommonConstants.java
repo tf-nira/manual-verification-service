@@ -1,5 +1,8 @@
 package in.tf.nira.manual.verification.constant;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 public class CommonConstants {
 	//roles
 	public static final String MVS_OFFICER_ROLE = "MVS_OFFICER";
@@ -64,4 +67,242 @@ public class CommonConstants {
 	public static final String COP_PHONE_PREVIOUS = "copPhonePrevious";
 	public static final String COP_HOME_PHONE_NUMBER_PREVIOUS = "copHomePhoneNumberPrevious";
 	public static final String COP_COUNTRY_CODE_PREVIOUS = "copCountryCodePrevious";
+
+	public static final Map<String, String[]> ESCALATION_CATEGORIES = new LinkedHashMap<>() {{
+		put("Suspected Non Citizen", new String[]{
+				"New registrations",
+				"New registrations officer",
+				"Renewal of card",
+				"Renewal of card officer",
+				"GetFirst ID",
+				"Replacement of card",
+				"Change of Particulars"
+		});
+		put("Supporting documents look suspicious/forged/Altered", new String[]{
+				"New registrations",
+				"New registrations officer",
+				"Renewal of card",
+				"Renewal of card officer",
+				"GetFirst ID",
+				"Replacement of card",
+				"Change of Particulars"
+		});
+		put("Inconsistent information on tribe of mother", new String[]{
+				"New registrations",
+				"New registrations officer"
+		});
+		put("Inconsistent information on clan of mother", new String[]{
+				"New registrations",
+				"New registrations officer"
+		});
+		put("Inconsistent information on tribe of father", new String[]{
+				"New registrations",
+				"New registrations officer"
+		});
+		put("Inconsistent information on clan of father", new String[]{
+				"New registrations",
+				"New registrations officer"
+		});
+		put("Inconsistent information on place of origin-Father", new String[]{
+				"New registrations",
+				"New registrations officer"
+		});
+		put("Inconsistent information on place of origin-Mother", new String[]{
+				"New registrations",
+				"New registrations officer"
+		});
+		put("Inconsistent information on place of origin-Blood Relative", new String[]{
+				"New registrations",
+				"New registrations officer"
+		});
+		put("Wrong citizenship category/Type", new String[]{
+				"New registrations",
+				"New registrations officer",
+				"Renewal of card",
+				"Renewal of card officer"
+		});
+		put("Applicant’s citizenship is stoplisted/blocked", new String[]{
+				"New registrations",
+				"New registrations officer",
+				"Renewal of card",
+				"Renewal of card officer"
+		});
+		put("Father/Mother is too young", new String[]{
+				"New registrations",
+				"New registrations officer"
+		});
+		put("Grandparents are too young", new String[]{
+				"New registrations",
+				"New registrations officer"
+		});
+		put("Different DOB/Age of mother on mother’s individual application", new String[]{
+				"New registrations",
+				"New registrations officer"
+		});
+		put("Different DOB/Age of father on father’s individual application", new String[]{
+				"New registrations",
+				"New registrations officer"
+		});
+		put("Different DOB/Age of blood relative on blood relative individual application", new String[]{
+				"New registrations",
+				"New registrations officer"
+		});
+		put("Attempting double registration", new String[]{
+				"New registrations",
+				"New registrations officer"
+		});
+		put("NIN has already been used to identify more than 20 people", new String[]{
+				"New registrations",
+				"New registrations officer"
+		});
+		put("Indigenous community not listed under Schedule 3", new String[]{
+				"New registrations",
+				"New registrations officer"
+		});
+		put("Missing Documentation", new String[]{
+				"New registrations",
+				"New registrations officer",
+				"Renewal of card"
+		});
+		put("Insufficient Documentation", new String[]{
+				"New registrations",
+				"New registrations officer",
+				"Renewal of card",
+				"Renewal of card officer"
+		});
+		put("Father is too young", new String[]{
+				"Renewal of card",
+				"Renewal of card officer"
+		});
+		put("Mother is too young", new String[]{
+				"Renewal of card",
+				"Renewal of card officer"
+		});
+		put("Additional Renewal application", new String[]{
+				"Renewal of card",
+				"Renewal of card officer"
+		});
+		put("Names are inconsistent with original application", new String[]{
+				"Renewal of card",
+				"Renewal of card officer"
+		});
+		put("Unsatisfactory Evidence of intended changes", new String[]{
+				"GetFirst ID",
+				"Replacement of card",
+				"Change of Particulars"
+		});
+		put("Unauthorized Second Register Entry", new String[]{
+				"GetFirst ID",
+				"Replacement of card",
+				"Change of Particulars"
+		});
+		put("Submission of falsified documents", new String[]{
+				"GetFirst ID",
+				"Replacement of card",
+				"Change of Particulars"
+		});
+		put("Insufficient supporting Documents", new String[]{
+				"GetFirst ID",
+				"Replacement of card",
+				"Change of Particulars"
+		});
+		put("Modification Required",new String[]{
+				"GetFirst ID",
+				"Replacement of card",
+				"Change of Particulars",
+				"Renewal of card",
+				"Renewal of card officer",
+				"New registrations",
+				"New registrations officer",
+		});
+	}};
+
+	public static final Map<String, String[]> REJECTION_CATEGORIES = new LinkedHashMap<>() {{
+		put("Rejected due to evidence of non citizenship", new String[]{
+				"New registrations"
+		});
+		put("Insufficient supporting documents to determine citizenship", new String[]{
+				"New registrations"
+		});
+		put("Documents provided have inconsistent information", new String[]{
+				"New registrations",
+				"Change of Particulars",
+				"Renewal of card",
+				"GetFirst ID",
+				"Replacement of card"
+		});
+		put("Documents not in required format ", new String[]{
+				"New registrations"
+		});
+		put("Documents not in required format (i.e SD exists but not registered)", new String[]{
+				"Change of Particulars",
+				"Renewal of card",
+				"GetFirst ID",
+				"Replacement of card"
+		});
+		put("Unsatisfactory CV Interview at Point of Registration ", new String[]{
+				"New registrations"
+		});
+		put("Second register/application exists (May or may not have a NIN, stop listed)", new String[]{
+				"New registrations"
+		});
+		put("Poorly scanned documents to enable decision", new String[]{
+				"New registrations",
+				"Change of Particulars",
+				"Renewal of card",
+				"GetFirst ID",
+				"Replacement of card"
+		});
+		put("Fraudulent/Altered /doctored documents ", new String[]{
+				"New registrations",
+				"Change of Particulars",
+				"GetFirst ID",
+				"Replacement of card"
+		});
+		put("Fraudulent/Altered /doctored documents", new String[]{
+				"Renewal of card"
+		});
+		put("No payment receipt attached", new String[]{
+				"Change of Particulars",
+				"Renewal of card",
+				"Replacement of card"
+		});
+		put("Payments used on previous unrelated application", new String[]{
+				"Change of Particulars",
+				"Renewal of card",
+				"Replacement of card"
+		});
+		put("Payment lower than statutory fees", new String[]{
+				"Change of Particulars",
+				"Renewal of card",
+				"Replacement of card"
+		});
+		put("Evidence of multiple changes in short period of time(Time should be specified)", new String[]{
+				"Change of Particulars",
+				"Renewal of card",
+				"GetFirst ID",
+				"Replacement of card"
+		});
+		put("Insufficient supporting Documents", new String[]{
+				"GetFirst ID",
+				"Replacement of card",
+				"Renewal of card",
+				"Change of Particulars"
+		});
+		put("An existing record is stop listed", new String[]{
+				"Change of Particulars",
+				"Renewal of card",
+				"GetFirst ID",
+				"Replacement of card"
+		});
+		put("Other", new String[]{
+				"New registrations",
+				"Change of Particulars",
+				"GetFirst ID",
+				"Replacement of card"
+		});
+		put("Other ( Free Text)", new String[]{
+				"Renewal of card"
+		});
+	}};
 }

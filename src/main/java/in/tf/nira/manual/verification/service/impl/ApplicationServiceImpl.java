@@ -2312,6 +2312,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 		ConfigResponseDTO response = new ConfigResponseDTO();
 		response.setAgeGroupRanges(getAgeGroupRanges());
 		response.setDistrictList(getAllDistrictNames());
+		response.setESCALATION_CATEGORIES(CommonConstants.ESCALATION_CATEGORIES);
+		response.setREJECTION_CATEGORIES(CommonConstants.REJECTION_CATEGORIES);
 		return response;
 	}
 
