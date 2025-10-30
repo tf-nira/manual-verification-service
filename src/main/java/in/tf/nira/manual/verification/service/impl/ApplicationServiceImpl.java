@@ -2484,6 +2484,24 @@ public class ApplicationServiceImpl implements ApplicationService {
 		return identity;
 		
 	}
+
+	public String getAssignedOfficerById(String application){
+		String response = "null";
+		MVSApplication record = mVSApplicationRepo.getApplicationById(application);
+		if(record.getStage().equalsIgnoreCase("APPROVED")){
+			response="Already APPROVED";
+			
+		} else if (record.getStage().equalsIgnoreCase("REJECTED")) {
+			response="Application is rejected by Officer";
+		}
+		else{
+			response=application+ " is assigned to " + record.getAssignedOfficerId() ;
+		}
+
+
+		return response;
+	}
+
 	
 	private DemographicDetailsDTO getDemographicDetailByRegistartionId(String registrationId) {
 		logger.info("Fetching demographic details from idRepo for regId {}",registrationId);
