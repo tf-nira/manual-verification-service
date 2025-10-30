@@ -21,6 +21,7 @@ on:
       - develop
       - MOSIP*
       - tf_nira_dev
+      - nira_api
 
 jobs:
   build-maven-manual-verification-service:
