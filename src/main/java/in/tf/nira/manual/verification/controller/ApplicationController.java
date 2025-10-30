@@ -72,7 +72,6 @@ public class ApplicationController {
         return responseWrapper;
     }
 
-	@PreAuthorize("hasAnyRole(@authorizedRoles.getGetApplicationsForUser())")
 	@GetMapping("/assignedofficer/{applicationsId}")
 	@ApiResponses(value = { @ApiResponse(responseCode = "200", description = "OK"),
 			@ApiResponse(responseCode = "201", description = "Created", content = @Content(schema = @Schema(hidden = true))),
