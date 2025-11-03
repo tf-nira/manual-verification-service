@@ -770,6 +770,11 @@ public class ApplicationServiceImpl implements ApplicationService {
 			
 			OfficerDetailDTO nextOfficer = officers.get((currentIndex + 1) % officers.size());
 			
+			logger.info("Officer size : {}", officers.size());
+			logger.info("Next index is : {}", (currentIndex + 1) % officers.size());
+			
+			logger.info("Officers list is : {}", officers);
+			
 			logger.info("Next Officer regId : {}", nextOfficer.getUserId());
 			officerAssignment.setUserId(nextOfficer.getUserId());
 			
