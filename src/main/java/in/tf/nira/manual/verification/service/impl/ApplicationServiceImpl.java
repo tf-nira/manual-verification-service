@@ -279,6 +279,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 				officerAssignment.setUpdatedBy(SYSTEM);
 				officerAssignment.setUpdatedTimes(LocalDateTime.now());
 			}
+			logger.info("Saving Officer assignment details : {} in officer assignment table", officerAssignment);
+			
 			officerAssignmentRepo.save(officerAssignment);
 			
 			logger.info("Application assigned to officer: " + selectedOfficer.getUserId());
@@ -764,8 +766,15 @@ public class ApplicationServiceImpl implements ApplicationService {
 			OfficerDetailDTO selectedOfficer = optionalOff.get();
 			int currentIndex = officers.indexOf(selectedOfficer);
 			
+			logger.info("Current index for selected officer id : {}, is: {}", optionalOff.get().getUserId(), currentIndex);
+			
 			OfficerDetailDTO nextOfficer = officers.get((currentIndex + 1) % officers.size());
+			
+			logger.info("Next Officer regId : {}", nextOfficer.getUserId());
 			officerAssignment.setUserId(nextOfficer.getUserId());
+			
+			logger.info("Officer Assignment successful");
+			
 			return selectedOfficer;
 		}
 		else {
