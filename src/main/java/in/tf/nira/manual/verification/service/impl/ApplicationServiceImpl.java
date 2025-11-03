@@ -716,18 +716,51 @@ public class ApplicationServiceImpl implements ApplicationService {
 			}
 		}
 		
+		logger.info("=== DETAILED OFFICER ASSIGNMENT DEBUG ===");
+		logger.info("Officers list size: {}", officers.size());
+		logger.info("OfficerAssignment.getUserId(): {}", officerAssignment.getUserId());
+		logger.info("OfficerAssignment.getUserId() == null: {}", officerAssignment.getUserId() == null);
+		
 		Optional<OfficerDetailDTO> optionalOff;
 		if (officerAssignment.getUserId() == null) {
+			logger.info("Branch: Officer assignment getUserId() is NULL");
+			logger.info("Selecting first officer from the list");
+			
 			optionalOff = officers.stream().findFirst();
+			
+			logger.info("First officer selected: {}", optionalOff.isPresent() ? optionalOff.get().getUserId() : "NONE");
+			logger.info("Setting new UUID: {}", UUID.randomUUID().toString());
+			
 			officerAssignment.setId(UUID.randomUUID().toString());
 			officerAssignment.setUserRole(role);
+			
+			logger.info("Updated officerAssignment - ID: {}, UserRole: {}", officerAssignment.getId(),
+					officerAssignment.getUserRole());
 		}
 		else {
+			logger.info("Branch: Officer assignment getUserId() is NOT NULL");
+			
 			String userId = officerAssignment.getUserId();
+			
+			logger.info("Searching for userId: '{}'", userId);
+			
 			optionalOff = officers.stream().filter(officer -> officer.getUserId().equals(userId)).findFirst();
+			
+			logger.info("Optional Officer is present : {}", optionalOff.isPresent());
+			logger.info("Extracted Optional Officer: isPresent={}, value={}", 
+				    optionalOff.isPresent(), 
+				    optionalOff.map(officer -> String.format(
+				        "userId='%s', userName='%s', userRole='%s'",
+				        String.valueOf(officer.getUserId()),
+				        String.valueOf(officer.getUserName()),
+				        String.valueOf(officer.getUserRole())
+				    )).orElse("null"));
+
 		}
 		
 		if (optionalOff.isPresent()) {
+			logger.info("Optional Officer is Present");
+			
 			OfficerDetailDTO selectedOfficer = optionalOff.get();
 			int currentIndex = officers.indexOf(selectedOfficer);
 			
