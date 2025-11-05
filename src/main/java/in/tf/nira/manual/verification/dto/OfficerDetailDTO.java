@@ -3,9 +3,12 @@ package in.tf.nira.manual.verification.dto;
 import java.util.Map;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class OfficerDetailDTO {
+	@EqualsAndHashCode.Include
 	private String userId;
 	private String userName;
 	private String userRole;
