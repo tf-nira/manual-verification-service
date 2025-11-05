@@ -753,7 +753,10 @@ public class ApplicationServiceImpl implements ApplicationService {
 		
 		logger.info("Fetching officer with role: {} for assignment", role);
 		
-		List<OfficerDetailDTO> officers = officerDetailMap.get(role);
+		List<OfficerDetailDTO> officerList = officerDetailMap.get(role);
+		//null check
+		if(officerList == null) officerList = Collections.emptyList();
+		List<OfficerDetailDTO> officers = new ArrayList<>(new LinkedHashSet<>(officerList));
 		
 		if (officers == null || officers.isEmpty()) {
 			logger.error("No Officer available for assignment, for role: " + role);
