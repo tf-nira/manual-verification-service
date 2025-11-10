@@ -259,12 +259,12 @@ public class ApplicationServiceImpl implements ApplicationService {
 		if(selectedOfficer != null) {
 			logger.info("Assigning application to officer: " + selectedOfficer.getUserId());
 			MVSApplication mVSApplication;
-			Optional<MVSApplication> existingMVSApplication = mVSApplicationRepo.findById(verifyRequest.getRegId());
-			if (existingMVSApplication.isPresent()) {
+			List<MVSApplication> existingMVSApplication = mVSApplicationRepo.findApplicationById(verifyRequest.getRegId());
+			if (!existingMVSApplication.isEmpty()) {
 				logger.info("Registration Id: {} ,already exist in the mvs application table",verifyRequest.getRegId());
 				logger.info("Updating the existing application details");
 				
-				mVSApplication = existingMVSApplication.get();
+				mVSApplication = existingMVSApplication.get(0);
 				logger.info("Fetched Application details: {}",mVSApplication);
 				
 				mVSApplication.setStatusComment(verifyRequest.getStatusComment());
