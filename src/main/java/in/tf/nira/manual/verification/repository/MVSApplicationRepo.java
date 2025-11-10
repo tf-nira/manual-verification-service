@@ -32,6 +32,6 @@ public interface MVSApplicationRepo extends JpaRepository<MVSApplication, String
 	@Query("SELECT m FROM mvs_application m WHERE m.stage = :stage AND m.updatedTimes < :dateThreshold")
 	List<MVSApplication> findInterviewExpiredApplications(@Param("stage") String stage, @Param("dateThreshold") LocalDateTime dateThreshold);
 
-	@Query(value = "SELECT * FROM mvs_application a WHERE a.reg_id = :applicationId", nativeQuery = true)
+	@Query(value = "SELECT * FROM mvs_application a WHERE a.reg_id = :regId", nativeQuery = true)
 	List<MVSApplication> findApplicationById(@Param("regId") String applicationId);
 }
