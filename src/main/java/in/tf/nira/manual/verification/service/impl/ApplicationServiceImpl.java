@@ -1546,7 +1546,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 		List<OfficerDetailDTO> allUsers = new ArrayList<>();
 		
 		int first = 0;
-		int max = 100;
+		int max = 1000;
 		boolean hasMore = true;
 		
 		HttpHeaders headers = new HttpHeaders();
