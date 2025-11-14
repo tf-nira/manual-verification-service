@@ -169,6 +169,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 	@Value("#{${manual.verification.tagging.agegroup.ranges}}")
 	private Map<String, String> ageGroupRanges;
+	
+	@Value("${keycloak.users.fetch.max.size}")
+	private int usersFetchMaxSize;
 
 	private Map<String, List<OfficerDetailDTO>> officerDetailMap = new HashMap<>();
 	
@@ -1829,7 +1832,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 		List<OfficerDetailDTO> allUsers = new ArrayList<>();
 		
 		int first = 0;
-		int max = 100;
+		int max = usersFetchMaxSize;
 		boolean hasMore = true;
 		
 		HttpHeaders headers = new HttpHeaders();
