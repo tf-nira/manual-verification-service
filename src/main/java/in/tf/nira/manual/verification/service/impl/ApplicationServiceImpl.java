@@ -64,6 +64,7 @@ import in.tf.nira.manual.verification.entity.MVSApplication;
 import in.tf.nira.manual.verification.entity.MVSApplicationHistory;
 import in.tf.nira.manual.verification.entity.OfficerAssignment;
 import in.tf.nira.manual.verification.exception.ApiNotAccessibleException;
+import in.tf.nira.manual.verification.exception.ApplicationNotFoundException;
 import in.tf.nira.manual.verification.exception.RequestException;
 import in.tf.nira.manual.verification.helper.SearchHelper;
 import in.tf.nira.manual.verification.listener.Listener;
@@ -2434,4 +2435,27 @@ public class ApplicationServiceImpl implements ApplicationService {
 	private String getFirstValue(List<DemographicDetailsDTO.LanguageValue> list) {
 		return (list != null && !list.isEmpty())?list.get(0).getValue() : null;
 	}
+	
+	public String getAssignedOfficerById(String application){
+		String response;
+		if (application == null || application.trim().isEmpty()) {
+	        throw new IllegalArgumentException("Application ID cannot be null or empty");
+	    }
+		MVSApplication record = mVSApplicationRepo.getApplicationById(application);
+		if (record == null) {
+	        throw new ApplicationNotFoundException("Application not found: " + application);
+	    }
+		if(record.getStage().equalsIgnoreCase(CommonConstants.APPROVED)){
+			response = "Application is already approved by the officer.";
+			
+		} else if (record.getStage().equalsIgnoreCase(CommonConstants.REJECTED)) {
+			response = "Application is rejected by the officer";
+		}
+		else{
+			response = String.format("Application %s assigned to officer: %s", 
+                    application, record.getAssignedOfficerId());
+		}
+		return response;
+	}
+	
 }
