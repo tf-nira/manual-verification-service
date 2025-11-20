@@ -70,4 +70,9 @@ public class CommonConstants {
 	public static final String COP_COUNTRY_CODE_PREVIOUS = "copCountryCodePrevious";
 
 	public static final String APPLICANT_PLACE_OF_ENROLMENT_DISTRICT = "applicantPlaceOfEnrolmentDistrict";
+	
+	//Application status for mvs-admin
+	public static final String APPROVED = "APPROVED";
+	public static final String REJECTED = "REJECTED";
+	
 }
