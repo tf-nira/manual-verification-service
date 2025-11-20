@@ -275,4 +275,22 @@ public class ApplicationController {
 		}
 		return responseWrapper;
 	}
+	@PreAuthorize("hasAnyRole(@authorizedRoles.getGetApplicationsForUser())")
+	@GetMapping("/assignedofficer/{applicationId}")
+	@ApiResponses(value = { @ApiResponse(responseCode = "200", description = "OK"),
+			@ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(hidden = true))),
+			@ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(hidden = true))),
+			@ApiResponse(responseCode = "404", description = "Not Found", content = @Content(schema = @Schema(hidden = true))) })
+	public ResponseWrapper<String> getAssignedOfficer(@PathVariable String applicationId) {
+		ResponseWrapper<String> responseWrapper = new ResponseWrapper<>();
+		String response=null;
+		try {
+			response=applicationService.getAssignedOfficerById(applicationId);
+			responseWrapper.setResponse(response);
+		} catch (Exception exc) {
+			throw new RuntimeException("Unexpected error occurred: " + exc.getMessage(), exc);
+		}
+
+		return responseWrapper;
+	}
 }
