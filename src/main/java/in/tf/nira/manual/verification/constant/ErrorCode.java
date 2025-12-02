@@ -48,7 +48,9 @@ public enum ErrorCode {
     REGION_NOT_FOUND("MVS-ERR-302", "No region mapping found for country: %s"),
     REGION_LOOKUP_ERROR("MVS-ERR-303", "Error occurred while looking up region for country"),
 	INVALID_REQUEST("MVS-ERR-303","District name cannot be null or empty"),
-	DATA_NOT_FOUND("MVS-ERR-304","District office not found for the given district");
+	DATA_NOT_FOUND("MVS-ERR-304","District office not found for the given district"),
+	DEMOGRAPHIC_MODIFY_NOT_ALLOWED("MVS_ERR_305","%s not allowed to modify details" );
+
 	/**
 	 * The error code.
 	 */
