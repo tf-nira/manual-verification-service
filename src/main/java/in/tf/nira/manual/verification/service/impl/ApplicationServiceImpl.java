@@ -987,9 +987,15 @@ public class ApplicationServiceImpl implements ApplicationService {
 			return selectedOfficer;
 		}
 		else {
-			logger.error("No Officer available for assignment");
-			throw new RequestException(ErrorCode.OFFICER_FOR_ID_NOT_AVAILABLE.getErrorCode(),
-					ErrorCode.OFFICER_FOR_ID_NOT_AVAILABLE.getErrorMessage());
+			logger.info("Officer not available for assignment thus assigning the application to first officer in the list");
+			optionalOff = officers.stream().findFirst();
+			OfficerDetailDTO selectedOfficer = optionalOff.get();
+			logger.info("Selected officer for assignment is: {}", selectedOfficer);
+			
+			int currentIndex = officers.indexOf(selectedOfficer);
+			OfficerDetailDTO nextOfficer = officers.get((currentIndex + 1) % officers.size());
+			officerAssignment.setUserId(nextOfficer.getUserId());
+			return selectedOfficer;
 		}
 	}
 
