@@ -1,6 +1,7 @@
 package in.tf.nira.manual.verification.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import javax.validation.Valid;
 
@@ -335,4 +336,30 @@ public class ApplicationController {
 
 		return responseWrapper;
 	}
+
+	@PreAuthorize("hasAnyRole(@authorizedRoles.getModifyDemographics())")
+    @PutMapping("/{applicationId}/modify_demographics")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "OK"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(hidden = true))),
+            @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(hidden = true))),
+            @ApiResponse(responseCode = "404", description = "Not Found", content = @Content(schema = @Schema(hidden = true)))
+    })
+    public ResponseWrapper<StatusResponseDTO> updateDemographics(
+            @PathVariable String applicationId,  @RequestBody Map<String, Object> request){
+        ResponseWrapper<StatusResponseDTO> responseWrapper = new ResponseWrapper<>();
+        responseWrapper.setId(CommonConstants.UPDATE_APP_ID);
+        responseWrapper.setVersion(CommonConstants.VERSION);
+
+        try {
+            responseWrapper.setResponse(applicationService.updateDemographics(applicationId, request));
+        } catch (RequestException e) {
+            throw e;
+        } catch (Exception exc) {
+            throw new RequestException(ErrorCode.UNKNOWN_ERROR.getErrorCode(),
+                    String.format(exc.getMessage(), exc.getLocalizedMessage()));
+        }
+
+        return responseWrapper;
+    }
 }
