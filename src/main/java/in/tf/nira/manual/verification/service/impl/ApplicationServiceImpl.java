@@ -88,6 +88,7 @@ import io.mosip.kernel.core.util.JsonUtils;
 import java.io.File;
 import org.everit.json.schema.ValidationException;
 
+
 @Service
 public class ApplicationServiceImpl implements ApplicationService {
 	private static final Logger logger = LoggerFactory.getLogger(ApplicationServiceImpl.class);
@@ -478,7 +479,33 @@ public class ApplicationServiceImpl implements ApplicationService {
 	            ? buildUserApplicationsResponse(page.getContent())
 	            : new ArrayList<>();
 
-	    logger.info("Sorting and pagination for searched records");
+		// Map each service to the serviceType we want to exclude
+		Map<String, String> excludeMap = new HashMap<>();
+		excludeMap.put("New registrations", "Alien New Registration");
+		excludeMap.put("Renewal of card", "Renewal of Alien");
+		excludeMap.put("Replacement of card", "Replacement of Alien");
+
+// Find which service is being filtered
+		String selectedService = dto.getFilters() != null
+				? dto.getFilters().stream()
+				.filter(f -> "service".equalsIgnoreCase(f.getColumnName()))
+				.map(f -> f.getValue())
+				.findFirst()
+				.orElse(null)
+				: null;
+
+// If the service matches one in the exclude map, apply filtering
+		if (selectedService != null && excludeMap.containsKey(selectedService)) {
+			String excludeServiceType = excludeMap.get(selectedService);
+			applicationsResponse =
+					applicationsResponse.stream()
+							.filter(app -> app.getServiceType() == null ||
+									!app.getServiceType().equalsIgnoreCase(excludeServiceType))
+							.collect(Collectors.toList());
+		}
+
+
+		logger.info("Sorting and pagination for searched records");
 	    return pageUtils.sortPage(applicationsResponse, dto.getSort(), dto.getPagination(), page.getTotalElements());
 	}
 	
