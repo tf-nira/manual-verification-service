@@ -502,6 +502,28 @@ public class ApplicationServiceImpl implements ApplicationService {
 	    List<UserApplicationsResponse> applicationsResponse = page.getContent() != null
 	            ? buildUserApplicationsResponse(page.getContent())
 	            : new ArrayList<>();
+		
+		Map<String, String> excludeMap = new HashMap<>();
+		excludeMap.put("New registrations", "Alien New Registration");
+		excludeMap.put("Renewal of card", "Renewal of Alien");
+		excludeMap.put("Replacement of card", "Replacement of Alien");
+
+		String selectedService = dto.getFilters() != null
+				? dto.getFilters().stream()
+				.filter(f -> "service".equalsIgnoreCase(f.getColumnName()))
+				.map(f -> f.getValue())
+				.findFirst()
+				.orElse(null)
+				: null;
+		
+		if (selectedService != null && excludeMap.containsKey(selectedService)) {
+			String excludeServiceType = excludeMap.get(selectedService);
+			applicationsResponse =
+					applicationsResponse.stream()
+							.filter(app -> app.getServiceType() == null ||
+									!app.getServiceType().equalsIgnoreCase(excludeServiceType))
+							.collect(Collectors.toList());
+		}
 
 	    logger.info("Sorting and pagination for searched records");
 	    return pageUtils.sortPage(applicationsResponse, dto.getSort(), dto.getPagination(), page.getTotalElements());
@@ -537,16 +559,20 @@ public class ApplicationServiceImpl implements ApplicationService {
 				else if (request.getSelectedOfficerLevel() != null && 
 						request.getSelectedOfficerLevel().equals(CommonConstants.MVS_DISTRICT_OR_INTERNATIONAL_OFFICER_ROLE)) {
 					ApplicationDetailsResponse appResponse = getApplicationDetails(application, false, false);
+					String applicantPlaceOfResidenceDistrict= getDemoValue(appResponse.getDemographics().get("applicantPlaceOfResidenceDistrict"));
 					String nin = appResponse.getDemographics().get("NIN");
 					logger.info("NIN for the Application ID {} is: {}", applicationId, nin);
 					
-					String residenceStatus;
+					String residenceStatus = null;
 					
 					if(nin != null) {
 						DemographicDetailsDTO demographicDetailsDTO = getDemographicDetails(nin);
 						residenceStatus = demographicDetailsDTO.getIdentity().getResidenceStatus().get(0).getValue();
 						
 						logger.info("Residence Status for Application ID {} is : {}", applicationId, residenceStatus);
+					} else if (applicantPlaceOfResidenceDistrict !=null || applicantPlaceOfResidenceDistrict != "") {
+						escalateApplication(application, CommonConstants.MVS_DISTRICT_OFFICER_ROLE,
+								StageCode.ASSIGNED_TO_DISTRICT_OFFICER.getStage(), request, district1, null);
 					} else {
 						logger.info("NIN is null for Application ID {}, thus cannot escalate the application");
 						break;
