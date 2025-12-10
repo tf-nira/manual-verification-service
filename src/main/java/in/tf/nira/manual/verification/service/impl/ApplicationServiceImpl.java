@@ -572,7 +572,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 						logger.info("Residence Status for Application ID {} is : {}", applicationId, residenceStatus);
 					} else if (applicantPlaceOfResidenceDistrict !=null || applicantPlaceOfResidenceDistrict != "") {
 						escalateApplication(application, CommonConstants.MVS_DISTRICT_OFFICER_ROLE,
-								StageCode.ASSIGNED_TO_DISTRICT_OFFICER.getStage(), request, district1, null);
+								StageCode.ASSIGNED_TO_DISTRICT_OFFICER.getStage(), request, applicantPlaceOfResidenceDistrict, null);
 					} else {
 						logger.info("NIN is null for Application ID {}, thus cannot escalate the application");
 						break;
