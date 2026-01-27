@@ -49,7 +49,9 @@ public enum ErrorCode {
     REGION_LOOKUP_ERROR("MVS-ERR-303", "Error occurred while looking up region for country"),
 	INVALID_REQUEST("MVS-ERR-303","District name cannot be null or empty"),
 	DATA_NOT_FOUND("MVS-ERR-304","District office not found for the given district"),
-	DEMOGRAPHIC_MODIFY_NOT_ALLOWED("MVS_ERR_305","%s not allowed to modify details" );
+	DEMOGRAPHIC_MODIFY_NOT_ALLOWED("MVS_ERR_305","%s not allowed to modify details" ),
+	PACKET_MANAGER_FETCH_FAILED("MVS-044", "Failed to fetch details from Packet Manager"),
+	PACKET_INFO_NOT_FOUND("MVS-045", "Packet Info not found from Packet Manager");
 
 	/**
 	 * The error code.

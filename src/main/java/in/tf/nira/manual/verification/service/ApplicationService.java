@@ -23,4 +23,6 @@ public interface ApplicationService {
 	DemographicDetailsDTO.Identity fetchMatchedRegIdDemographics(String registartionId);
 	String getAssignedOfficerById(String applications);
 	StatusResponseDTO updateDemographics(String applicationId, Map<String,Object> modifiedDetailsDTO);
+	PacketInfoResponseDTO getPacketInfo(String applicationId);
+	DocumentResponseDTO fetchDocumentsForPacket(String packetId);
 }
