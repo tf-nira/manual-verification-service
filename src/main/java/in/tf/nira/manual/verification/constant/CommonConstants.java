@@ -28,6 +28,8 @@ public class CommonConstants {
 	public static final String UPLOAD_APP_ID = "tf.nira.app.upload";
 	public static final String GET_NIN_DEMOGRAPHIC = "tf.nira.app.get.demographic";
 	public static final String GET_MATCHED_ID_DEMOGRAPHICS = "tf.nira.app.matchedId.demographic";
+	public static final String PACKET_MANAGER_FETCH_DOCUMENT_ID = "mosip.manual.verification.fetch.document.packet.manager";
+	public static final String GET_PACKET_INFO_ID = "mosip.manual.verification.get.packet.info";
 	//service
 	public static final String UPDATE = "UPDATE";
 	

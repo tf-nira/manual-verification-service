@@ -19,4 +19,6 @@ public interface ApplicationService {
 	DocumentResponseDTO fetchDocument(DocumentRequestDTO documentRequest);
 	DemographicDetailsDTO.Identity fetchMatchedRegIdDemographics(String registartionId);
 	String getAssignedOfficerById(String applications);
+	PacketInfoResponseDTO getPacketInfo(String applicationId);
+	DocumentResponseDTO fetchDocumentsForPacket(String packetId);
 }
