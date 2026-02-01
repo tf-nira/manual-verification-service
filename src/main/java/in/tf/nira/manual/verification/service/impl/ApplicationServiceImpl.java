@@ -1442,13 +1442,25 @@ public class ApplicationServiceImpl implements ApplicationService {
 		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 		String email = appResponse.getDemographics().get("email");
         String phone = appResponse.getDemographics().get("phone");
+		String userServiceType = application.getServiceType();
         String district = schInterviewDTO.getDistrict() == null ? 
         		getDemoValue(appResponse.getDemographics().get("applicantPlaceOfResidenceDistrict")) : schInterviewDTO.getDistrict();
-        
+
+		String userService = null;
+		if("Alien New Registration".equalsIgnoreCase(userServiceType)) {
+			userService = userServiceType;
+		} else if ("Renewal of Alien".equalsIgnoreCase(userServiceType)) {
+			userService = userServiceType;
+		} else if ("Alien Replacement".equalsIgnoreCase(userServiceType)) {
+			userService = userServiceType;
+		} else {
+			userService = application.getService();
+		}
+		
         Map<String, Object> attributes = new HashMap<>();
 		attributes.put("APPLICATION_ID", application.getRegId());
 		attributes.put("MVS_CR_DATE", application.getCrDTimes().toLocalDate().format(formatter));
-		attributes.put("SERVICE", application.getService());
+		attributes.put("SERVICE", userService);
 		attributes.put("DISTRICT", district);
 		attributes.put("INTERVIEW_EXPIRY_DATE", LocalDate.now().plusDays(interviewValidDays).format(formatter));
 		attributes.put("REVIEW_CONTENT", schInterviewDTO.getContent());
