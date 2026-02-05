@@ -293,46 +293,4 @@ public class ApplicationController {
 
 		return responseWrapper;
 	}
-
-	// @PreAuthorize("hasAnyRole(@authorizedRoles.getGetApplicationDetails())")
-	@GetMapping("/packet/info/{packetId}")
-	@ApiResponses(value = { @ApiResponse(responseCode = "200", description = "OK"),
-			@ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(hidden = true))),
-			@ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(hidden = true))),
-			@ApiResponse(responseCode = "404", description = "Not Found", content = @Content(schema = @Schema(hidden = true))) })
-	public ResponseWrapper<PacketInfoResponseDTO> getPacketInfo(@PathVariable String packetId) {
-		ResponseWrapper<PacketInfoResponseDTO> responseWrapper = new ResponseWrapper<>();
-		responseWrapper.setId(CommonConstants.GET_PACKET_INFO_ID);
-		responseWrapper.setVersion(CommonConstants.VERSION);
-		try {
-			responseWrapper.setResponse(applicationService.getPacketInfo(packetId));
-		} catch (RequestException e) {
-			throw e;
-		} catch (Exception exc) {
-			throw new RequestException(ErrorCode.UNKNOWN_ERROR.getErrorCode(),
-					String.format(exc.getMessage(), exc.getLocalizedMessage()));
-		}
-		return responseWrapper;
-	}
-
-	// @PreAuthorize("hasAnyRole(@authorizedRoles.getFetchUploadedDocForSRO())")
-	@GetMapping("/packet/documents/{packetId}")
-	@ApiResponses(value = { @ApiResponse(responseCode = "200", description = "OK"),
-			@ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(hidden = true))),
-			@ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(hidden = true))),
-			@ApiResponse(responseCode = "404", description = "Not Found", content = @Content(schema = @Schema(hidden = true))) })
-	public ResponseWrapper<DocumentResponseDTO> fetchDocumentsFromPacketManager(@PathVariable String packetId) {
-		ResponseWrapper<DocumentResponseDTO> responseWrapper = new ResponseWrapper<>();
-		responseWrapper.setId(CommonConstants.PACKET_MANAGER_FETCH_DOCUMENT_ID);
-		responseWrapper.setVersion(CommonConstants.VERSION);
-		try {
-			responseWrapper.setResponse(applicationService.fetchDocumentsForPacket(packetId));
-		} catch (RequestException e) {
-			throw e;
-		} catch (Exception exc) {
-			throw new RequestException(ErrorCode.UNKNOWN_ERROR.getErrorCode(),
-					String.format(exc.getMessage(), exc.getLocalizedMessage()));
-		}
-		return responseWrapper;
-	}
 }

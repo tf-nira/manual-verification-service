@@ -155,9 +155,6 @@ public class ApplicationServiceImpl implements ApplicationService {
 	@Value("${manual-verification.new.officer.email.template.code}")
 	private String newOfficerEmailTemplateTypeCode;
 	
-	@Value("${manual.verification.packet.manager.info.url}")
-	private String packetManagerInfoUrl;
-	
 	private Map<String, List<OfficerDetailDTO>> officerDetailMap = new HashMap<>();
 	
 	private Map<String, String> schemajsonValue = null;
@@ -217,9 +214,6 @@ public class ApplicationServiceImpl implements ApplicationService {
 	
 	@Autowired
 	private ServiceProperties serviceProperties;
-	
-	@Value("${manual.verification.document.attributes}")
-	private String documentAttributes;
 	
 	@PostConstruct
     public void runAtStartup() {
@@ -2206,109 +2200,4 @@ public class ApplicationServiceImpl implements ApplicationService {
 		return response;
 	}
 	
-	private PacketInfoRequestDTO buildPacketInfoRequest(String packetId) {
-	    PacketInfoRequestDTO request = new PacketInfoRequestDTO();
-	    request.setId(PACKET_MANAGER_ID);
-	    request.setVersion(PACKET_MANAGER_VERSION);
-	    request.setRequesttime(DateUtils.getUTCCurrentDateTime());
-	    request.setMetadata(new HashMap<>());
-
-	    PacketInfoRequestDTO.PacketInfoRequest packetRequest = new PacketInfoRequestDTO.PacketInfoRequest();
-	    packetRequest.setId(packetId);
-	    request.setRequest(packetRequest);
-
-	    return request;
-	}
-	
-	@Override
-	public PacketInfoResponseDTO getPacketInfo(String packetId) {
-	    logger.info("Fetching packet info for packet ID: {}", packetId);
-
-	    try {
-	        PacketInfoRequestDTO requestDto = buildPacketInfoRequest(packetId);
-
-	        HttpHeaders headers = new HttpHeaders();
-	        headers.setContentType(MediaType.APPLICATION_JSON);
-	        HttpEntity<PacketInfoRequestDTO> httpEntity = new HttpEntity<>(requestDto, headers);
-
-	        ResponseEntity<PacketInfoResponseDTO> responseEntity = restTemplate.exchange(
-	            packetManagerInfoUrl,
-	            HttpMethod.POST,
-	            httpEntity,
-	            PacketInfoResponseDTO.class
-	        );
-
-	        if (responseEntity.getBody() == null) {
-	            logger.error("Failed to fetch packet info. Status code: {}", responseEntity.getStatusCodeValue());
-	            throw new RequestException(
-	                ErrorCode.PACKET_MANAGER_FETCH_FAILED.getErrorCode(),
-	                "Failed to fetch packet info with status code: " + responseEntity.getStatusCodeValue()
-	            );
-	        }
-
-	        PacketInfoResponseDTO response = responseEntity.getBody();
-
-	        if (response.getErrors() != null && !response.getErrors().isEmpty()) {
-	            logger.error("Packet manager error: {}", response.getErrors());
-	            throw new RequestException(
-	                ErrorCode.INVALID_PACKET_MANAGER_RESPONSE.getErrorCode(),
-	                "Packet manager error: " + response.getErrors().get(0)
-	            );
-	        }
-
-	        logger.info("Successfully fetched packet info for packet ID: {}", packetId);
-	        return response;
-
-	    } catch (RestClientException e) {
-	        logger.error("Network error fetching packet info: {}", e.getMessage());
-	        throw new RequestException(
-	            ErrorCode.PACKET_MANAGER_FETCH_FAILED.getErrorCode(),
-	            "Failed to fetch packet info: " + e.getMessage()
-	        );
-	    }
-	}
-	
-	@Override
-	public DocumentResponseDTO fetchDocumentsForPacket(String packetId) {
-	    logger.info("Fetching documents for packet ID: {}", packetId);
-
-	    PacketInfoResponseDTO packetInfo = getPacketInfo(packetId);
-
-	    if (packetInfo.getResponse() == null || packetInfo.getResponse().getInfo() == null) {
-	        logger.warn("No packet info available for packet ID: {}", packetId);
-	        throw new RequestException(
-	            ErrorCode.PACKET_INFO_NOT_FOUND.getErrorCode(),
-	            "No packet info available for packet ID: " + packetId
-	        );
-	    }
-
-	    PacketInfoResponseDTO.PacketInfo packetInfoData = packetInfo.getResponse().getInfo().get(0);
-	    String source = packetInfoData.getSource();
-	    String process = packetInfoData.getProcess();
-	    List<String> demographics = packetInfoData.getDemographics();
-
-	    logger.info("Packet Info - Source: {}, Process: {}", source, process);
-
-	    List<String> configuredAttributes = Arrays.asList(documentAttributes.split(","));
-	    List<String> matchedAttributes = demographics.stream()
-	        .filter(configuredAttributes::contains)
-	        .collect(Collectors.toList());
-
-	    logger.info("Matched attributes from config: {}", matchedAttributes);
-
-	    if (matchedAttributes.isEmpty()) {
-	        logger.warn("No matching documents found for packet ID: {}", packetId);
-	        DocumentResponseDTO response = new DocumentResponseDTO();
-	        response.setDocuments(new ArrayList<>());
-	        return response;
-	    }
-
-	    DocumentRequestDTO documentRequest = new DocumentRequestDTO();
-	    documentRequest.setId(packetId);
-	    documentRequest.setSource(source);
-	    documentRequest.setProcess(process);
-	    documentRequest.setDocumentNames(matchedAttributes);
-
-	    return fetchDocument(documentRequest);
-	}
 }

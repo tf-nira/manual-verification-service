@@ -46,9 +46,7 @@ public enum ErrorCode {
 	NO_OFFICER_FOR_REGION("MVS-043", "No Officer available for region: %s"),
 	INVALID_COUNTRY_NAME("MVS-ERR-301", "Country name cannot be empty or null"),
     REGION_NOT_FOUND("MVS-ERR-302", "No region mapping found for country: %s"),
-    REGION_LOOKUP_ERROR("MVS-ERR-303", "Error occurred while looking up region for country"),
-    PACKET_MANAGER_FETCH_FAILED("MVS-044", "Failed to fetch details from Packet Manager"),
-    PACKET_INFO_NOT_FOUND("MVS-045", "Packet Info not found from Packet Manager");
+    REGION_LOOKUP_ERROR("MVS-ERR-303", "Error occurred while looking up region for country");
     
 	/**
 	 * The error code.
