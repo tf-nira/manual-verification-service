@@ -1957,8 +1957,15 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 	    return document;
 	}
-
-	@Scheduled(cron = "${manual.verification.officer.reassignment.cron.expression:0 0 0 * * ?}")
+	
+	/*
+	 * Scheduled jobs are intentionally disabled in standard pods.
+	 * These jobs run in a separate dedicated scheduler pod to ensure
+	 * single-instance execution and avoid concurrent processing in
+	 * a multi-pod deployment.
+	 */
+	
+	//@Scheduled(cron = "${manual.verification.officer.reassignment.cron.expression:0 0 0 * * ?}")
 	public void executeScheduledJobs() {
 		logger.info("Started scheduled jobs");
 		
