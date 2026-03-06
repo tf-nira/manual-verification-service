@@ -2008,7 +2008,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 		Map<String, Integer> prevOfficerInfo = new HashMap<>();
 		Set<String> newOfficerInfo = new HashSet<>();
 
-		while (!page.hasNext()) {
+		while (page.hasContent()) {
 			OfficerAssignment officerAssignment = officerAssignmentRepo.findByUserRole(CommonConstants.MVS_OFFICER_ROLE);
 			if (officerAssignment == null) {
 				officerAssignment = new OfficerAssignment();
@@ -2044,7 +2044,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 					newOfficerInfo.add(selectedOfficer.getUserId());
 
-					logger.info("Application {} re-assigned from {} to {}", application.getRegId(), prevOfficerInfo,
+					logger.info("Application {} re-assigned from {} to {}", application.getRegId(), previousOfficerId,
 							selectedOfficer.getUserId());
 
 				} catch (Exception e) {
