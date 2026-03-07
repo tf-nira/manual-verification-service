@@ -757,8 +757,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 					return assignedOfficer;
 
-				} else if((disOfficers == null || disOfficers.isEmpty())  
-						&& (disOfficersForCounty != null && !disOfficersForCounty.isEmpty()) ) {
+				} else if(disOfficersForCounty != null && !disOfficersForCounty.isEmpty()) {
 					String nextOfficerId = districtOfficerAssignment.get(county);
 
 					OfficerDetailDTO assignedOfficer = disOfficersForCounty.stream()
@@ -767,8 +766,8 @@ public class ApplicationServiceImpl implements ApplicationService {
 							.orElse(disOfficersForCounty.get(0));
 
 					int currentIndex = disOfficersForCounty.indexOf(assignedOfficer);
-					int newNextOfficerIndex = (currentIndex + 1) % disOfficers.size();
-					districtOfficerAssignment.put(district, disOfficersForCounty.get(newNextOfficerIndex).getUserId());
+					int newNextOfficerIndex = (currentIndex + 1) % disOfficersForCounty.size();
+					districtOfficerAssignment.put(county, disOfficersForCounty.get(newNextOfficerIndex).getUserId());
 
 					return assignedOfficer;
 				} else {
