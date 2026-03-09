@@ -10,6 +10,11 @@ public class CommonConstants {
 	public static final String MVS_SENIOR_REGISTRATION_OFFICER = "MVS_SENIOR_REGISTRATION_OFFICER";
 	public static final String MVS_INTERNATIONAL_OFFICER = "MVS_INTERNATIONAL_OFFICER";
 	
+	//Location hierarchy
+	public static final String COUNTY_ATTRIBUTE_KEY = "county";
+	public static final String DISTRICT_ATTRIBUTE_KEY = "district";
+	
+	
 	//status
 	public static final String APPROVE_STATUS = "APPROVE";
 	public static final String REJECT_STATUS = "REJECT";

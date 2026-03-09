@@ -96,13 +96,18 @@ public class AuthServiceImpl implements AuthService {
 		    }
 			
 			if(officer.getUserRole().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE)) {
-				String districtValue = officer.getAttributes().get("district");
-				if (districtValue == null || districtValue.trim().isEmpty()) {
+				String districtValue = officer.getAttributes().get(CommonConstants.DISTRICT_ATTRIBUTE_KEY);
+				String countyValue = officer.getAttributes().get(CommonConstants.COUNTY_ATTRIBUTE_KEY);
+				
+				//Use countyValue as fall back if districtValue is null or empty.
+				String lookupValue = (districtValue != null && !districtValue.trim().isEmpty()) ? districtValue : countyValue;
+				if (lookupValue == null || lookupValue.trim().isEmpty()) {
+					
 			        throw new RequestException(ErrorCode.INVALID_REQUEST.getErrorCode(),
-			                "District not found in officer attributes for userId: " + authRequest.getRequest().getUserName());
+			                "District/County not found in officer attributes for userId: " + authRequest.getRequest().getUserName());
 			    }
 				//String districtName = applicationServiceImpl.extractDistrictName(districtValue);
-				DistrictOfficeResponseDTO districtOfficeDetails = applicationServiceImpl.getDistrictOfficeByName(districtValue);
+				DistrictOfficeResponseDTO districtOfficeDetails = applicationServiceImpl.getDistrictOfficeByName(lookupValue);
 				authResponse.getResponse().setDistrictOfficeDetails(districtOfficeDetails);
 			}
 			logger.info("auth response :: {}",authResponse.getResponse());
