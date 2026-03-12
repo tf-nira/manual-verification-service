@@ -40,6 +40,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
@@ -1784,46 +1785,59 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 		return officerDetailDTOs;
 	}
-	
-		private void populateMapsForDisOfficers() {
-			List<OfficerDetailDTO> userDetails = officerDetailMap.get(CommonConstants.MVS_DISTRICT_OFFICER_ROLE);
-			
-			if (userDetails == null || userDetails.isEmpty()) {
-		        logger.warn("No District Officers found");
-		        return;
-		    }
-		    
-		    logger.info("Found {} District Officers", userDetails.size());
-			
-			userDetails.forEach(u -> {
-				Map<String, String> attributes = u.getAttributes();
-				if(attributes == null) {
-					logger.info("attributes map is null for user: {}", u.getUserId());
-					return;
-				}
-				
-				logger.info("User attributes for {}: {}",u.getUserId(), attributes);
-				
-				String district = attributes.get("district");
-				String county = attributes.get("county");
-				logger.info("District value for user {}: {}",u.getUserId(), district);
-				logger.info("County value for user {}: {}", u.getUserId(), county);
-				
-				if (district != null) {
-					districtOfficerMap.computeIfAbsent(district, k -> new ArrayList<>()).add(u);
-					districtOfficerAssignment.putIfAbsent(district, u.getUserId());
-				}
-				else {
-	                logger.error("District not available for the user: {}", u.getUserId());
-				}
-				
-				if(county !=null) {
-					districtOfficerMap.computeIfAbsent(county, k -> new ArrayList<>()).add(u);
-					districtOfficerAssignment.putIfAbsent(county, u.getUserId());
-				}
-			});
+
+	private void populateMapsForDisOfficers() {
+		List<OfficerDetailDTO> userDetails = officerDetailMap.get(CommonConstants.MVS_DISTRICT_OFFICER_ROLE);
+
+		if (userDetails == null || userDetails.isEmpty()) {
+			logger.warn("No District Officers found");
+			return;
 		}
-	
+
+		logger.info("Found {} District Officers", userDetails.size());
+
+		userDetails.forEach(u -> {
+			Map<String, String> attributes = u.getAttributes();
+			if (attributes == null) {
+				logger.info("attributes map is null for user: {}", u.getUserId());
+				return;
+			}
+
+			logger.info("User attributes for {}: {}", u.getUserId(), attributes);
+
+			String districtRaw = attributes.get("district");
+			String countyRaw = attributes.get("county");
+			logger.info("District raw value for user {}: {}", u.getUserId(), districtRaw);
+			logger.info("County raw value for user {}: {}", u.getUserId(), countyRaw);
+
+			if (districtRaw != null) {
+				String[] districts = districtRaw.split(",");
+				for (String district : districts) {
+					district = district.trim();
+					if (!district.isEmpty()) {
+						logger.info("Mapping district: {} to user: {}", district, u.getUserId());
+						districtOfficerMap.computeIfAbsent(district, k -> new ArrayList<>()).add(u);
+						districtOfficerAssignment.putIfAbsent(district, u.getUserId());
+					}
+				}
+			} else {
+				logger.error("District not available for the user: {}", u.getUserId());
+			}
+
+			if (countyRaw != null) {
+				String[] counties = countyRaw.split(",");
+				for (String county : counties) {
+					county = county.trim();
+					if (!county.isEmpty()) {
+						logger.info("Mapping county: {} to user: {}", county, u.getUserId());
+						districtOfficerMap.computeIfAbsent(county, k -> new ArrayList<>()).add(u);
+						districtOfficerAssignment.putIfAbsent(county, u.getUserId());
+					}
+				}
+			}
+		});
+	}
+
 	private void populateMapsForInternationalOfficers() {
 		List<OfficerDetailDTO> userDetails = officerDetailMap.get(CommonConstants.MVS_INTERNATIONAL_OFFICER);
 		
@@ -2249,6 +2263,58 @@ public class ApplicationServiceImpl implements ApplicationService {
 		logger.info("Completed processing applications with expired interview dates");;
 	}
 	
+	@Transactional(readOnly = true)
+	public DistrictOfficeResponseDTO getDistrictOfficeByName (String districtName) {
+		
+		if(districtName == null || districtName.trim().isEmpty()) {
+			throw new RequestException(ErrorCode.INVALID_REQUEST.getErrorCode(), ErrorCode.INVALID_REQUEST.getErrorMessage());
+		}
+		
+		Optional<DistrictOffice> districtOfficeOpt = districtOfficeRepository.findByDistrictNameIgnoreCase(districtName.trim());
+		
+		if(!districtOfficeOpt.isPresent()) {
+			throw new RequestException(ErrorCode.DATA_NOT_FOUND.getErrorCode(), ErrorCode.DATA_NOT_FOUND.getErrorMessage());
+		}
+		
+		DistrictOffice districtOffice = districtOfficeOpt.get();
+		
+		DistrictOfficeResponseDTO response = new DistrictOfficeResponseDTO();
+		response.setDistrictOfficeCode(districtOffice.getDistrictOfficeCode());
+		response.setDistrictOfficeName(districtOffice.getDistrictOfficeName());
+		
+		return response;
+	}
+	
+	
+	@Transactional(readOnly = true)
+	public List<DistrictOfficeResponseDTO> getDistrictOfficeByNames (List<String> names) {
+		List<DistrictOfficeResponseDTO> result = new ArrayList<>();
+		
+		for(String name : names) {
+			if(name == null || name.trim().isEmpty()) {
+				continue;
+			}
+
+			try {
+				Optional<DistrictOffice> districtOfficeOpt = districtOfficeRepository.findByDistrictNameIgnoreCase(name.trim());
+				if(districtOfficeOpt.isPresent()) {
+					DistrictOffice districtOffice = districtOfficeOpt.get();
+					DistrictOfficeResponseDTO dto = new DistrictOfficeResponseDTO();
+					dto.setDistrictOfficeCode(districtOffice.getDistrictOfficeCode());
+	                dto.setDistrictOfficeName(districtOffice.getDistrictOfficeName());
+	                result.add(dto);
+				} else {
+					logger.warn("No district office found for name: {}", name);
+				}
+			} catch(Exception e) {
+				logger.error("Error fetching district office for name: {}, error: {}", name, e.getMessage());
+			}
+		}
+		
+		return result;
+	}
+
+>>>>>>> 76957e1 (code changes for single district officer assigned to multiple district and county)
 	protected OfficerDetailDTO findOfficerByUserId(String userId) {
 	    // Search in all role maps
 	    for (Map.Entry<String, List<OfficerDetailDTO>> entry : officerDetailMap.entrySet()) {
@@ -2360,27 +2426,5 @@ public class ApplicationServiceImpl implements ApplicationService {
 		}
 		return response;
 	}
-	
-public DistrictOfficeResponseDTO getDistrictOfficeByName (String districtName) {
-		
-		if(districtName == null || districtName.trim().isEmpty()) {
-			throw new RequestException(ErrorCode.INVALID_REQUEST.getErrorCode(), ErrorCode.INVALID_REQUEST.getErrorMessage());
-		}
-		
-		Optional<DistrictOffice> districtOfficeOpt = districtOfficeRepository.findByDistrictNameIgnoreCase(districtName.trim());
-		
-		if(!districtOfficeOpt.isPresent()) {
-			throw new RequestException(ErrorCode.DATA_NOT_FOUND.getErrorCode(), ErrorCode.DATA_NOT_FOUND.getErrorMessage());
-		}
-		
-		DistrictOffice districtOffice = districtOfficeOpt.get();
-		
-		DistrictOfficeResponseDTO response = new DistrictOfficeResponseDTO();
-		response.setDistrictOfficeCode(districtOffice.getDistrictOfficeCode());
-		response.setDistrictOfficeName(districtOffice.getDistrictOfficeName());
-		
-		return response;
-	}
-	
 	
 }

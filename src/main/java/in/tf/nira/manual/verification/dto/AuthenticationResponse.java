@@ -1,5 +1,7 @@
 package in.tf.nira.manual.verification.dto;
 
+import java.util.List;
+
 import lombok.Data;
 
 @Data
@@ -11,5 +13,5 @@ public class AuthenticationResponse {
     private String userId;
     private String status;
     private Integer refreshExpiryTime;
-    private DistrictOfficeResponseDTO districtOfficeDetails;
+    private List<DistrictOfficeResponseDTO> districtOfficeDetails;
 }
