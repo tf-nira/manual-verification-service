@@ -19,6 +19,7 @@ public interface ApplicationService {
 	DemographicDetailsDTO getDemographicDetails(String registrationId);
 	DocumentResponseDTO fetchDocument(DocumentRequestDTO documentRequest);
 	DistrictOfficeResponseDTO getDistrictOfficeByName (String district);
+	List<DistrictOfficeResponseDTO> getDistrictOfficeByNames (List<String> names);
 	ConfigResponseDTO getApplicationConfig ();
 	DemographicDetailsDTO.Identity fetchMatchedRegIdDemographics(String registartionId);
 	String getAssignedOfficerById(String applications);
