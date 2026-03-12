@@ -1,5 +1,8 @@
 package in.tf.nira.manual.verification.service.impl;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,10 +56,10 @@ public class AuthServiceImpl implements AuthService {
     ApplicationServiceImpl applicationServiceImpl;
 
     @Override
-    public AuthenticationResponse loginClient(RequestWrapper<AuthenticationRequest> authRequest) {
-    	logger.info("Authenticating user: {}", authRequest.getRequest().getUserName());
-    	
-        try {
+	public AuthenticationResponse loginClient(RequestWrapper<AuthenticationRequest> authRequest) {
+		logger.info("Authenticating user: {}", authRequest.getRequest().getUserName());
+
+		try {
 			HttpHeaders headers = new HttpHeaders();
 			headers.set("Content-Type", "application/json");
 
@@ -66,58 +69,82 @@ public class AuthServiceImpl implements AuthService {
 			HttpEntity<RequestWrapper<AuthenticationRequest>> entity = new HttpEntity<>(authRequest, headers);
 
 			UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(authenticationUrl);
-			
-			ResponseEntity<String> response = restTemplate.postForEntity(builder.build().toUri(),
-                    entity, String.class);
-			
+
+			ResponseEntity<String> response = restTemplate.postForEntity(builder.build().toUri(), entity, String.class);
+
 			if (response.getBody() == null) {
 				logger.error("Failed to authenticate. Status code: " + response.getStatusCodeValue());
-			    throw new RequestException(ErrorCode.AUTHENTICATION_FAILED.getErrorCode(),
-						ErrorCode.AUTHENTICATION_FAILED.getErrorMessage() + "with status code: " + response.getStatusCodeValue());
+				throw new RequestException(ErrorCode.AUTHENTICATION_FAILED.getErrorCode(),
+						ErrorCode.AUTHENTICATION_FAILED.getErrorMessage() + "with status code: "
+								+ response.getStatusCodeValue());
 			}
-			
+
 			ResponseWrapper<AuthenticationResponse> authResponse = objectMapper.readValue(response.getBody(),
-		                new TypeReference<ResponseWrapper<AuthenticationResponse>>() {});
-			
+					new TypeReference<ResponseWrapper<AuthenticationResponse>>() {
+					});
+
 			if (authResponse.getErrors() != null && !authResponse.getErrors().isEmpty()) {
 				logger.error("Authentication error: {}", authResponse.getErrors().get(0));
-			    throw new RequestException(ErrorCode.FAILED_AUTHENTICATION_RESPONSE.getErrorCode(),
-						ErrorCode.FAILED_AUTHENTICATION_RESPONSE.getErrorMessage() + "with error: " + authResponse.getErrors().get(0));
+				throw new RequestException(ErrorCode.FAILED_AUTHENTICATION_RESPONSE.getErrorCode(),
+						ErrorCode.FAILED_AUTHENTICATION_RESPONSE.getErrorMessage() + "with error: "
+								+ authResponse.getErrors().get(0));
 			}
-			
+
 			logger.info("User authenticated successfully");
-			
-			//if user is district officer getting district offices for schedule interview dropdown
-			OfficerDetailDTO officer = applicationServiceImpl.findOfficerByUserId(authRequest.getRequest().getUserName());
-			
+
+			// if user is district officer getting district offices for schedule interview
+			// dropdown
+			OfficerDetailDTO officer = applicationServiceImpl
+					.findOfficerByUserId(authRequest.getRequest().getUserName());
+
 			if (officer == null) {
-		        throw new RequestException(ErrorCode.DATA_NOT_FOUND.getErrorCode(),
-		                "Officer not found with userId: " + authRequest.getRequest().getUserName());
-		    }
-			
-			if(officer.getUserRole().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE)) {
-				String districtValue = officer.getAttributes().get(CommonConstants.DISTRICT_ATTRIBUTE_KEY);
-				String countyValue = officer.getAttributes().get(CommonConstants.COUNTY_ATTRIBUTE_KEY);
-				
-				//Use countyValue as fall back if districtValue is null or empty.
-				String lookupValue = (districtValue != null && !districtValue.trim().isEmpty()) ? districtValue : countyValue;
-				if (lookupValue == null || lookupValue.trim().isEmpty()) {
-					
-			        throw new RequestException(ErrorCode.INVALID_REQUEST.getErrorCode(),
-			                "District/County not found in officer attributes for userId: " + authRequest.getRequest().getUserName());
-			    }
-				//String districtName = applicationServiceImpl.extractDistrictName(districtValue);
-				DistrictOfficeResponseDTO districtOfficeDetails = applicationServiceImpl.getDistrictOfficeByName(lookupValue);
+				throw new RequestException(ErrorCode.DATA_NOT_FOUND.getErrorCode(),
+						"Officer not found with userId: " + authRequest.getRequest().getUserName());
+			}
+
+			if (officer.getUserRole().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE)) {
+				String districtRaw = officer.getAttributes().get(CommonConstants.DISTRICT_ATTRIBUTE_KEY);
+				String countyRaw = officer.getAttributes().get(CommonConstants.COUNTY_ATTRIBUTE_KEY);
+
+				List<String> allLookupValues = new ArrayList<>();
+
+				if (districtRaw != null && !districtRaw.trim().isEmpty()) {
+					for (String d : districtRaw.split(",")) {
+						String trimmed = d.trim();
+						if (!trimmed.isEmpty())
+							allLookupValues.add(trimmed);
+					}
+				}
+
+				if (countyRaw != null && !countyRaw.trim().isEmpty()) {
+					for (String c : countyRaw.split(",")) {
+						String trimmed = c.trim();
+						if (!trimmed.isEmpty())
+							allLookupValues.add(trimmed);
+					}
+				}
+
+				if (allLookupValues.isEmpty()) {
+					throw new RequestException(ErrorCode.INVALID_REQUEST.getErrorCode(),
+							"District/County not found in officer attributes for userId: "
+									+ authRequest.getRequest().getUserName());
+				}
+
+				logger.info("Looking up district offices for userId: {} with values: {}",
+						authRequest.getRequest().getUserName(), allLookupValues);
+
+				List<DistrictOfficeResponseDTO> districtOfficeDetails = applicationServiceImpl
+						.getDistrictOfficeByNames(allLookupValues);
 				authResponse.getResponse().setDistrictOfficeDetails(districtOfficeDetails);
 			}
-			logger.info("auth response :: {}",authResponse.getResponse());
+			logger.info("auth response :: {}", authResponse.getResponse());
 			return authResponse.getResponse();
 		} catch (RequestException ex) {
-	        throw ex;
-	    } catch (Exception ex) {
-	    	logger.error("Failed to authenticate, {}", ex);
-            throw new RequestException(ErrorCode.AUTHENTICATION_FAILED.getErrorCode(),
+			throw ex;
+		} catch (Exception ex) {
+			logger.error("Failed to authenticate, {}", ex);
+			throw new RequestException(ErrorCode.AUTHENTICATION_FAILED.getErrorCode(),
 					ErrorCode.AUTHENTICATION_FAILED.getErrorMessage() + "with error: " + ex.getMessage());
-	    }
-    }
+		}
+	}
 }
