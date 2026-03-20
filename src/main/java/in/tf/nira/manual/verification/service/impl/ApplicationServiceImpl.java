@@ -431,6 +431,28 @@ public class ApplicationServiceImpl implements ApplicationService {
 	    List<UserApplicationsResponse> applicationsResponse = page.getContent() != null
 	            ? buildUserApplicationsResponse(page.getContent())
 	            : new ArrayList<>();
+		
+		Map<String, String> excludeMap = new HashMap<>();
+		excludeMap.put("New registrations", "Alien New Registration");
+		excludeMap.put("Renewal of card", "Renewal of Alien");
+		excludeMap.put("Replacement of card", "Replacement of Alien");
+
+		String selectedService = dto.getFilters() != null
+				? dto.getFilters().stream()
+				.filter(f -> "service".equalsIgnoreCase(f.getColumnName()))
+				.map(f -> f.getValue())
+				.findFirst()
+				.orElse(null)
+				: null;
+		
+		if (selectedService != null && excludeMap.containsKey(selectedService)) {
+			String excludeServiceType = excludeMap.get(selectedService);
+			applicationsResponse =
+					applicationsResponse.stream()
+							.filter(app -> app.getServiceType() == null ||
+									!app.getServiceType().equalsIgnoreCase(excludeServiceType))
+							.collect(Collectors.toList());
+		}
 
 	    logger.info("Sorting and pagination for searched records");
 	    return pageUtils.sortPage(applicationsResponse, dto.getSort(), dto.getPagination(), page.getTotalElements());
@@ -463,6 +485,74 @@ public class ApplicationServiceImpl implements ApplicationService {
 					escalateApplication(application, CommonConstants.MVS_LEGAL_OFFICER_ROLE,
 							StageCode.ASSIGNED_TO_LEGAL_OFFICER.getStage(), request, null, null);
 				}
+				else if (request.getSelectedOfficerLevel() != null && 
+						request.getSelectedOfficerLevel().equals(CommonConstants.MVS_DISTRICT_OR_INTERNATIONAL_OFFICER_ROLE)) {
+					ApplicationDetailsResponse appResponse = getApplicationDetails(application, false, false);
+					String applicantPlaceOfResidenceDistrict= getDemoValue(appResponse.getDemographics().get("applicantPlaceOfResidenceDistrict"));
+					String nin = appResponse.getDemographics().get("NIN");
+					logger.info("NIN for the Application ID {} is: {}", applicationId, nin);
+					
+					String residenceStatus = null;
+					
+					if(nin != null) {
+						DemographicDetailsDTO demographicDetailsDTO = getDemographicDetails(nin);
+						residenceStatus = demographicDetailsDTO.getIdentity().getResidenceStatus().get(0).getValue();
+						
+						logger.info("Residence Status for Application ID {} is : {}", applicationId, residenceStatus);
+					} else if (applicantPlaceOfResidenceDistrict !=null || applicantPlaceOfResidenceDistrict != "") {
+						escalateApplication(application, CommonConstants.MVS_DISTRICT_OFFICER_ROLE,
+								StageCode.ASSIGNED_TO_DISTRICT_OFFICER.getStage(), request, applicantPlaceOfResidenceDistrict, null);
+					} else {
+						logger.info("NIN is null for Application ID {}, thus cannot escalate the application");
+						break;
+					}
+					
+					if(residenceStatus != null && !residenceStatus.trim().equals("")
+							&& !residenceStatus.isEmpty()
+							&& residenceStatus.equalsIgnoreCase(CommonConstants.OUTSIDE_UGANDA)) {
+						nin = appResponse.getDemographics().get("NIN");
+						
+						logger.info("NIN for the Application ID {} is: {}", applicationId, nin);
+						
+						if(nin != null) {
+							DemographicDetailsDTO demographicDetailsDTO = getDemographicDetails(nin);
+							String foreignCountry = demographicDetailsDTO.getIdentity().getApplicantForeignResidenceCountry().get(0).getValue();
+							String region = countryRegionMapping.getRegionForCountry(foreignCountry);
+							
+							logger.info("Application ID {} escalating to international officer for country: {} (region: {})", applicationId, foreignCountry, region);
+							
+							escalateApplication(application, CommonConstants.MVS_INTERNATIONAL_OFFICER,
+								StageCode.ASSIGNED_TO_MVS_INTERNATIONAL_OFFICER.getStage(), request, null, region);
+						} else {
+							logger.info("NIN is null for Application ID {}, thus cannot escalate the application", applicationId);
+						}
+						
+					} else if(residenceStatus != null && !residenceStatus.trim().equals("") 
+							&& !residenceStatus.isEmpty() 
+							&& residenceStatus.equalsIgnoreCase(CommonConstants.INSIDE_UGANDA)) {
+						nin = appResponse.getDemographics().get("NIN");
+						
+						logger.info("NIN for Application ID {} is: {}", applicationId, nin);
+						
+						if(nin != null) {
+							DemographicDetailsDTO demographicDetailsDTO = getDemographicDetails(nin);
+							String district = demographicDetailsDTO.getIdentity().getApplicantPlaceOfResidenceDistrict().get(0).getValue();
+							
+							logger.info("Extracted district value is: {}", district);
+							
+							logger.info("Application ID {} escalating to {} district", applicationId, district);
+							
+							escalateApplication(application, CommonConstants.MVS_DISTRICT_OFFICER_ROLE,
+									StageCode.ASSIGNED_TO_DISTRICT_OFFICER.getStage(), request, district, null);
+						} else {
+							logger.info("NIN is null for Application ID {}, thus cannot escalate the application", applicationId);
+						}
+						
+					} else if(residenceStatus == null){
+						logger.info("Residence status for NIN {} is null thus cannot escalate the application", appResponse.getDemographics().get("NIN"));
+					}
+				}
+				
 				else if(request.getSelectedOfficerLevel() != null && request.getSelectedOfficerLevel().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE) ||
 						(request.getInsufficientDocuments() != null && request.getInsufficientDocuments())) {
 					ApplicationDetailsResponse appResponse = getApplicationDetails(application, false, false);
@@ -511,6 +601,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 			case CommonConstants.RECOMMEND_FOR_APPROVAL_STATUS:
 				ApplicationDetailsResponse appResponse = getApplicationDetails(application, false, false);
 				String district = getDemoValue(appResponse.getDemographics().get("applicantPlaceOfResidenceDistrict"));
+				String region = null;
 				String nin = appResponse.getDemographics().get("NIN");
 
 				if(district == null && nin != null) {
@@ -526,13 +617,13 @@ public class ApplicationServiceImpl implements ApplicationService {
 				   appResponse.getDemographics().get("residenceStatus") != null &&
 				   getDemoValue(appResponse.getDemographics().get("residenceStatus")) != null &&
 				   (getDemoValue(appResponse.getDemographics().get("residenceStatus")).equalsIgnoreCase(CommonConstants.OUTSIDE_UGANDA))) {
-					district = CommonConstants.INTERNATIONAL_ADDRESS;
+					region = "CENTRAL REGION";
 				}
-				
-				logger.info("Application ID {} escalating to {} sro", applicationId, district);
+
+				logger.info("Application ID {} escalating to {} sro", applicationId, district!=null ? district : region);
 
 				escalateApplication(application, CommonConstants.MVS_SENIOR_REGISTRATION_OFFICER,
-						StageCode.ASSIGNED_TO_MVS_SENIOR_REGISTRATION_OFFICER.getStage(), request, district, null);
+						StageCode.ASSIGNED_TO_MVS_SENIOR_REGISTRATION_OFFICER.getStage(), request, district, region);
 				break;
 			default:
 				throw new RequestException(
