@@ -16,9 +16,12 @@ import org.springframework.web.util.UriComponentsBuilder;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import in.tf.nira.manual.verification.constant.CommonConstants;
 import in.tf.nira.manual.verification.constant.ErrorCode;
 import in.tf.nira.manual.verification.dto.AuthenticationRequest;
 import in.tf.nira.manual.verification.dto.AuthenticationResponse;
+import in.tf.nira.manual.verification.dto.DistrictOfficeResponseDTO;
+import in.tf.nira.manual.verification.dto.OfficerDetailDTO;
 import in.tf.nira.manual.verification.exception.RequestException;
 import in.tf.nira.manual.verification.service.AuthService;
 import io.mosip.kernel.core.http.RequestWrapper;
@@ -45,6 +48,9 @@ public class AuthServiceImpl implements AuthService {
     
     @Autowired
 	ObjectMapper objectMapper;
+    
+    @Autowired
+    ApplicationServiceImpl applicationServiceImpl;
 
     @Override
     public AuthenticationResponse loginClient(RequestWrapper<AuthenticationRequest> authRequest) {
@@ -80,6 +86,26 @@ public class AuthServiceImpl implements AuthService {
 			}
 			
 			logger.info("User authenticated successfully");
+			
+			//if user is district officer getting district offices for schedule interview dropdown
+			OfficerDetailDTO officer = applicationServiceImpl.findOfficerByUserId(authRequest.getRequest().getUserName());
+			
+			if (officer == null) {
+		        throw new RequestException(ErrorCode.DATA_NOT_FOUND.getErrorCode(),
+		                "Officer not found with userId: " + authRequest.getRequest().getUserName());
+		    }
+			
+			if(officer.getUserRole().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE)) {
+				String districtValue = officer.getAttributes().get("district");
+				if (districtValue == null || districtValue.trim().isEmpty()) {
+			        throw new RequestException(ErrorCode.INVALID_REQUEST.getErrorCode(),
+			                "District not found in officer attributes for userId: " + authRequest.getRequest().getUserName());
+			    }
+				//String districtName = applicationServiceImpl.extractDistrictName(districtValue);
+				DistrictOfficeResponseDTO districtOfficeDetails = applicationServiceImpl.getDistrictOfficeByName(districtValue);
+				authResponse.getResponse().setDistrictOfficeDetails(districtOfficeDetails);
+			}
+			logger.info("auth response :: {}",authResponse.getResponse());
 			
 			return authResponse.getResponse();
 		} catch (RequestException ex) {
