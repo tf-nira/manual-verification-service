@@ -46,7 +46,9 @@ public enum ErrorCode {
 	NO_OFFICER_FOR_REGION("MVS-043", "No Officer available for region: %s"),
 	INVALID_COUNTRY_NAME("MVS-ERR-301", "Country name cannot be empty or null"),
     REGION_NOT_FOUND("MVS-ERR-302", "No region mapping found for country: %s"),
-    REGION_LOOKUP_ERROR("MVS-ERR-303", "Error occurred while looking up region for country");
+    REGION_LOOKUP_ERROR("MVS-ERR-303", "Error occurred while looking up region for country"),
+    INVALID_REQUEST("MVS-ERR-303","District name cannot be null or empty"),
+	DATA_NOT_FOUND("MVS-ERR-304","District office not found for the given district");
     
 	/**
 	 * The error code.

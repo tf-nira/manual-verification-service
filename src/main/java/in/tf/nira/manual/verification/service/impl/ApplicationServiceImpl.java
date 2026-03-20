@@ -57,6 +57,7 @@ import in.tf.nira.manual.verification.constant.StageCode;
 import in.tf.nira.manual.verification.dto.DemographicDetailsDTO.Document;
 import in.tf.nira.manual.verification.dto.DemographicDetailsDTO.LanguageValue;
 import in.tf.nira.manual.verification.dto.DemographicDetailsDTO.ProofDocument;
+import in.tf.nira.manual.verification.entity.DistrictOffice;
 import in.tf.nira.manual.verification.entity.MVSApplication;
 import in.tf.nira.manual.verification.entity.MVSApplicationHistory;
 import in.tf.nira.manual.verification.entity.OfficerAssignment;
@@ -65,6 +66,7 @@ import in.tf.nira.manual.verification.exception.ApplicationNotFoundException;
 import in.tf.nira.manual.verification.exception.RequestException;
 import in.tf.nira.manual.verification.helper.SearchHelper;
 import in.tf.nira.manual.verification.listener.Listener;
+import in.tf.nira.manual.verification.repository.DistrictOfficeRepository;
 import in.tf.nira.manual.verification.repository.MVSApplicationHistoryRepo;
 import in.tf.nira.manual.verification.repository.MVSApplicationRepo;
 import in.tf.nira.manual.verification.repository.OfficerAssignmentRepo;
@@ -211,6 +213,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 	
 	@Autowired
 	private CountryRegionMapping countryRegionMapping;
+	
+	@Autowired
+	private DistrictOfficeRepository districtOfficeRepository;
 	
 	@Autowired
 	private ServiceProperties serviceProperties;
@@ -2316,5 +2321,27 @@ public class ApplicationServiceImpl implements ApplicationService {
 		}
 		return response;
 	}
+	
+public DistrictOfficeResponseDTO getDistrictOfficeByName (String districtName) {
+		
+		if(districtName == null || districtName.trim().isEmpty()) {
+			throw new RequestException(ErrorCode.INVALID_REQUEST.getErrorCode(), ErrorCode.INVALID_REQUEST.getErrorMessage());
+		}
+		
+		Optional<DistrictOffice> districtOfficeOpt = districtOfficeRepository.findByDistrictNameIgnoreCase(districtName.trim());
+		
+		if(!districtOfficeOpt.isPresent()) {
+			throw new RequestException(ErrorCode.DATA_NOT_FOUND.getErrorCode(), ErrorCode.DATA_NOT_FOUND.getErrorMessage());
+		}
+		
+		DistrictOffice districtOffice = districtOfficeOpt.get();
+		
+		DistrictOfficeResponseDTO response = new DistrictOfficeResponseDTO();
+		response.setDistrictOfficeCode(districtOffice.getDistrictOfficeCode());
+		response.setDistrictOfficeName(districtOffice.getDistrictOfficeName());
+		
+		return response;
+	}
+	
 	
 }
