@@ -3,6 +3,8 @@ package in.tf.nira.manual.verification.repository;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -29,7 +31,7 @@ public interface MVSApplicationRepo extends JpaRepository<MVSApplication, String
 			"WHERE e.assignedOfficerRole = 'MVS_OFFICER' " +
 			"AND ((e.updatedTimes IS NOT NULL AND e.updatedTimes < :dateThreshold) " +
 			"OR (e.updatedTimes IS NULL AND e.crDTimes < :dateThreshold))")
-	List<MVSApplication> findRecordsOlderThanXDays(@Param("dateThreshold") LocalDateTime dateThreshold);
+	Page<MVSApplication> findRecordsOlderThanXDays(@Param("dateThreshold") LocalDateTime dateThreshold, Pageable pageable);
 	
 	@Query("SELECT m FROM mvs_application m WHERE m.stage = :stage AND m.updatedTimes < :dateThreshold")
 	List<MVSApplication> findInterviewExpiredApplications(@Param("stage") String stage, @Param("dateThreshold") LocalDateTime dateThreshold);

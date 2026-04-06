@@ -32,6 +32,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.env.Environment;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -40,6 +41,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
@@ -97,6 +99,8 @@ public class ApplicationServiceImpl implements ApplicationService {
     private static final String SCHEMA_JSON = "schemaJson";
     private static final String SYSTEM = "System";
     private static final String ENCODING = "UTF-8";
+ // Add at the top of ApplicationServiceImpl with other constants
+    private static final int BATCH_SIZE = 500;
     
 	@Value("${manual.verification.user.details.url}")
     private String userDetailsUrl;
@@ -1997,56 +2001,113 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 		LocalDateTime dateThreshold = LocalDateTime.now().minusDays(reassignmentDays);
 		List<OfficerDetailDTO> officers = officerDetailMap.get(CommonConstants.MVS_OFFICER_ROLE);
-		List<MVSApplication> applications = mVSApplicationRepo.findRecordsOlderThanXDays(dateThreshold);
 
-		Map<OfficerDetailDTO, Integer> prevOfficerInfo = new HashMap<>();
-		Set<OfficerDetailDTO> newOfficerInfo = new HashSet<>();
+		if (officers == null || officers.isEmpty()) {
+			logger.warn("No MVS officers available for reassignment, skipping job");
+			return;
+		}
 
-		applications.forEach(application -> {
-			logger.info("Re-assigning application {}", application.getRegId());
+		int totalProcessed = 0;
+		PageRequest pageable = PageRequest.of(0, BATCH_SIZE);
+		Page<MVSApplication> page = mVSApplicationRepo.findRecordsOlderThanXDays(dateThreshold, pageable);
 
-			MVSApplicationHistory appHistory = getAppHistoryEntity(application);
-			mVSApplicationHistoryRepo.save(appHistory);
+		Map<String, Integer> prevOfficerInfo = new HashMap<>();
+		Set<String> newOfficerInfo = new HashSet<>();
 
-			OfficerDetailDTO prevOfficer = officers.stream()
-											.filter(officer -> officer.getUserId().equals(application.getAssignedOfficerId()))
-											.findFirst()
-											.orElse(null);
-			prevOfficerInfo.merge(prevOfficer, 1, Integer::sum);
-
+		while (page.hasContent()) {
 			OfficerAssignment officerAssignment = officerAssignmentRepo.findByUserRole(CommonConstants.MVS_OFFICER_ROLE);
-			OfficerDetailDTO selectedOfficer = fetchOfficerForAssignment(CommonConstants.MVS_OFFICER_ROLE, officerAssignment, null, null);
+			if (officerAssignment == null) {
+				officerAssignment = new OfficerAssignment();
+			}
+			
+			List<MVSApplication> batch = page.getContent();
+			List<MVSApplicationHistory> historyBatch = new ArrayList<>();
 
-			if (selectedOfficer.getUserId().equals(application.getAssignedOfficerId())) {
-				int currentIndex = officers.indexOf(selectedOfficer);
-				selectedOfficer = officers.get((currentIndex + 1) % officers.size());
-				officerAssignment.setUserId(selectedOfficer.getUserId());
+			logger.info("Processing batch of {} records (total processed so far: {})", batch.size(), totalProcessed);
+
+			for (MVSApplication application : batch) {
+				try {
+					logger.info("Re-assigning application {}", application.getRegId());
+
+					String previousOfficerId = application.getAssignedOfficerId();
+
+					if (previousOfficerId != null) {
+						prevOfficerInfo.merge(previousOfficerId, 1, Integer::sum);
+					}
+
+					MVSApplicationHistory appHistory = getAppHistoryEntity(application);
+					historyBatch.add(appHistory);
+
+					// Selecting next officer ensuring different from current
+					OfficerDetailDTO selectedOfficer = selectNextOfficer(officers, officerAssignment,
+							previousOfficerId);
+
+					application.setAssignedOfficerId(selectedOfficer.getUserId());
+					application.setAssignedOfficerName(selectedOfficer.getUserName());
+					application.setAssignedOfficerRole(selectedOfficer.getUserRole());
+					application.setUpdatedBy(SYSTEM);
+					application.setUpdatedTimes(LocalDateTime.now());
+
+					newOfficerInfo.add(selectedOfficer.getUserId());
+
+					logger.info("Application {} re-assigned from {} to {}", application.getRegId(), previousOfficerId,
+							selectedOfficer.getUserId());
+
+				} catch (Exception e) {
+					// Log and continue — don't let one bad record fail entire batch
+					logger.error("Failed to process application {}: {}", application.getRegId(), e.getMessage(), e);
+				}
+
 			}
 
-			application.setAssignedOfficerId(selectedOfficer.getUserId());
-			application.setAssignedOfficerName(selectedOfficer.getUserName());
-			application.setAssignedOfficerRole(selectedOfficer.getUserRole());
-			application.setUpdatedBy(SYSTEM);
-			application.setUpdatedTimes(LocalDateTime.now());
+			//Saving history + applications + officer assignment pointer — ONCE per batch
+			saveBatch(historyBatch, batch, officerAssignment);
+			totalProcessed += batch.size();
 
-			if(officerAssignment.getCrDTimes() == null) {
-				officerAssignment.setCreatedBy(SYSTEM);
-				officerAssignment.setCrDTimes(LocalDateTime.now());
+			logger.info("Batch saved. Total processed so far: {}", totalProcessed);
+			
+			page = mVSApplicationRepo.findRecordsOlderThanXDays(dateThreshold, pageable);
+
+		}
+		logger.info("Reassignment complete. Total records processed: {}. Sending notifications.", totalProcessed);
+		sendReassignmentNotifications(prevOfficerInfo, newOfficerInfo, officers);
+		logger.info("Officer reassignment job completed");
+
+	}
+
+	private void sendReassignmentNotifications(Map<String, Integer> prevOfficerCountMap, Set<String> newOfficerIds,
+			List<OfficerDetailDTO> officers) {
+		//Building officer map to get email at o(1)
+		Map<String, OfficerDetailDTO> officerById = officers.stream()
+				.collect(Collectors.toMap(OfficerDetailDTO::getUserId, o -> o));
+
+		// Notify previous officers with count of reassigned applications
+		prevOfficerCountMap.forEach((officerId, count) -> {
+			OfficerDetailDTO officer = officerById.get(officerId);
+			if (officer != null) {
+				try {
+					sendNotificationToPrevAssignedOfficer(officer, count);
+				} catch (Exception e) {
+					logger.error("Failed to notify prev officer {}: {}", officerId, e.getMessage());
+				}
+			} else {
+				logger.warn("Officer details not found for prev officer id: {}", officerId);
 			}
-			else {
-				officerAssignment.setUpdatedBy(SYSTEM);
-				officerAssignment.setUpdatedTimes(LocalDateTime.now());
-			}
-			officerAssignmentRepo.save(officerAssignment);
-			mVSApplicationRepo.save(application);
-
-			newOfficerInfo.add(selectedOfficer);
-
-			logger.info("Application {} re-assigned to {}", application.getRegId(), application.getAssignedOfficerId());
 		});
 
-		prevOfficerInfo.forEach(this::sendNotificationToPrevAssignedOfficer);
-		newOfficerInfo.forEach(this::sendNotificationToNewAssignedOfficer);
+		// Notify new officers
+		newOfficerIds.forEach(officerId -> {
+			OfficerDetailDTO officer = officerById.get(officerId);
+			if (officer != null) {
+				try {
+					sendNotificationToNewAssignedOfficer(officer);
+				} catch (Exception e) {
+					logger.error("Failed to notify new officer {}: {}", officerId, e.getMessage());
+				}
+			} else {
+				logger.warn("Officer details not found for new officer id: {}", officerId);
+			}
+		});
 	}
 
 	private void sendNotificationToPrevAssignedOfficer(OfficerDetailDTO officer, Integer count) {
@@ -2213,4 +2274,81 @@ public class ApplicationServiceImpl implements ApplicationService {
 		return response;
 	}
 	
+	/**
+	 * Selects the next officer in round-robin order.
+	 * Guarantees selected officer is different from prevOfficerId when more than one officer exists.
+	 * Mutates officerAssignment pointer in-memory — persisted in saveBatch() once per batch.
+	 */
+	private OfficerDetailDTO selectNextOfficer(List<OfficerDetailDTO> officers,
+	                                            OfficerAssignment officerAssignment,
+	                                            String prevOfficerId) {
+	    if (officers.size() == 1) {
+	        // Only one officer — no alternative
+	        return officers.get(0);
+	    }
+
+	    // Find where the current pointer is in the list
+	    String currentPointerId = officerAssignment.getUserId();
+	    int currentIndex = 0;
+
+	    if (currentPointerId != null) {
+	        for (int i = 0; i < officers.size(); i++) {
+	            if (officers.get(i).getUserId().equals(currentPointerId)) {
+	                currentIndex = i;
+	                break;
+	            }
+	        }
+	    }
+
+	    // Select officer at current pointer position
+	    OfficerDetailDTO selected = officers.get(currentIndex);
+
+	    // If selected is the same as the previous officer, advance one more step
+	    if (selected.getUserId().equals(prevOfficerId)) {
+	        currentIndex = (currentIndex + 1) % officers.size();
+	        selected = officers.get(currentIndex);
+	    }
+
+	    // Advance pointer for next assignment
+	    int nextIndex = (currentIndex + 1) % officers.size();
+	    officerAssignment.setUserId(officers.get(nextIndex).getUserId());
+
+	    // Set ID and role if this is a new OfficerAssignment object
+	    if (officerAssignment.getId() == null) {
+	        officerAssignment.setId(UUID.randomUUID().toString());
+	        officerAssignment.setUserRole(CommonConstants.MVS_OFFICER_ROLE);
+	    }
+
+	    return selected;
+	}
+	
+	@Transactional
+	private void saveBatch(List<MVSApplicationHistory> historyBatch,
+	                        List<MVSApplication> applicationBatch,
+	                        OfficerAssignment officerAssignment) {
+	    try {
+	        // Batch insert history
+	        mVSApplicationHistoryRepo.saveAll(historyBatch);
+
+	        // Batch update applications
+	        mVSApplicationRepo.saveAll(applicationBatch);
+
+	        // Save officer assignment pointer once per batch
+	        if (officerAssignment.getCrDTimes() == null) {
+	            officerAssignment.setCreatedBy(SYSTEM);
+	            officerAssignment.setCrDTimes(LocalDateTime.now());
+	        } else {
+	            officerAssignment.setUpdatedBy(SYSTEM);
+	            officerAssignment.setUpdatedTimes(LocalDateTime.now());
+	        }
+	        officerAssignmentRepo.save(officerAssignment);
+
+	        logger.info("Batch saved: {} history records, {} applications",
+	                historyBatch.size(), applicationBatch.size());
+
+	    } catch (Exception e) {
+	        logger.error("Failed to save batch: {}", e.getMessage(), e);
+	        throw e;
+	    }
+	}
 }
