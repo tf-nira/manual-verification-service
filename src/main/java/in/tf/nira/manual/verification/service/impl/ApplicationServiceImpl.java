@@ -325,7 +325,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 				String currentDOB = demographics.get("dateOfBirth");
 				String previousDOB = previousDemographics.getIdentity().getDateOfBirth();
 
-				if (!currentDOB.isEmpty() && !previousDOB.isEmpty()) {
+				if (currentDOB != null && !currentDOB.isEmpty() && previousDOB != null && !previousDOB.isEmpty()) {
 					DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
 					LocalDate currentDate = LocalDate.parse(currentDOB, formatter);
