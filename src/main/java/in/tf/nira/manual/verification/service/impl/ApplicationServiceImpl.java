@@ -674,7 +674,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 						request.getSelectedOfficerLevel().equals(CommonConstants.MVS_DISTRICT_OR_INTERNATIONAL_OFFICER_ROLE)) {
 					ApplicationDetailsResponse appResponse = getApplicationDetails(application, false, false);
 					String nin = appResponse.getDemographics().get("NIN");
-					String district1= getDemoValue(appResponse.getDemographics().get("applicantPlaceOfResidenceDistrict"));
+					String applicantPlaceOfResidenceDistrict = getDemoValue(appResponse.getDemographics().get("applicantPlaceOfResidenceDistrict"));
 					String countyFromPacketManager = getDemoValue(appResponse.getDemographics().get("applicantPlaceOfResidenceCounty"));
 					logger.info("Place of residence county fetched from packet manager for registrationId: {} is: {}", applicationId, countyFromPacketManager);
 					logger.info("NIN for the Application ID {} is: {}", applicationId, nin);
@@ -686,9 +686,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 						residenceStatus = demographicDetailsDTO.getIdentity().getResidenceStatus().get(0).getValue();
 						
 						logger.info("Residence Status for Application ID {} is : {}", applicationId, residenceStatus);
-					} else if (district1!=null || district1 != "") {
+					} else if (applicantPlaceOfResidenceDistrict != null || applicantPlaceOfResidenceDistrict != "") {
 						escalateApplication(application, CommonConstants.MVS_DISTRICT_OFFICER_ROLE,
-								StageCode.ASSIGNED_TO_DISTRICT_OFFICER.getStage(), request, district1, null, countyFromPacketManager);
+								StageCode.ASSIGNED_TO_DISTRICT_OFFICER.getStage(), request, applicantPlaceOfResidenceDistrict, null, countyFromPacketManager);
 					}
 					else {
 						logger.info("NIN is null for Application ID {}, thus cannot escalate the application");
