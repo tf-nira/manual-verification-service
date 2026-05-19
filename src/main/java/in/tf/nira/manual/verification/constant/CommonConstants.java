@@ -247,7 +247,8 @@ public class CommonConstants {
 				"Change of Particulars",
 				"Renewal of card",
 				"GetFirst ID",
-				"Replacement of card"
+				"Replacement of card",
+				"Deactivated"
 		});
 		put("Documents not in required format ", new String[]{
 				"New registrations"
@@ -269,7 +270,8 @@ public class CommonConstants {
 				"Change of Particulars",
 				"Renewal of card",
 				"GetFirst ID",
-				"Replacement of card"
+				"Replacement of card",
+				"Deactivated"
 		});
 		put("Fraudulent/Altered /doctored documents ", new String[]{
 				"New registrations",
@@ -278,7 +280,8 @@ public class CommonConstants {
 				"Replacement of card"
 		});
 		put("Fraudulent/Altered /doctored documents", new String[]{
-				"Renewal of card"
+				"Renewal of card",
+				"Deactivated"
 		});
 		put("No payment receipt attached", new String[]{
 				"Change of Particulars",
