@@ -323,7 +323,8 @@ public class CommonConstants {
 				"Replacement of card"
 		});
 		put("Other ( Free Text)", new String[]{
-				"Renewal of card"
+				"Renewal of card",
+				"Deactivated"
 		});
 	}};
 	
