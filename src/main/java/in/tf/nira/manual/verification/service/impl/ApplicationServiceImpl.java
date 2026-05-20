@@ -1343,6 +1343,12 @@ public class ApplicationServiceImpl implements ApplicationService {
 		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 		String email = appResponse.getDemographics().get("email");
         String phone = appResponse.getDemographics().get("phone");
+
+		if (application.getServiceType().equalsIgnoreCase("Alien Deactivated")) {
+			email = appResponse.getDemographics().get("DCICemail");
+			phone = appResponse.getDemographics().get("DCICphone");
+		}
+
 		String userServiceType = application.getServiceType();
         String district = schInterviewDTO.getDistrict() == null ? 
         		getDemoValue(appResponse.getDemographics().get("applicantPlaceOfResidenceDistrict")) : schInterviewDTO.getDistrict();
