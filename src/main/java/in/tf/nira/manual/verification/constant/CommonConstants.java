@@ -49,6 +49,7 @@ public class CommonConstants {
 	//id-repo
 	
 	public static final String NIN = "NIN";
+	public static final String AIN = "AIN";
 	public static final String GIVEN_NAME = "givenName";
 	public static final String SURNAME = "surname";
 	public static final String DATE_OF_BIRTH = "dateOfBirth";
