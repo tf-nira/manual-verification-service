@@ -91,17 +91,32 @@ public class CbeffToBiometricUtil {
 			List<BIR> bIRTypeList = birType.getBirs();
 
 			for(BIR bir : bIRTypeList) {
-				if (bir.getBdb() != null && !Objects.equals(bir.getBdbInfo().getType().get(0).value(), "Face")) {
+				if (bir.getBdb() != null && bir.getBdbInfo() != null
+						&& bir.getBdbInfo().getType() != null
+						&& !bir.getBdbInfo().getType().isEmpty()
+						&& !Objects.equals(bir.getBdbInfo().getType().get(0).value(), "Face")) {
+
 					String type = bir.getBdbInfo().getType().get(0).value();
+					List<String> subtypeList = bir.getBdbInfo().getSubtype();
+
+					// Guard: skip if subtype list doesn't have enough entries
+					if (subtypeList == null || subtypeList.isEmpty()) {
+						continue; // skip this BIR, no subtype data
+					}
 
 					String subType;
 					if (type.equalsIgnoreCase("finger")) {
-						subType = bir.getBdbInfo().getSubtype().get(0) + " " + bir.getBdbInfo().getSubtype().get(1);
+						if (subtypeList.size() < 2) {
+							continue; // finger needs 2 subtypes (e.g. "Left Index")
+						}
+						subType = subtypeList.get(0) + " " + subtypeList.get(1);
 					} else {
-						subType = bir.getBdbInfo().getSubtype().get(0);
+						subType = subtypeList.get(0);
 					}
 
-					bioInfo.get(type).add(subType);
+					if (bioInfo.containsKey(type)) {
+						bioInfo.get(type).add(subType);
+					}
 				}
 			}
 		}
