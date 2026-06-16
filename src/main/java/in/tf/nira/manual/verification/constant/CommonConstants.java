@@ -13,6 +13,7 @@ public class CommonConstants {
 	public static final String MVS_SENIOR_REGISTRATION_OFFICER = "MVS_SENIOR_REGISTRATION_OFFICER";
 	public static final String MVS_INTERNATIONAL_OFFICER = "MVS_INTERNATIONAL_OFFICER";
 	public static final String MVS_MANAGER= "MVS_MANAGER";
+	public static final String MVS_OFFICER_FOR_ALIEN = "MVS_OFFICER_FOR_ALIEN";
 	
 	//Location hierarchy
 	public static final String COUNTY_ATTRIBUTE_KEY = "county";
@@ -45,6 +46,7 @@ public class CommonConstants {
 	
 	//service
 	public static final String UPDATE = "UPDATE";
+	public static final String ALIEN = "Alien";
 	
 	//Packet-Manager
 	public static final String FETCH_DOCUMENT_ID = "mosip.manual.verification.fetch.document";
