@@ -261,7 +261,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 		if (verifyRequest.getService().equals(CommonConstants.UPDATE)) {
 			officerRole = getOfficerRoleBasedOnUpdateService(verifyRequest);
-		} else if(verifyRequest.getService().contains(CommonConstants.ALIEN)) {
+		} else if(verifyRequest.getServiceType().contains(CommonConstants.ALIEN)) {
 			officerRole = CommonConstants.MVS_OFFICER_FOR_ALIEN;
 		} else {
 			officerRole = CommonConstants.MVS_OFFICER_ROLE;
