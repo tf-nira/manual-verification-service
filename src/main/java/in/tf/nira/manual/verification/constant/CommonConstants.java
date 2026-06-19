@@ -31,6 +31,7 @@ public class CommonConstants {
 	public static final String GET_MATCHED_ID_DEMOGRAPHICS = "tf.nira.app.matchedId.demographic";
 	//service
 	public static final String UPDATE = "UPDATE";
+	public static final String ALIEN = "Alien";
 	
 	//Packet-Manager
 	public static final String FETCH_DOCUMENT_ID = "mosip.manual.verification.fetch.document";
