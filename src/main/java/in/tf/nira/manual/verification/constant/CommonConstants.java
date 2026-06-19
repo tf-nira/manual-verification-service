@@ -39,6 +39,7 @@ public class CommonConstants {
 
 	//service
 	public static final String UPDATE = "UPDATE";
+	public static final String ALIEN = "Alien";
 	
 	//Packet-Manager
 	public static final String FETCH_DOCUMENT_ID = "mosip.manual.verification.fetch.document";
