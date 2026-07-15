@@ -1323,6 +1323,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 				dataShareResponse.getDocuments().forEach((key, value) -> {
 					documents.put(key, CryptoUtil.decodeURLSafeBase64(value));
 				});
+				logger.info("DOCUMENTS: {}", documents);
 				
 				applicationDetailsResponse.setDocuments(documents);
 			}
@@ -2304,6 +2305,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 	        
 	        DocumentResponseDTO response = new DocumentResponseDTO();
 	        response.setDocuments(documentsList);
+			logger.info("DOCUMENT RESPONSE: {}", response);
 	        
 	        return response;
 	    } catch (Exception e) {
