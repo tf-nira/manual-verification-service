@@ -1129,9 +1129,47 @@ public class ApplicationServiceImpl implements ApplicationService {
 	        	logger.info("Decrypting response from data share");
 	            response = cryptoUtil.decrypt(response);
 	        }
-	        
-	        response = new String(response.getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8);
-	        DataShareResponseDto dataShareResponse = objectMapper.readValue(response, DataShareResponseDto.class);
+
+			// DEBUG: capture response BEFORE charset conversion
+			logger.info("Response length BEFORE charset conversion for RegId [{}]: {}",
+					application.getRegId(), response != null ? response.length() : -1);
+			logger.info("Response snippet BEFORE charset conversion for RegId [{}]: {}",
+					application.getRegId(),
+					response != null ? response.substring(0, Math.min(200, response.length())) : "null");
+
+			// DEBUG: check specifically if proofOfPoliceLetter appears anywhere in the raw response
+			// (helps distinguish "never sent by Data Share" vs "sent but corrupted/dropped by charset conversion or parsing")
+			logger.info("Does raw response BEFORE charset conversion contain 'proofOfPoliceLetter'? {}",
+					response != null && response.contains("proofOfPoliceLetter"));
+
+			response = new String(response.getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8);
+
+			// DEBUG: capture response AFTER charset conversion
+			logger.info("Response length AFTER charset conversion for RegId [{}]: {}",
+					application.getRegId(), response != null ? response.length() : -1);
+			logger.info("Response snippet AFTER charset conversion for RegId [{}]: {}",
+					application.getRegId(),
+					response != null ? response.substring(0, Math.min(200, response.length())) : "null");
+			logger.info("Does response AFTER charset conversion contain 'proofOfPoliceLetter'? {}",
+					response != null && response.contains("proofOfPoliceLetter"));
+
+			DataShareResponseDto dataShareResponse;
+			try {
+				dataShareResponse = objectMapper.readValue(response, DataShareResponseDto.class);
+
+				// DEBUG: log what actually got deserialized into the DTO
+				logger.info("Deserialized dataShareResponse for RegId [{}] - documents keySet: {}",
+						application.getRegId(),
+						dataShareResponse.getDocuments() != null ? dataShareResponse.getDocuments().keySet() : "null documents map");
+				logger.info("Deserialized dataShareResponse for RegId [{}] - identity keySet: {}",
+						application.getRegId(),
+						dataShareResponse.getIdentity() != null ? dataShareResponse.getIdentity().keySet() : "null identity map");
+			} catch (JsonProcessingException e) {
+				// DEBUG: if the mangled string breaks JSON parsing entirely, this tells you immediately
+				logger.error("Failed to deserialize DataShareResponseDto for RegId [{}] after charset conversion. Error: {}",
+						application.getRegId(), e.getMessage(), e);
+				throw e;
+			}
 	        
 	        Map<String, String> demographicsMap = new HashMap<>(dataShareResponse.getIdentity());
 	        
