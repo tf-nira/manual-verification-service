@@ -1319,13 +1319,49 @@ public class ApplicationServiceImpl implements ApplicationService {
 			}
 			
 			if (dataShareResponse.getDocuments() != null && includeDocuments) {
+				// DEBUG: log raw keys returned from Data Share before any processing
+				logger.info("RAW DOCUMENT KEYS from dataShareResponse for RegId [{}]: {}",
+						application.getRegId(), dataShareResponse.getDocuments().keySet());
+
 				Map<String, Object> documents = new HashMap<>();
 				dataShareResponse.getDocuments().forEach((key, value) -> {
-					documents.put(key, CryptoUtil.decodeURLSafeBase64(value));
+					try {
+						// DEBUG: log each key and a snippet of its raw (still-encoded) value
+						logger.info("Processing document key: [{}], raw value length: {}, raw value snippet: {}",
+								key,
+								value != null ? value.length() : -1,
+								value != null ? value.substring(0, Math.min(30, value.length())) : "null");
+
+						byte[] decoded = CryptoUtil.decodeURLSafeBase64(value);
+
+						// DEBUG: confirm successful decode and size
+						logger.info("Successfully decoded document key: [{}], decoded byte length: {}",
+								key, decoded != null ? decoded.length : -1);
+
+						documents.put(key, decoded);
+					} catch (Exception e) {
+						// DEBUG: this is likely where a silent failure could occur -
+						// previously any exception here would propagate up and get
+						// swallowed by the outer catch block, silently dropping ALL documents,
+						// not just the problematic one
+						logger.error("Failed to decode document for key: [{}] on RegId [{}]. Error: {}",
+								key, application.getRegId(), e.getMessage(), e);
+					}
 				});
+
+				// DEBUG: log final key set actually placed into the response
+				logger.info("FINAL DOCUMENT KEYS being set on ApplicationDetailsResponse for RegId [{}]: {}",
+						application.getRegId(), documents.keySet());
+
 				logger.info("DOCUMENTS: {}", documents);
 				
 				applicationDetailsResponse.setDocuments(documents);
+			} else {
+				// DEBUG: log why the block was skipped entirely
+				logger.warn("Document block skipped for RegId [{}]. dataShareResponse.getDocuments() null? {}, includeDocuments flag: {}",
+						application.getRegId(),
+						dataShareResponse.getDocuments() == null,
+						includeDocuments);
 			}
 			
 		    applicationDetailsResponse.setApplicationId(application.getRegId());
