@@ -22,6 +22,7 @@ on:
       - MOSIP*
       - tf_nira_dev
       - refactor/district_officer_assignment
+      - cop_assignment_update
 
 jobs:
   build-maven-manual-verification-service:
