@@ -504,18 +504,11 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 					long daysDifference = Math.abs(ChronoUnit.DAYS.between(previousDate, currentDate));
 
-					if (daysDifference > (4 * 365)) return CommonConstants.MVS_LEGAL_OFFICER_ROLE;
+					if (daysDifference > (4 * 365)) return CommonConstants.MVS_SUPERVISOR_ROLE;
 				}
 			}
-
-			// check for serviceTypesForLegalOfficer
-			for (String serviceType: serviceTypesForLegalOfficer) {
-				if (demographics.get(serviceType) != null && demographics.get(serviceType).equals("Y")) {
-					return CommonConstants.MVS_LEGAL_OFFICER_ROLE;
-				}
-			}
-
-			return CommonConstants.MVS_OFFICER_ROLE;
+			
+			return CommonConstants.MVS_SUPERVISOR_ROLE;
 
 		} catch (HttpClientErrorException ex) {
 			logger.error("Invalid data share url: {}", ex.getLocalizedMessage(), ex);
