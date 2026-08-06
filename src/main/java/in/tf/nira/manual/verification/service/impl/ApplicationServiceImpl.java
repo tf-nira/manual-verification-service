@@ -2314,7 +2314,6 @@ public class ApplicationServiceImpl implements ApplicationService {
 		return result;
 	}
 
->>>>>>> 76957e1 (code changes for single district officer assigned to multiple district and county)
 	protected OfficerDetailDTO findOfficerByUserId(String userId) {
 	    // Search in all role maps
 	    for (Map.Entry<String, List<OfficerDetailDTO>> entry : officerDetailMap.entrySet()) {

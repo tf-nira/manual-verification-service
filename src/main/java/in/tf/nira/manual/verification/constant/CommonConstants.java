@@ -69,5 +69,6 @@ public class CommonConstants {
 	//Application status for mvs-admin
 	public static final String APPROVED = "APPROVED";
 	public static final String REJECTED = "REJECTED";
+	public static final String AIN = "AIN";
 
 }
