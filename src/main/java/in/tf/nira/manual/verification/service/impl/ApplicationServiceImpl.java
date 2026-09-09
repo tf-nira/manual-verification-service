@@ -474,6 +474,15 @@ public class ApplicationServiceImpl implements ApplicationService {
 		
 		MVSApplication application = getApplicationById(applicationId);
 		
+		String loggedInUserId = UserDetailUtil.getLoggedInUserId();		
+		
+		if(loggedInUserId == null || !loggedInUserId.equals(application.getAssignedOfficerId())) {
+			logger.error("User {} is not authorized to act on application Id {})",
+					loggedInUserId, applicationId);
+			throw new RequestException(ErrorCode.USER_NOT_AUTHORIZED.getErrorCode(),
+					ErrorCode.USER_NOT_AUTHORIZED.getErrorMessage());
+		}
+		
 		switch (request.getStatus()) {
 			case CommonConstants.APPROVE_STATUS:
 				approveApplication(application, request.getComment());
@@ -651,6 +660,15 @@ public class ApplicationServiceImpl implements ApplicationService {
 		logger.info("Scheduling interview for ID: {}", applicationId);
 		
 		MVSApplication application = getApplicationById(applicationId);
+		
+		String loggedInUserId = UserDetailUtil.getLoggedInUserId();		
+		
+		if(loggedInUserId == null || !loggedInUserId.equals(application.getAssignedOfficerId())) {
+			logger.error("User {} is not authorized to act on application Id {})",
+					loggedInUserId, applicationId);
+			throw new RequestException(ErrorCode.USER_NOT_AUTHORIZED.getErrorCode(),
+					ErrorCode.USER_NOT_AUTHORIZED.getErrorMessage());
+		}
 		
 		if(application.getAssignedOfficerRole().equals(CommonConstants.MVS_DISTRICT_OFFICER_ROLE) ||
 				application.getAssignedOfficerRole().equals(CommonConstants.MVS_LEGAL_OFFICER_ROLE) ||
