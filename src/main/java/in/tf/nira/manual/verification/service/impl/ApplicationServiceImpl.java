@@ -645,11 +645,13 @@ public class ApplicationServiceImpl implements ApplicationService {
         MVSApplication application = getApplicationById(applicationId);
         
         String loggedInUserId = UserDetailUtil.getLoggedInUserId();		
+		String assignedOfficerId = application.getAssignedOfficerId();
+		boolean isAssignedOfficer = loggedInUserId != null && loggedInUserId.equals(assignedOfficerId);
 		
-        logger.info("DEBUG - loggedInUserId='{}', assignedOfficerId='{}'",
-                loggedInUserId, application.getAssignedOfficerId());
+		logger.info("Authenticated user ID='{}', assigned officer ID='{}', is assigned officer='{}'",
+				loggedInUserId, assignedOfficerId, isAssignedOfficer);
         
-		if(loggedInUserId == null || !loggedInUserId.equals(application.getAssignedOfficerId())) {
+		if(!isAssignedOfficer) {
 			logger.error("User {} is not authorized to act on application Id {})",
 					loggedInUserId, applicationId);
 			throw new RequestException(ErrorCode.USER_NOT_AUTHORIZED.getErrorCode(),
@@ -666,11 +668,13 @@ public class ApplicationServiceImpl implements ApplicationService {
 		MVSApplication application = getApplicationById(applicationId);
 		
 		String loggedInUserId = UserDetailUtil.getLoggedInUserId();		
+		String assignedOfficerId = application.getAssignedOfficerId();
+		boolean isAssignedOfficer = loggedInUserId != null && loggedInUserId.equals(assignedOfficerId);
 		
-		logger.info("DEBUG - loggedInUserId='{}', assignedOfficerId='{}'",
-		        loggedInUserId, application.getAssignedOfficerId());
+		logger.info("Authenticated user ID='{}', assigned officer ID='{}', is assigned officer='{}'",
+		        loggedInUserId, assignedOfficerId, isAssignedOfficer);
 		
-		if(loggedInUserId == null || !loggedInUserId.equals(application.getAssignedOfficerId())) {
+		if(!isAssignedOfficer) {
 			logger.error("User {} is not authorized to act on application Id {})",
 					loggedInUserId, applicationId);
 			throw new RequestException(ErrorCode.USER_NOT_AUTHORIZED.getErrorCode(),
@@ -859,8 +863,13 @@ public class ApplicationServiceImpl implements ApplicationService {
 		MVSApplication application = getApplicationById(applicationId);
 		
 		String loggedInUserId = UserDetailUtil.getLoggedInUserId();		
+		String assignedOfficerId = application.getAssignedOfficerId();
+		boolean isAssignedOfficer = loggedInUserId != null && loggedInUserId.equals(assignedOfficerId);
 		
-		if(loggedInUserId == null || !loggedInUserId.equals(application.getAssignedOfficerId())) {
+		logger.info("Authenticated user ID='{}', assigned officer ID='{}', is assigned officer='{}'",
+				loggedInUserId, assignedOfficerId, isAssignedOfficer);
+		
+		if(!isAssignedOfficer) {
 			logger.error("User {} is not authorized to act on application Id {})",
 					loggedInUserId, applicationId);
 			throw new RequestException(ErrorCode.USER_NOT_AUTHORIZED.getErrorCode(),
