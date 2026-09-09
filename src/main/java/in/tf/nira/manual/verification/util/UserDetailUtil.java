@@ -30,7 +30,18 @@ public class UserDetailUtil {
 	 */
 	public static String getLoggedInUserId() {
 		AuthUserDetails loggedInUser = getLoggedInUserDetails();
-		return loggedInUser != null ? loggedInUser.getUserId() : null;
+		logger.info("loggedInUser details: {}",loggedInUser);
+		if (loggedInUser != null && loggedInUser.getUserId() != null) {
+			return loggedInUser.getUserId();
+		}
+
+		if (Objects.nonNull(SecurityContextHolder.getContext())
+				&& Objects.nonNull(SecurityContextHolder.getContext().getAuthentication())) {
+			logger.info("loggedInUser details2: {}",SecurityContextHolder.getContext().getAuthentication().getName());
+			return SecurityContextHolder.getContext().getAuthentication().getName();
+		}
+
+		return null;
 	}
 	
 	public static String getLoggedInUser() {
