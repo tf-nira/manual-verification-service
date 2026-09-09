@@ -2,12 +2,14 @@ package in.tf.nira.manual.verification.util;
 
 import java.util.Objects;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import in.tf.nira.manual.verification.dto.AuthUserDetails;
 
 public class UserDetailUtil {
-	
+	private static final Logger logger = LoggerFactory.getLogger(UserDetailUtil.class);
 	/**
 	 * 
 	 * @return
