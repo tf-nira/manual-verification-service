@@ -464,6 +464,15 @@ public class ApplicationServiceImpl implements ApplicationService {
 		logger.info("Fetching application for ID: {}", applicationId);
         
         MVSApplication application = getApplicationById(applicationId);
+        
+        String loggedInUserId = UserDetailUtil.getLoggedInUserId();		
+		
+		if(loggedInUserId == null || !loggedInUserId.equals(application.getAssignedOfficerId())) {
+			logger.error("User {} is not authorized to act on application Id {})",
+					loggedInUserId, applicationId);
+			throw new RequestException(ErrorCode.USER_NOT_AUTHORIZED.getErrorCode(),
+					ErrorCode.USER_NOT_AUTHORIZED.getErrorMessage());
+		}
 		
 	    return getApplicationDetails(application, true, true);
 	}
