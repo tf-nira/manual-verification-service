@@ -502,9 +502,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 					LocalDate currentDate = LocalDate.parse(currentDOB, formatter);
 					LocalDate previousDate = LocalDate.parse(previousDOB, formatter);
 
-					long daysDifference = Math.abs(ChronoUnit.DAYS.between(previousDate, currentDate));
+					long yearsDifference = Math.abs(ChronoUnit.YEARS.between(previousDate, currentDate));
+					if(yearsDifference > 4) return CommonConstants.MVS_LEGAL_OFFICER_ROLE;
 
-					if (daysDifference > (4 * 365)) return CommonConstants.MVS_LEGAL_OFFICER_ROLE;
 				}
 			}
 
