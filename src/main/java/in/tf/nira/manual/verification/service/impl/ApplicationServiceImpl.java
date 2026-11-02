@@ -116,6 +116,9 @@ public class ApplicationServiceImpl implements ApplicationService {
 
 	@Value("${manual.verification.officerAssignment.updateDOBServiceType}")
 	private String updateDOBServiceType;
+	
+	@Value("${manual.verification.officerAssignment.userServiceTypeForLegalOfficer.alienCOP}")
+	private String alienCOPUserServiceType;
 
 	@Value("${manual.verification.data.share.encryption:false}")
 	private boolean encryption;
@@ -514,7 +517,11 @@ public class ApplicationServiceImpl implements ApplicationService {
 					return CommonConstants.MVS_LEGAL_OFFICER_ROLE;
 				}
 			}
-
+			
+			if(verifyRequest.getServiceType().equals(alienCOPUserServiceType)) {
+				return CommonConstants.MVS_LEGAL_OFFICER_ROLE;
+			}
+			
 			return CommonConstants.MVS_OFFICER_ROLE;
 
 		} catch (HttpClientErrorException ex) {
