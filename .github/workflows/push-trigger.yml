@@ -23,6 +23,7 @@ on:
       - tf_nira_dev
       - refactor/district_officer_assignment
       - cop_assignment_update
+      -alien_cop_changes
 
 jobs:
   build-maven-manual-verification-service:
