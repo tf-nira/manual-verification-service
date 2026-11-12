@@ -329,16 +329,6 @@ public class CommonConstants {
 				"GetFirst ID",
 				"Replacement of card"
 		});
-		put("Other", new String[]{
-				"New registrations",
-				"Change of Particulars",
-				"GetFirst ID",
-				"Replacement of card"
-		});
-		put("Other ( Free Text)", new String[]{
-				"Renewal of card",
-				"Deactivated"
-		});
 		put("Correction Not Supported by Original Records", new String[]{
 				"Change of Particulars"
 		});
@@ -353,6 +343,16 @@ public class CommonConstants {
 		});
 		put("False or Misleading Information", new String[]{
 				"Change of Particulars"
+		});
+		put("Other", new String[]{
+				"New registrations",
+				"Change of Particulars",
+				"GetFirst ID",
+				"Replacement of card"
+		});
+		put("Other ( Free Text)", new String[]{
+				"Renewal of card",
+				"Deactivated"
 		});
 	}};
 	
