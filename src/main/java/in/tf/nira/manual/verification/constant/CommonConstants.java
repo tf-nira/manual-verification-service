@@ -234,6 +234,18 @@ public class CommonConstants {
 				"New registrations",
 				"New registrations officer",
 		});
+		put("Material Identity Discrepancies", new String[]{
+				"Change of Particulars"
+		});
+		put("Court Order or Pending Litigation", new String[]{
+				"Change of Particulars"
+		});
+		put("Significant Legal or Institutional Risk", new String[]{
+				"Change of Particulars"
+		});
+		put("Exceptional Case Requiring Executive Direction", new String[]{
+				"Change of Particulars"
+		});
 	}};
 
 	public static final Map<String, String[]> REJECTION_CATEGORIES = new LinkedHashMap<>() {{
@@ -326,6 +338,21 @@ public class CommonConstants {
 		put("Other ( Free Text)", new String[]{
 				"Renewal of card",
 				"Deactivated"
+		});
+		put("Correction Not Supported by Original Records", new String[]{
+				"Change of Particulars"
+		});
+		put("Identity Not Established", new String[]{
+				"Change of Particulars"
+		});
+		put("Confirmed Duplicate Registration", new String[]{
+				"Change of Particulars"
+		});
+		put("Application Outside Alien COP Scope", new String[]{
+				"Change of Particulars"
+		});
+		put("False or Misleading Information", new String[]{
+				"Change of Particulars"
 		});
 	}};
 	
