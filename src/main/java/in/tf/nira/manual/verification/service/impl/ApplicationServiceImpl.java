@@ -2443,8 +2443,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 		logger.info("Checking applications for re-assignment");
 
 		LocalDateTime dateThreshold = LocalDateTime.now().minusDays(reassignmentDays);
-		List<String> requiredRoles = Arrays.asList(CommonConstants.MVS_OFFICER_ROLE, CommonConstants.MVS_SUPERVISOR_ROLE, 
-										CommonConstants.MVS_LEGAL_OFFICER_ROLE);
+		List<String> requiredRoles = Arrays.asList(CommonConstants.MVS_OFFICER_ROLE, CommonConstants.MVS_SUPERVISOR_ROLE);
 		
 		List<OfficerDetailDTO> officers = requiredRoles
 											.stream()
