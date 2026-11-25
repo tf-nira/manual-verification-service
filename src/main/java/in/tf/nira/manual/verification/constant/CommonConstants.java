@@ -89,7 +89,8 @@ public class CommonConstants {
 				"Renewal of card officer",
 				"GetFirst ID",
 				"Replacement of card",
-				"Change of Particulars"
+				"Change of Particulars",
+				"CRVS registrations"
 		});
 		put("Supporting documents look suspicious/forged/Altered", new String[]{
 				"New registrations",
@@ -98,90 +99,110 @@ public class CommonConstants {
 				"Renewal of card officer",
 				"GetFirst ID",
 				"Replacement of card",
-				"Change of Particulars"
+				"Change of Particulars",
+				"CRVS registrations"
 		});
 		put("Inconsistent information on tribe of mother", new String[]{
 				"New registrations",
-				"New registrations officer"
+				"New registrations officer",
+				"CRVS registrations"
 		});
 		put("Inconsistent information on clan of mother", new String[]{
 				"New registrations",
-				"New registrations officer"
+				"New registrations officer",
+				"CRVS registrations"
 		});
 		put("Inconsistent information on tribe of father", new String[]{
 				"New registrations",
-				"New registrations officer"
+				"New registrations officer",
+				"CRVS registrations"
 		});
 		put("Inconsistent information on clan of father", new String[]{
 				"New registrations",
-				"New registrations officer"
+				"New registrations officer",
+				"CRVS registrations"
 		});
 		put("Inconsistent information on place of origin-Father", new String[]{
 				"New registrations",
-				"New registrations officer"
+				"New registrations officer",
+				"CRVS registrations"
 		});
 		put("Inconsistent information on place of origin-Mother", new String[]{
 				"New registrations",
-				"New registrations officer"
+				"New registrations officer",
+				"CRVS registrations"
 		});
 		put("Inconsistent information on place of origin-Blood Relative", new String[]{
 				"New registrations",
-				"New registrations officer"
+				"New registrations officer",
+				"CRVS registrations"
 		});
 		put("Wrong citizenship category/Type", new String[]{
 				"New registrations",
 				"New registrations officer",
 				"Renewal of card",
-				"Renewal of card officer"
+				"Renewal of card officer",
+				"CRVS registrations"
 		});
 		put("Applicant’s citizenship is stoplisted/blocked", new String[]{
 				"New registrations",
 				"New registrations officer",
 				"Renewal of card",
-				"Renewal of card officer"
+				"Renewal of card officer",
+				"CRVS registrations"
 		});
 		put("Father/Mother is too young", new String[]{
 				"New registrations",
-				"New registrations officer"
+				"New registrations officer",
+				"CRVS registrations"
 		});
 		put("Grandparents are too young", new String[]{
 				"New registrations",
-				"New registrations officer"
+				"New registrations officer",
+				"CRVS registrations"
 		});
 		put("Different DOB/Age of mother on mother’s individual application", new String[]{
 				"New registrations",
-				"New registrations officer"
+				"New registrations officer",
+				"CRVS registrations"
 		});
 		put("Different DOB/Age of father on father’s individual application", new String[]{
 				"New registrations",
-				"New registrations officer"
+				"New registrations officer",
+				"CRVS registrations"
 		});
 		put("Different DOB/Age of blood relative on blood relative individual application", new String[]{
 				"New registrations",
-				"New registrations officer"
+				"New registrations officer",
+				"CRVS registrations"
 		});
 		put("Attempting double registration", new String[]{
 				"New registrations",
-				"New registrations officer"
+				"New registrations officer",
+				"CRVS registrations"
 		});
 		put("NIN has already been used to identify more than 20 people", new String[]{
 				"New registrations",
-				"New registrations officer"
+				"New registrations officer",
+				"CRVS registrations"
 		});
 		put("Indigenous community not listed under Schedule 3", new String[]{
 				"New registrations",
-				"New registrations officer"
+				"New registrations officer",
+				"CRVS registrations"
 		});
 		put("Missing Documentation", new String[]{
 				"New registrations",
 				"New registrations officer",
-				"Renewal of card"
+				"Renewal of card",
+				"CRVS registrations"
 		});
 		put("Insufficient Documentation", new String[]{
 				"New registrations",
 				"New registrations officer",
 				"Renewal of card",
-				"Renewal of card officer"
+				"Renewal of card officer",
+				"CRVS registrations"
 		});
 		put("Father is too young", new String[]{
 				"Renewal of card",
@@ -232,7 +253,8 @@ public class CommonConstants {
 
 	public static final Map<String, String[]> REJECTION_CATEGORIES = new LinkedHashMap<>() {{
 		put("Rejected due to evidence of non citizenship", new String[]{
-				"New registrations"
+				"New registrations",
+				"CRVS registrations"
 		});
 		put("Insufficient supporting documents to determine citizenship", new String[]{
 				"New registrations"
@@ -242,10 +264,12 @@ public class CommonConstants {
 				"Change of Particulars",
 				"Renewal of card",
 				"GetFirst ID",
-				"Replacement of card"
-		});
+				"Replacement of card",
+				"Deactivated",
+				"CRVS registrations"});
 		put("Documents not in required format ", new String[]{
-				"New registrations"
+				"New registrations",
+				"CRVS registrations"
 		});
 		put("Documents not in required format (i.e SD exists but not registered)", new String[]{
 				"Change of Particulars",
@@ -254,23 +278,28 @@ public class CommonConstants {
 				"Replacement of card"
 		});
 		put("Unsatisfactory CV Interview at Point of Registration ", new String[]{
-				"New registrations"
+				"New registrations",
+				"CRVS registrations"
 		});
 		put("Second register/application exists (May or may not have a NIN, stop listed)", new String[]{
-				"New registrations"
+				"New registrations",
+				"CRVS registrations"
 		});
 		put("Poorly scanned documents to enable decision", new String[]{
 				"New registrations",
 				"Change of Particulars",
 				"Renewal of card",
 				"GetFirst ID",
-				"Replacement of card"
+				"Replacement of card",
+				"Deactivated",
+				"CRVS registrations"
 		});
 		put("Fraudulent/Altered /doctored documents ", new String[]{
 				"New registrations",
 				"Change of Particulars",
 				"GetFirst ID",
-				"Replacement of card"
+				"Replacement of card",
+				"CRVS registrations"
 		});
 		put("Fraudulent/Altered /doctored documents", new String[]{
 				"Renewal of card"
@@ -312,7 +341,8 @@ public class CommonConstants {
 				"New registrations",
 				"Change of Particulars",
 				"GetFirst ID",
-				"Replacement of card"
+				"Replacement of card",
+				"CRVS registrations"
 		});
 		put("Other ( Free Text)", new String[]{
 				"Renewal of card"
